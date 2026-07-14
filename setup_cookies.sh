@@ -1,16 +1,23 @@
 #!/bin/bash
 # ==============================================================================
-# SETUP COOKIES — Cegukan Seeker V20
+# SETUP COOKIES — Cegukan Seeker V21
 # Mengexport cookies YouTube dari Chrome Android untuk hindari rate limit
 # ==============================================================================
 
-CONFIG_DIR=".cs20"
+# ── Auto-detect folder root, sama seperti cs20.sh & inject_webhook.sh ──
+# Biar berapapun beda direktori hasil git clone tiap orang, .cs20/ selalu
+# ke-generate satu folder yang sama dengan lokasi script ini disimpan.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="$SCRIPT_DIR/.cs20"
 COOKIES_FILE="$CONFIG_DIR/cookies.txt"
 mkdir -p "$CONFIG_DIR"
 
 echo "================================================================"
-echo "  🍪 SETUP COOKIES — CEGUKAN SEEKER V20"
+echo "  🍪 SETUP COOKIES — CEGUKAN SEEKER V21"
 echo "================================================================"
+echo ""
+echo "  Root folder terdeteksi : $SCRIPT_DIR"
+echo "  Cookies akan disimpan  : $COOKIES_FILE"
 echo ""
 echo "  Cookies YouTube diperlukan supaya tidak kena rate limit."
 echo "  Skrip akan coba beberapa metode otomatis."
@@ -22,7 +29,6 @@ if yt-dlp --cookies-from-browser chrome \
           --cookies "$COOKIES_FILE" \
           --skip-download --quiet \
           "https://www.youtube.com/watch?v=dQw4w9WgXcQ" 2>/dev/null; then
-
     if [ -f "$COOKIES_FILE" ] && [ -s "$COOKIES_FILE" ]; then
         echo "  [✅] Berhasil dari Chrome Android!"
         echo ""
@@ -38,7 +44,6 @@ if yt-dlp --cookies-from-browser firefox \
           --cookies "$COOKIES_FILE" \
           --skip-download --quiet \
           "https://www.youtube.com/watch?v=dQw4w9WgXcQ" 2>/dev/null; then
-
     if [ -f "$COOKIES_FILE" ] && [ -s "$COOKIES_FILE" ]; then
         echo "  [✅] Berhasil dari Firefox Android!"
         echo ""
@@ -53,7 +58,6 @@ if yt-dlp --cookies-from-browser chromium \
           --cookies "$COOKIES_FILE" \
           --skip-download --quiet \
           "https://www.youtube.com/watch?v=dQw4w9WgXcQ" 2>/dev/null; then
-
     if [ -f "$COOKIES_FILE" ] && [ -s "$COOKIES_FILE" ]; then
         echo "  [✅] Berhasil dari Chromium Termux!"
         exit 0
@@ -75,8 +79,8 @@ echo "  2. Buka YouTube di Chrome, pastikan sudah login"
 echo ""
 echo "  3. Klik ikon ekstensi → pilih 'Export' → simpan sebagai cookies.txt"
 echo ""
-echo "  4. Pindahkan file cookies.txt ke folder .cs20/ :"
-echo "     cp /sdcard/Download/cookies.txt $COOKIES_FILE"
+echo "  4. Pindahkan file cookies.txt ke folder .cs20/ di root project ini:"
+echo "     cp /sdcard/Download/cookies.txt \"$COOKIES_FILE\""
 echo ""
 echo "  5. Jalankan lagi: bash setup_cookies.sh"
 echo "     (untuk verifikasi file sudah benar)"
@@ -90,5 +94,4 @@ else
     echo "  [ℹ️]  Tanpa cookies, skrip tetap bisa berjalan"
     echo "        tapi akan lebih lambat karena jeda antar request lebih panjang."
 fi
-
 echo "================================================================"
