@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#   CHATSEEKER V3.1 — LIVE CHAT MINER (Integrated Edition)
-#   Integrated with Cegukan Seeker V21 Unified
-#   Reads config from environment variables set by cs20.sh
+#   CHATSEEKER V3.0 — LIVE CHAT MINER
+#   Full Python · Rich Dashboard · Error Detection · Checkpoint · Discord
+#   Rewrite dari chatseeker.sh V2.1 + adaptasi error engine dari cs20_age_engine
 # ==============================================================================
 
 import gc
@@ -43,20 +43,18 @@ except ImportError:
     sys.exit(1)
 
 # ==============================================================================
-# KONFIGURASI — dari environment variables (diset oleh cs20.sh)
+# KONFIGURASI — edit di sini
 # ==============================================================================
-DISCORD_WEBHOOK = os.environ.get("CHATSEEKER_WEBHOOK", "")
-OPERATOR        = os.environ.get("CHATSEEKER_OPERATOR", "Operator")
-WORKERS         = int(os.environ.get("CHATSEEKER_JOBS", "4"))
-
+DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1517591900637364375/y-DH3wJ5yonUeCX1Wmwq_luox9AlodaFqyMrpwfQWmJAI1pYDpqySkEZyJ_MFpO9hkKQ"
 LOG_FILE        = Path(".chatseeker_log.json")
 CHECKPOINT_DIR  = Path(".cs_checkpoints")
-DL_SLEEP_BASE   = 0.8
+WORKERS         = 4          # paralel download
+DL_SLEEP_BASE   = 0.8        # detik jeda antar request (lebih rendah dari v2)
 SOCK_TIMEOUT    = 15
 EXTRACTOR_RETRY = 3
 
 # ==============================================================================
-# TERMINAL SIZING
+# TERMINAL SIZING — aman untuk Termux sempit
 # ==============================================================================
 _TERM_W       = shutil.get_terminal_size(fallback=(50, 24)).columns
 _COMPACT      = _TERM_W < 52
@@ -70,9 +68,9 @@ _console      = Console(highlight=False)
 _stats_lock   = threading.Lock()
 _html_lock    = threading.Lock()
 
-# Stats real-time
+# Stats real-time (diupdate dari thread)
 _stats = {
-    "phase":        "dl",
+    "phase":        "dl",       # "dl" | "parse"
     "done":         0,
     "total":        0,
     "ok":           0,
@@ -89,11 +87,12 @@ _stats = {
     "start_time":   0.0,
 }
 
+# Untuk partial-report saat SIGINT
 _current_target   = ""
-_operator_name    = OPERATOR
-_partial_html     = []
-_html_kolektif    = []
-_score_buckets    = {4: [], 3: [], 2: [], 1: []}
+_operator_name    = ""
+_partial_html     = []        # list string HTML rows
+_html_kolektif    = []        # list string HTML sections (thread-safe via _html_lock)
+_score_buckets    = {4: [], 3: [], 2: [], 1: []}  # bucket score per level
 _score_lock       = threading.Lock()
 _shutdown_flag    = threading.Event()
 
@@ -112,6 +111,7 @@ def _fmt_eta(done: int, total: int, start_time: float) -> str:
 
 
 def _safe_wc(path: Path) -> int:
+    """Hitung baris file tanpa fork wc."""
     try:
         return sum(1 for _ in path.open())
     except Exception:
@@ -119,9 +119,15 @@ def _safe_wc(path: Path) -> int:
 
 
 def _ytdlp_cmd() -> list[str]:
+    """
+    Deteksi cara invoke yt-dlp yang tersedia di sistem.
+    Prioritas: binary 'yt-dlp' → 'python3 -m yt_dlp' → error.
+    Di-cache setelah deteksi pertama.
+    """
     if _ytdlp_cmd._cache is not None:
         return _ytdlp_cmd._cache
 
+    # Coba binary langsung (paling umum di Termux)
     try:
         r = subprocess.run(
             ["yt-dlp", "--version"],
@@ -133,6 +139,7 @@ def _ytdlp_cmd() -> list[str]:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
+    # Coba python3 -m yt_dlp
     try:
         r = subprocess.run(
             ["python3", "-m", "yt_dlp", "--version"],
@@ -144,13 +151,14 @@ def _ytdlp_cmd() -> list[str]:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
-    _ytdlp_cmd._cache = []
+    _ytdlp_cmd._cache = []   # tidak ditemukan
     return []
 
-_ytdlp_cmd._cache = None
+_ytdlp_cmd._cache = None   # type: ignore
 
 
 def _run(cmd: list, timeout: int = 60, env: dict | None = None) -> subprocess.CompletedProcess:
+    """Wrapper subprocess.run dengan timeout."""
     return subprocess.run(
         cmd, capture_output=True, text=True,
         timeout=timeout, env=env or os.environ.copy(),
@@ -158,13 +166,18 @@ def _run(cmd: list, timeout: int = 60, env: dict | None = None) -> subprocess.Co
 
 
 def _classify_ytdlp_error(combined: str) -> str:
+    """
+    Klasifikasi error output yt-dlp → status string.
+    Diadaptasi dari cs20_age_engine._download_subtitle_with_cookies.
+    """
     c = combined.lower()
     if "video unavailable" in c or "private video" in c or "this video is not available" in c:
         return "unavailable"
     if "confirm your age" in c or "age-restricted" in c or "age restricted" in c:
-        return "unavailable"
+        return "unavailable"          # age-restricted → tidak bisa diproses tanpa cookies
     if "no subtitles" in c or "there are no" in c or "subtitles not available" in c \
             or "no live_chat" in c or "live chat replay" not in c and "live_chat" not in c:
+        # yt-dlp akan tulis error jika tidak ada live_chat
         return "no_chat"
     if "429" in c or "too many requests" in c or "http error 429" in c:
         return "rate_limited"
@@ -176,10 +189,11 @@ def _classify_ytdlp_error(combined: str) -> str:
 
 
 # ==============================================================================
-# RICH DASHBOARD — Full Panel (Mode Pantau Style)
+# RICH DASHBOARD — Full Panel (Opsi C)
 # ==============================================================================
 
 def _make_dashboard(target: str) -> Panel:
+    """Buat panel dashboard stats untuk Live display."""
     s   = _stats
     tot = s["total"] or 1
     pct = s["done"] * 100 // tot
@@ -191,6 +205,7 @@ def _make_dashboard(target: str) -> Panel:
         else "[bold green]🔍 PARSING & SCORE[/bold green]"
     )
 
+    # Tabel inner kiri: progress + phase
     left = Table(box=None, show_header=False, padding=(0, 1))
     left.add_column("k", style="dim",        min_width=12)
     left.add_column("v", style="bold white",  min_width=14)
@@ -212,6 +227,7 @@ def _make_dashboard(target: str) -> Panel:
     left.add_row("[yellow]Network[/yellow]",  f"[yellow]{s['network']}[/yellow]")
     left.add_row("[red]Error[/red]",          f"[red]{s['error']}[/red]")
 
+    # Tabel inner kanan: score buckets
     right = Table(box=None, show_header=False, padding=(0, 1))
     right.add_column("k", style="dim",       min_width=10)
     right.add_column("v", style="bold white", min_width=6)
@@ -239,6 +255,7 @@ def _make_dashboard(target: str) -> Panel:
         f"[magenta]{s['hits']}[/magenta]"
     )
 
+    # Gabung kiri-kanan
     if _COMPACT:
         body = left
     else:
@@ -246,9 +263,9 @@ def _make_dashboard(target: str) -> Panel:
 
     return Panel(
         body,
-        title=f"[bold]CHATSEEKER V3.1[/bold]",
+        title=f"[bold]CHATSEEKER V3.0[/bold]",
         subtitle=f"[dim]operator: {_operator_name}[/dim]",
-        border_style="magenta",
+        border_style="cyan",
         width=_PANEL_W,
         padding=(0, 1),
     )
@@ -308,7 +325,7 @@ def _show_log_channel(channel: str):
     tbl.add_column("Video",   width=6,  justify="right")
     tbl.add_column("Hits",    width=6,  justify="right")
     tbl.add_column("Waktu",   width=16)
-    for i, e in enumerate(entries[-10:], 1):
+    for i, e in enumerate(entries[-10:], 1):   # max 10 entri terbaru
         tbl.add_row(
             str(i),
             e.get("filter_mode", "?"),
@@ -350,11 +367,14 @@ def _reset_checkpoint(channel: str):
 # ==============================================================================
 
 def _fetch_video_ids(channel: str) -> list[str]:
+    """
+    Ambil daftar video ID dari channel/streams via yt-dlp --flat-playlist.
+    Return list of video_id string, kosong jika gagal.
+    """
     ytdlp = _ytdlp_cmd()
     if not ytdlp:
         _console.print(
-            "[red]  [✗] yt-dlp tidak ditemukan![/red]
-"
+            "[red]  [\u2717] yt-dlp tidak ditemukan![/red]\n"
             "  [dim]Install: pip install yt-dlp --break-system-packages[/dim]"
         )
         return []
@@ -372,10 +392,12 @@ def _fetch_video_ids(channel: str) -> list[str]:
         r   = _run(cmd, timeout=120)
         ids = [l.strip() for l in r.stdout.splitlines() if l.strip()]
 
+        # Kalau kosong tapi ada stderr — tampilkan ringkasan error
         if not ids and r.stderr.strip():
             err = r.stderr.strip()[:300]
             _console.print(f"  [yellow][!] yt-dlp output:[/yellow] [dim]{err}[/dim]")
 
+        # Deduplikasi, urutan tetap
         seen, uniq = set(), []
         for v in ids:
             if v not in seen:
@@ -383,29 +405,40 @@ def _fetch_video_ids(channel: str) -> list[str]:
         return uniq
 
     except subprocess.TimeoutExpired:
-        _console.print("[red]  [✗] Timeout saat fetch (>120 detik). Cek koneksi.[/red]")
+        _console.print("[red]  [\u2717] Timeout saat fetch (>120 detik). Cek koneksi.[/red]")
         return []
     except FileNotFoundError:
-        _console.print("[red]  [✗] yt-dlp tidak ditemukan di PATH.[/red]")
+        _console.print("[red]  [\u2717] yt-dlp tidak ditemukan di PATH.[/red]")
         return []
     except Exception as e:
-        _console.print(f"[red]  [✗] Error fetch: {e}[/red]")
+        _console.print(f"[red]  [\u2717] Error fetch: {e}[/red]")
         return []
 
 
 # ==============================================================================
-# FASE 1: DOWNLOAD LIVE CHAT
+# FASE 1: DOWNLOAD LIVE CHAT (per video, dipanggil dari ThreadPoolExecutor)
 # ==============================================================================
 
 def _download_chat(video_id: str, work_dir: Path) -> dict:
+    """
+    Download live_chat subtitle untuk satu video_id.
+    Return dict {video_id, status, chat_file, error_type, error_msg}.
+
+    Status:
+      "ok"          — chat_file tersedia
+      "no_chat"     — video tidak punya live chat / bukan livestream
+      "unavailable" — video private/dihapus/age-restricted
+      "rate_limited"— HTTP 429
+      "network_error"— timeout / koneksi gagal
+      "error"       — error lain
+    """
     url    = f"https://www.youtube.com/watch?v={video_id}"
     outtmpl = str(work_dir / f"chat_{video_id}")
 
     ytdlp = _ytdlp_cmd()
     if not ytdlp:
-        return {"video_id": video_id, "status": "error",
-                "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan",
-                "chat_file": None}
+        return {**base, "status": "error",
+                "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan"}
 
     cmd = [
         *ytdlp,
@@ -431,10 +464,12 @@ def _download_chat(video_id: str, work_dir: Path) -> dict:
         r    = _run(cmd, timeout=60)
         comb = (r.stdout + " " + r.stderr)
 
+        # Cari output file
         chat_path = work_dir / f"chat_{video_id}.live_chat.json"
         if chat_path.exists() and chat_path.stat().st_size > 10:
             return {**base, "status": "ok", "chat_file": chat_path}
 
+        # Tidak ada file — parse error dari output yt-dlp
         status = _classify_ytdlp_error(comb)
         return {**base, "status": status,
                 "error_type": status,
@@ -452,9 +487,10 @@ def _download_chat(video_id: str, work_dir: Path) -> dict:
 
 
 # ==============================================================================
-# FASE 2: PARSE & SCORE
+# FASE 2: PARSE & SCORE (single-pass, efisien)
 # ==============================================================================
 
+# Keyword regex — dikompile sekali saja
 _KW_UTAMA = re.compile(
     r'"text"\s*:\s*"[^"]*(cegukan|cekukan|kecegukan)[^"]*"',
     re.IGNORECASE
@@ -482,6 +518,10 @@ _TEXT_RE = re.compile(r'"text"\s*:\s*"([^"]*)"')
 
 
 def _score_file(chat_path: Path) -> int:
+    """
+    Hitung skor dari file chat JSON dengan single-pass baca file.
+    Return int skor.
+    """
     try:
         content = chat_path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
@@ -498,6 +538,10 @@ def _score_file(chat_path: Path) -> int:
 
 
 def _extract_hits(video_id: str, chat_path: Path) -> list[dict]:
+    """
+    Single-pass JSON parse → ekstrak baris chat yang match keyword.
+    Return list of {sec, ts, text, url}.
+    """
     hits = []
     try:
         with chat_path.open(encoding="utf-8", errors="ignore") as f:
@@ -538,6 +582,13 @@ def _extract_hits(video_id: str, chat_path: Path) -> list[dict]:
 
 
 def _parse_and_score(video_id: str, chat_path: Path, target_ch: str) -> dict:
+    """
+    Parse satu file chat:
+    1. Hitung skor (single-pass)
+    2. Ekstrak hits
+    3. Buat HTML section
+    Return dict result.
+    """
     score = _score_file(chat_path)
     if score == 0:
         return {"video_id": video_id, "score": 0, "level": 0, "hits": [], "html": ""}
@@ -557,6 +608,7 @@ def _parse_and_score(video_id: str, chat_path: Path, target_ch: str) -> dict:
 
     hits    = _extract_hits(video_id, chat_path)
 
+    # HTML section
     rows = ""
     for h in hits:
         safe_text = (h["text"]
@@ -599,7 +651,7 @@ def _build_html(target: str, results: list[dict]) -> str:
     header = (
         "<!DOCTYPE html><html><head>"
         "<meta charset='UTF-8'>"
-        f"<title>ChatSeeker V3.1 — @{target}</title>"
+        f"<title>ChatSeeker V3 — @{target}</title>"
         "<style>"
         "body{background:#0d1117;color:#c9d1d9;font-family:monospace;padding:20px}"
         "h2{color:#58a6ff;border-bottom:1px solid #30363d;padding-bottom:8px}"
@@ -607,13 +659,12 @@ def _build_html(target: str, results: list[dict]) -> str:
         "a{color:#58a6ff;text-decoration:none}"
         "a:hover{text-decoration:underline}"
         "</style></head><body>"
-        f"<h2>CHATSEEKER V3.1 — @{target}</h2>"
+        f"<h2>CHATSEEKER V3.0 — @{target}</h2>"
         f"<p style='color:#8b949e'>Operator: {_operator_name} | "
         f"Dibuat: {datetime.now().strftime('%d-%m-%Y %H:%M')}</p>"
         f"<p style='color:#8b949e'>Klik timestamp biru untuk lompat ke momen di YouTube.</p>"
     )
-    body  = "
-".join(r["html"] for r in results if r.get("html"))
+    body  = "\n".join(r["html"] for r in results if r.get("html"))
     footer = "</body></html>"
     return header + body + footer
 
@@ -633,14 +684,13 @@ def _send_discord(
         return
 
     total_hits = t4 + t3 + t2 + t1
-    mention    = "@everyone 🚨 LEVEL-4 TERDETEKSI! 🚨
-" if t4 > 0 else ""
+    mention    = "@everyone 🚨 LEVEL-4 TERDETEKSI! 🚨\n" if t4 > 0 else ""
     title_pfx  = "⚠️ [PARTIAL — INTERRUPTED]" if partial else "🗃️ LAPORAN FORENSIK"
 
     payload = {
         "content": mention,
         "embeds": [{
-            "title": f"{title_pfx} [CHATSEEKER V3.1]",
+            "title": f"{title_pfx} [CHATSEEKER V3]",
             "color": 16776960 if partial else 65535,
             "fields": [
                 {"name": "👤 Operator",          "value": _operator_name or "?",   "inline": True},
@@ -652,7 +702,7 @@ def _send_discord(
                 {"name": "🟡 LVL-2-SEDANG",      "value": f"`{t2}` arsip",         "inline": True},
                 {"name": "⚪ LVL-1-RENDAH",       "value": f"`{t1}` arsip",         "inline": True},
             ],
-            "footer": {"text": "ChatSeeker V3.1 | Integrated Edition"},
+            "footer": {"text": "ChatSeeker V3.0 | Python · Rich"},
         }]
     }
 
@@ -688,6 +738,7 @@ def _send_discord(
 _tmp_dir: Path | None = None
 
 def _cleanup(work_dir: Path | None = None):
+    """Hapus semua file temp."""
     target = work_dir or _tmp_dir
     if target and target.exists():
         try:
@@ -697,9 +748,9 @@ def _cleanup(work_dir: Path | None = None):
 
 
 def _sigint_handler(sig, frame):
+    """SIGINT — kirim partial report lalu exit bersih."""
     _shutdown_flag.set()
-    _console.print("
-")
+    _console.print("\n")
     _console.print(Rule("[bold red][!] INTERRUPT TERDETEKSI[/bold red]"))
 
     with _score_lock:
@@ -713,6 +764,7 @@ def _sigint_handler(sig, frame):
         _console.print(
             f"  [yellow][~] Ada {total_hits} temuan — mengirim partial report...[/yellow]"
         )
+        # Buat HTML parsial
         with _html_lock:
             html_sections = list(_html_kolektif)
 
@@ -752,9 +804,7 @@ def _sigint_handler(sig, frame):
 
     _console.print("  [yellow][~] Membersihkan cache...[/yellow]")
     _cleanup()
-    _console.print(f"
-  [green][✓] Sampai jumpa, {_operator_name}![/green]
-")
+    _console.print(f"\n  [green][✓] Sampai jumpa, {_operator_name}![/green]\n")
     sys.exit(1)
 
 
@@ -762,20 +812,25 @@ signal.signal(signal.SIGINT, _sigint_handler)
 
 
 # ==============================================================================
-# ENGINE UTAMA — FORENSIK (Mode Pantau Style Dashboard)
+# ENGINE UTAMA — FORENSIK
 # ==============================================================================
 
 def run_forensik_engine(
     target:      str,
-    filter_mode: str,
-    max_vid:     int | str,
+    filter_mode: str,   # "ALL" | "LIMIT" | "CHECKPOINT" | "LIMIT_CHECKPOINT"
+    max_vid:     int | str,   # int atau "ALL"
 ) -> bool:
+    """
+    Engine utama: fetch ID → download chat (paralel) → parse+score (paralel) → laporan.
+    Return True jika sukses.
+    """
     global _current_target, _tmp_dir, _html_kolektif, _score_buckets
 
     _current_target = target
     _html_kolektif  = []
     _score_buckets  = {4: [], 3: [], 2: [], 1: []}
 
+    # Reset stats
     with _stats_lock:
         for k in list(_stats.keys()):
             if k not in ("start_time",):
@@ -785,16 +840,15 @@ def run_forensik_engine(
     # ── FASE 0: Fetch ID ───────────────────────────────────────────────────────
     _console.print("")
     _console.print(Panel(
-        f"[white]Target  :[/white] [cyan]@{target}[/cyan]
-"
+        f"[white]Target  :[/white] [cyan]@{target}[/cyan]\n"
         f"[white]Filter  :[/white] [yellow]{filter_mode}[/yellow]"
         + (f" — max [bold]{max_vid}[/bold] video" if max_vid != "ALL" else ""),
-        title="[bold magenta]CHATSEEKER V3.1 — MULAI SCAN[/bold magenta]",
-        border_style="magenta",
+        title="[bold cyan]CHATSEEKER V3.0 — MULAI SCAN[/bold cyan]",
+        border_style="cyan",
         width=_PANEL_W,
     ))
 
-    with _console.status("[magenta]Menghubungkan ke YouTube...[/magenta]"):
+    with _console.status("[cyan]Menghubungkan ke YouTube...[/cyan]"):
         all_ids = _fetch_video_ids(target)
 
     if not all_ids:
@@ -814,9 +868,8 @@ def run_forensik_engine(
             _console.print(
                 "  [yellow][i] Semua video sudah pernah diproses.[/yellow]"
             )
-            _console.print("  [dim]Reset checkpoint dan mulai ulang? (y/n)[/dim]")
-            reset_input = input("  ➤ ").strip().lower()
-            if reset_input in ('y', 'ya', 'yes'):
+            reset = Confirm.ask("  Reset checkpoint dan mulai ulang?", default=False)
+            if reset:
                 _reset_checkpoint(target)
                 all_ids = _fetch_video_ids(target)
             else:
@@ -848,7 +901,7 @@ def run_forensik_engine(
         _stats["phase"]      = "dl"
 
     # ══════════════════════════════════════════════════════════════════════════
-    # FASE 1: DOWNLOAD CHAT PARALEL — Full Dashboard
+    # FASE 1: DOWNLOAD CHAT PARALEL — Full Dashboard (Opsi C)
     # ══════════════════════════════════════════════════════════════════════════
     progress_dl = _make_progress_bar("DL CHAT", "yellow")
     task_dl     = progress_dl.add_task(f"DL @{target}", total=total)
@@ -862,14 +915,18 @@ def run_forensik_engine(
     layout["progress"].update(progress_dl)
 
     dl_results: list[dict] = []
-    failed_ids: dict[str, dict] = {}
+
+    # Error tracking untuk retry summary
+    failed_ids: dict[str, dict] = {}    # video_id → {status, error_msg}
     retryable_statuses = {"network_error", "rate_limited", "error"}
+
     consecutive_rl = 0
 
     def _worker_dl(vid_id: str) -> dict:
         if _shutdown_flag.is_set():
             return {"video_id": vid_id, "status": "skipped",
                     "chat_file": None, "error_type": "shutdown", "error_msg": ""}
+        # Adaptive delay — makin banyak rate limit, makin panjang jeda
         rl_now = _stats.get("rate_limited", 0)
         base   = DL_SLEEP_BASE + min(rl_now * 0.25, 6.0)
         time.sleep(random.uniform(base, base + 1.5))
@@ -910,6 +967,7 @@ def run_forensik_engine(
 
                 dl_results.append(res)
 
+                # Log baris per video (via progress.console agar tidak ganggu Live)
                 icon_map = {
                     "ok":           "[green]✓[/green]",
                     "no_chat":      "[dim]—[/dim]",
@@ -929,34 +987,33 @@ def run_forensik_engine(
                 layout["progress"].update(progress_dl)
                 live.refresh()
 
+                # Rate limit guard: 10 berturut → cooldown, bukan shutdown
                 if consecutive_rl >= 10:
                     live.stop()
                     _console.print(
-                        f"
-[yellow][⚠] {consecutive_rl}× rate limit berturut — "
+                        f"\n[yellow][⚠] {consecutive_rl}× rate limit berturut — "
                         f"cooldown 90 detik...[/yellow]"
                     )
                     time.sleep(90)
                     consecutive_rl = 0
                     live.start()
 
+    # File chat yang berhasil
     ok_files = [(r["video_id"], r["chat_file"])
                 for r in dl_results if r["status"] == "ok" and r.get("chat_file")]
 
     if not ok_files:
-        _console.print("
-[red]  [✗] Tidak ada file chat berhasil diunduh.[/red]")
+        _console.print("\n[red]  [✗] Tidak ada file chat berhasil diunduh.[/red]")
         _cleanup(work_dir)
         return False
 
     _console.print(
-        f"
-  [green][✓] Download selesai — "
+        f"\n  [green][✓] Download selesai — "
         f"[bold]{len(ok_files)}[/bold] file chat.[/green]"
     )
 
     # ══════════════════════════════════════════════════════════════════════════
-    # FASE 2: PARSE & SCORE PARALEL
+    # FASE 2: PARSE & SCORE PARALEL — Full Dashboard (Opsi C)
     # ══════════════════════════════════════════════════════════════════════════
     with _stats_lock:
         _stats["phase"]      = "parse"
@@ -1007,6 +1064,7 @@ def run_forensik_engine(
 
                 parse_results.append(res)
 
+                # Log baris
                 if level > 0:
                     lvl_colors = {4: "bold red", 3: "red", 2: "yellow", 1: "dim"}
                     progress_parse.console.print(
@@ -1037,6 +1095,7 @@ def run_forensik_engine(
     total_hits = t4 + t3 + t2 + t1
     elapsed    = time.time() - _stats["start_time"]
 
+    # Tampil hasil
     _console.print("")
     _console.print(Rule(f"[bold green]HASIL FORENSIK @{target}[/bold green]"))
 
@@ -1073,31 +1132,30 @@ def run_forensik_engine(
 
     _console.print(result_tbl)
 
-    # ── Error summary + retry ─────────────────────────────────────────────────
+    # ── Error summary + tawaran retry ─────────────────────────────────────────
     retryable = {vid: info for vid, info in failed_ids.items()
                  if info["status"] in retryable_statuses}
 
     if retryable:
         _console.print("")
         _console.print(Panel(
-            f"[yellow]{len(retryable)} video gagal karena error yang bisa di-retry:[/yellow]
-"
-            + "
-".join(
+            f"[yellow]{len(retryable)} video gagal karena error yang bisa di-retry:[/yellow]\n"
+            + "\n".join(
                 f"  [dim]{vid}[/dim]  [{info['status']}] "
                 f"[dim]{(info.get('error_msg') or '')[:60]}[/dim]"
                 for vid, info in list(retryable.items())[:10]
             )
-            + ("
-  [dim]...(lebih banyak)[/dim]" if len(retryable) > 10 else ""),
+            + ("\n  [dim]...(lebih banyak)[/dim]" if len(retryable) > 10 else ""),
             title=f"[yellow]⚠ {len(retryable)} Video Gagal (Retryable)[/yellow]",
             border_style="yellow",
             width=_PANEL_W,
         ))
 
-        _console.print("  [dim]Retry video yang gagal sekarang? (y/n)[/dim]")
-        retry_input = input("  ➤ ").strip().lower()
-        if retry_input in ('y', 'ya', 'yes'):
+        do_retry = Confirm.ask(
+            f"  Retry {len(retryable)} video yang gagal sekarang?",
+            default=True,
+        )
+        if do_retry:
             _console.print(f"  [cyan]Retry {len(retryable)} video...[/cyan]")
             retry_ids  = list(retryable.keys())
             retry_ok   = []
@@ -1115,6 +1173,7 @@ def run_forensik_engine(
                         r = f.result()
                         if r["status"] == "ok" and r.get("chat_file"):
                             retry_ok.append((r["video_id"], r["chat_file"]))
+                            # Parse langsung
                             pr = _parse_and_score(r["video_id"], r["chat_file"], target)
                             if pr["level"] > 0:
                                 with _stats_lock:
@@ -1126,6 +1185,7 @@ def run_forensik_engine(
                                     if pr.get("html"):
                                         _html_kolektif.append(pr["html"])
                                 parse_results.append(pr)
+                                # Update totals
                                 t4 = len(_score_buckets[4])
                                 t3 = len(_score_buckets[3])
                                 t2 = len(_score_buckets[2])
@@ -1179,6 +1239,7 @@ def run_forensik_engine(
         html_path,
     )
 
+    # Hapus HTML jika berhasil dikirim (ukuran kecil)
     if html_path and html_path.exists():
         if html_path.stat().st_size <= 7.5 * 1024 * 1024:
             try:
@@ -1191,6 +1252,7 @@ def run_forensik_engine(
     _console.print(f"  [green][✓] Laporan terkirim ke Discord.[/green]")
     _console.print(f"  [green][✓] Log tersimpan.[/green]")
 
+    # ── Cleanup temp ──────────────────────────────────────────────────────────
     _cleanup(work_dir)
     _console.print(f"  [green][✓] Cache dibersihkan.[/green]")
     _console.print(Rule(style="dim"))
@@ -1200,73 +1262,297 @@ def run_forensik_engine(
 
 
 # ==============================================================================
-# MAIN — Read from stdin (called by cs20.sh)
+# MENU LOG
+# ==============================================================================
+
+def menu_log():
+    while True:
+        _console.clear()
+        _console.print(Rule("[bold cyan]CHATSEEKER V3 — LOG PENCARIAN[/bold cyan]"))
+        data = _load_log()
+
+        if not data:
+            _console.print("  [dim]Log masih kosong.[/dim]")
+        else:
+            tbl = Table(box=rbox.SIMPLE, show_header=True, header_style="bold cyan",
+                        width=_PANEL_W)
+            tbl.add_column("Channel", width=20)
+            tbl.add_column("Scan", width=5, justify="right")
+            for ch, entries in data.items():
+                tbl.add_row(f"@{ch}", str(len(entries)))
+            _console.print(tbl)
+
+        _console.print("")
+        _console.print("  [cyan]1.[/cyan] Lihat detail channel")
+        _console.print("  [cyan]2.[/cyan] Hapus log channel")
+        _console.print("  [cyan]3.[/cyan] Hapus SEMUA log")
+        _console.print("  [cyan]4.[/cyan] Info checkpoint")
+        _console.print("  [cyan]5.[/cyan] Reset checkpoint channel")
+        _console.print("  [dim]6. Kembali[/dim]")
+        _console.print("")
+
+        choice = Prompt.ask("  [bold cyan]Pilihan[/bold cyan]",
+                            choices=["1","2","3","4","5","6"], default="6")
+
+        if choice == "1":
+            ch = Prompt.ask("  [cyan]Username channel[/cyan]").strip().lstrip("@")
+            _show_log_channel(ch)
+            input("\n  [Enter] lanjut...")
+
+        elif choice == "2":
+            ch   = Prompt.ask("  [cyan]Username channel[/cyan]").strip().lstrip("@")
+            data = _load_log()
+            if ch in data:
+                del data[ch]
+                _save_log(data)
+                _console.print(f"  [green][✓] Log @{ch} dihapus.[/green]")
+            else:
+                _console.print(f"  [red][!] @{ch} tidak ditemukan.[/red]")
+            input("\n  [Enter] lanjut...")
+
+        elif choice == "3":
+            if Confirm.ask("  [red]Yakin hapus SEMUA log?[/red]", default=False):
+                _save_log({})
+                _console.print("  [green][✓] Semua log dihapus.[/green]")
+            input("\n  [Enter] lanjut...")
+
+        elif choice == "4":
+            ch = Prompt.ask("  [cyan]Username channel[/cyan]").strip().lstrip("@")
+            done = _load_checkpoint(ch)
+            _console.print(
+                f"  [cyan]Checkpoint @{ch}:[/cyan] "
+                f"[bold]{len(done)}[/bold] video sudah diproses."
+            )
+            input("\n  [Enter] lanjut...")
+
+        elif choice == "5":
+            ch = Prompt.ask("  [cyan]Username channel[/cyan]").strip().lstrip("@")
+            if Confirm.ask(f"  Reset checkpoint @{ch}?", default=False):
+                _reset_checkpoint(ch)
+                _console.print(f"  [green][✓] Checkpoint @{ch} direset.[/green]")
+            input("\n  [Enter] lanjut...")
+
+        elif choice == "6":
+            break
+
+
+# ==============================================================================
+# INPUT FILTER
+# ==============================================================================
+
+def input_filter(channel: str) -> tuple[str, int | str]:
+    """
+    Interaktif pilih filter mode.
+    Return (filter_mode, max_vid).
+    """
+    _console.print("")
+    _console.print("  [white]PILIH MODE FILTER:[/white]")
+    _console.print("  [cyan]1.[/cyan] Max N Video Terbaru")
+    _console.print("  [cyan]2.[/cyan] Lanjut dari Checkpoint")
+    _console.print("  [cyan]3.[/cyan] Tanpa Filter (semua arsip)")
+    _console.print("")
+
+    fc = Prompt.ask("  [bold cyan]Pilihan[/bold cyan]",
+                    choices=["1", "2", "3"], default="3")
+
+    if fc == "1":
+        while True:
+            try:
+                n = int(Prompt.ask("  [cyan]Jumlah video teratas[/cyan]"))
+                if n > 0:
+                    break
+                _console.print("  [red]Harus lebih dari 0.[/red]")
+            except ValueError:
+                _console.print("  [red]Masukkan angka valid.[/red]")
+
+        # Cek checkpoint
+        done = _load_checkpoint(channel)
+        if done:
+            _console.print(
+                f"  [yellow][i] Ada checkpoint: {len(done)} video sudah diproses.[/yellow]"
+            )
+            use_cp = Confirm.ask("  Lanjut dari checkpoint?", default=False)
+            if use_cp:
+                return "LIMIT_CHECKPOINT", n
+        return "LIMIT", n
+
+    elif fc == "2":
+        done = _load_checkpoint(channel)
+        if not done:
+            _console.print(
+                "  [yellow][i] Belum ada checkpoint untuk channel ini. "
+                "Mulai fresh.[/yellow]"
+            )
+            return "CHECKPOINT", "ALL"
+
+        while True:
+            try:
+                raw = Prompt.ask(
+                    "  [cyan]Proses berapa video per sesi? "
+                    "(Enter = semua sisa)[/cyan]",
+                    default="ALL",
+                )
+                if raw.upper() == "ALL" or raw == "":
+                    return "CHECKPOINT", "ALL"
+                n = int(raw)
+                if n > 0:
+                    return "CHECKPOINT", n
+                _console.print("  [red]Harus lebih dari 0.[/red]")
+            except ValueError:
+                _console.print("  [red]Masukkan angka valid atau Enter.[/red]")
+
+    else:
+        return "ALL", "ALL"
+
+
+# ==============================================================================
+# MAIN — BANNER + MODE SELECTION
 # ==============================================================================
 
 def main():
     global _operator_name
 
-    # Read configuration from stdin (passed by cs20.sh)
-    lines = sys.stdin.read().strip().split('
-')
-
-    if len(lines) < 3:
-        _console.print("[red][❌] Konfigurasi tidak lengkap. Jalankan via cs20.sh[/red]")
-        sys.exit(1)
-
-    target       = lines[0].strip().lstrip("@")
-    filter_mode  = lines[1].strip()
-    max_vid      = lines[2].strip()
-
-    # Optional operator override
-    if len(lines) >= 4 and lines[3].strip():
-        _operator_name = lines[3].strip()
-
-    if max_vid.upper() == "ALL" or max_vid == "":
-        max_vid = "ALL"
-    else:
-        try:
-            max_vid = int(max_vid)
-        except ValueError:
-            max_vid = "ALL"
-
     _console.clear()
+
+    # Banner
     _console.print(Panel(
         Align.center(
-            "[bold magenta]"
-            "  ██████╗██╗  ██╗ █████╗ ████████╗
-"
-            " ██╔════╝██║  ██║██╔══██╗╚══██╔══╝
-"
-            " ██║     ███████║███████║   ██║    
-"
-            " ██║     ██╔══██║██╔══██║   ██║    
-"
-            " ╚██████╗██║  ██║██║  ██║   ██║    
-"
-            "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝  ╚═╝    
-"
-            "[/bold magenta]"
-            "[bold white]  CHATSEEKER V3.1 — LIVE CHAT FORENSIK[/bold white]
-"
-            "[dim]  Integrated Edition · Rich Dashboard · Paralel[/dim]"
+            "[bold cyan]"
+            "  ██████╗██╗  ██╗ █████╗ ████████╗\n"
+            " ██╔════╝██║  ██║██╔══██╗╚══██╔══╝\n"
+            " ██║     ███████║███████║   ██║    \n"
+            " ██║     ██╔══██║██╔══██║   ██║    \n"
+            " ╚██████╗██║  ██║██║  ██║   ██║    \n"
+            "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝  ╚═╝    \n"
+            "[/bold cyan]"
+            "[bold white]  SEEKER V3.0 — LIVE CHAT FORENSIK[/bold white]\n"
+            "[dim]  Python · Rich · Paralel · Error Detection[/dim]"
         ),
-        border_style="magenta",
+        border_style="cyan",
         width=_PANEL_W,
     ))
 
-    _console.print(f"
-  Operator: [bold green]{_operator_name}[/bold green]")
-    _console.print(f"  Target: [cyan]@{target}[/cyan]")
-    _console.print(f"  Mode: [yellow]{filter_mode}[/yellow]")
+    # Input operator
+    _operator_name = Prompt.ask("\n  [bold cyan]Operator name[/bold cyan]").strip()
+    if not _operator_name:
+        _operator_name = "Operator"
 
-    run_forensik_engine(target, filter_mode, max_vid)
+    _console.print(f"\n  Selamat datang, [bold green]{_operator_name}[/bold green]!")
+
+    # Mode
+    while True:
+        _console.print("")
+        _console.print(Rule("[dim]MODE OPERASI[/dim]"))
+        _console.print("  [cyan]1.[/cyan] Mode Pantau     [dim](foreground, progress bar)[/dim]")
+        _console.print("  [cyan]2.[/cyan] Mode Background [dim](AFK, multi-channel, silent)[/dim]")
+        _console.print("  [cyan]L.[/cyan] Kelola Log & Checkpoint")
+        _console.print("")
+
+        mode = Prompt.ask(
+            "  [bold cyan]Pilihan[/bold cyan]",
+            choices=["1", "2", "L", "l"],
+            default="1",
+        ).upper()
+
+        if mode == "L":
+            menu_log()
+            _console.clear()
+            _console.print(Panel(
+                f"[bold green]Selamat datang kembali, {_operator_name}![/bold green]",
+                border_style="cyan", width=_PANEL_W,
+            ))
+            continue
+
+        break
+
+    # ── MODE 2: BACKGROUND ─────────────────────────────────────────────────────
+    if mode == "2":
+        _console.print("")
+        multi = Confirm.ask("  Multi-channel?", default=False)
+        max_ch = 5 if multi else 1
+
+        channels    = []
+        filter_modes = []
+        max_vids    = []
+
+        for i in range(1, max_ch + 1):
+            _console.print("")
+            ch_in = Prompt.ask(f"  [cyan]Channel ke-{i}[/cyan] (Enter selesai)" if i > 1
+                               else "  [cyan]Username channel target[/cyan]",
+                               default="" if i > 1 else None)
+            if not ch_in and i > 1:
+                break
+            if not ch_in:
+                _console.print("  [red]Channel wajib diisi![/red]")
+                continue
+
+            clean = ch_in.lstrip("@")
+            channels.append(clean)
+            _show_log_channel(clean)
+
+            fm, mv = input_filter(clean)
+            filter_modes.append(fm)
+            max_vids.append(mv)
+
+        if not channels:
+            _console.print("  [red]Tidak ada channel. Keluar.[/red]")
+            return
+
+        _console.print("")
+        _console.print(Panel(
+            f"[bold magenta]💤 MODE BACKGROUND AKTIF[/bold magenta]\n"
+            f"[white]Antrean :[/white] {len(channels)} channel\n"
+            f"[dim]Layar HP aman dimatikan.[/dim]",
+            border_style="magenta", width=_PANEL_W,
+        ))
+
+        # Termux wake lock
+        subprocess.run(["termux-wake-lock"], capture_output=True)
+
+        def _bg_worker():
+            for ch, fm, mv in zip(channels, filter_modes, max_vids):
+                if _shutdown_flag.is_set():
+                    break
+                run_forensik_engine(ch, fm, mv)
+            subprocess.run(["termux-wake-unlock"], capture_output=True)
+
+        t = threading.Thread(target=_bg_worker, daemon=True)
+        t.start()
+
+        _console.print("  [green][✓] Berjalan di background. Selamat tidur![/green]")
+        _console.print("  [dim](Script tetap berjalan. Jangan tutup Termux.)[/dim]")
+        t.join()   # tunggu selesai (foreground proses tetap jalan)
+        return
+
+    # ── MODE 1: PANTAU (foreground loop) ──────────────────────────────────────
+    while True:
+        _console.print("")
+        ch_in = Prompt.ask("  [bold cyan]Username channel target[/bold cyan]").strip()
+        if not ch_in:
+            _console.print("  [red]Target kosong![/red]")
+            continue
+
+        clean = ch_in.lstrip("@")
+        _show_log_channel(clean)
+
+        fm, mv = input_filter(clean)
+        run_forensik_engine(clean, fm, mv)
+
+        _console.print("")
+        lanjut = Confirm.ask("  Cari channel lain?", default=False)
+        if not lanjut:
+            break
+
+        _console.clear()
+        _console.print(Panel(
+            f"[bold green]Operator: {_operator_name}[/bold green]",
+            border_style="cyan", width=_PANEL_W,
+        ))
 
     _console.print("")
     _console.print(Panel(
         f"[bold green]Sampai jumpa, {_operator_name}! 👋[/bold green]",
-        border_style="green",
-        width=_PANEL_W,
+        border_style="green", width=_PANEL_W,
     ))
 
 
