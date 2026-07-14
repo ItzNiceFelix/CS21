@@ -12,15 +12,37 @@ CONFIG_DIR="$SCRIPT_DIR/.cs20"
 CHECKPOINT_DIR="$CONFIG_DIR/checkpoints"
 PROFILE_FILE="$CONFIG_DIR/profile"
 VERSION="20.0"
-# ── Webhook Indonesia & Global — hardcoded langsung ──────────────────
-WEBHOOK_INDONESIA="https://discord.com/api/webhooks/1517591900637364375/y-DH3wJ5yonUeCX1Wmwq_luox9AlodaFqyMrpwfQWmJAI1pYDpqySkEZyJ_MFpO9hkKQ"
-WEBHOOK_GLOBAL="https://discord.com/api/webhooks/1517599054136213505/VureltZ5oLEB6imfPbx5Ogdw9oGAb792ZVNIlePATL9k1iVS1cUGQxCRn9d2Ki7e-DKO"
+# ── Webhook Indonesia & Global — HARUS di-inject via inject_webhook.sh ──
+WEBHOOK_FILE="$CONFIG_DIR/.webhook_injected"
+WEBHOOK_INDONESIA=""
+WEBHOOK_GLOBAL=""
 
 # Warna terminal
 R='\033[0;31m'  GR='\033[0;32m'  Y='\033[0;33m'
 B='\033[0;34m'  M='\033[0;35m'   C='\033[0;36m'
 W='\033[1;37m'  DIM='\033[2m'    BOLD='\033[1m'
 NC='\033[0m'
+
+# ==============================================================================
+# WEBHOOK INJECTOR CHECK — script tidak boleh lanjut tanpa ini
+# ==============================================================================
+inject_webhook() {
+    if [ ! -f "$WEBHOOK_FILE" ]; then
+        echo -e "${R}[❌] Webhook belum di-inject!${NC}"
+        echo -e "${Y}     Jalankan dulu: ${C}bash inject_webhook.sh${NC}"
+        exit 1
+    fi
+
+    # shellcheck disable=SC1090
+    source "$WEBHOOK_FILE"
+
+    if [ -z "$WEBHOOK_INDONESIA" ] || [ -z "$WEBHOOK_GLOBAL" ]; then
+        echo -e "${R}[❌] File webhook rusak/kosong — WEBHOOK_INDONESIA atau WEBHOOK_GLOBAL tidak ada.${NC}"
+        echo -e "${Y}     Hapus $WEBHOOK_FILE lalu jalankan ulang: bash inject_webhook.sh${NC}"
+        exit 1
+    fi
+    echo -e "${GR}[✅] Webhook siap (Indonesia & Global).${NC}"
+}
 
 # ==============================================================================
 # DEPENDENCY CHECK & AUTO INSTALL
