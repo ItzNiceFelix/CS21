@@ -48,6 +48,8 @@ except ImportError:
 DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1517591900637364375/y-DH3wJ5yonUeCX1Wmwq_luox9AlodaFqyMrpwfQWmJAI1pYDpqySkEZyJ_MFpO9hkKQ"
 LOG_FILE        = Path(".chatseeker_log.json")
 CHECKPOINT_DIR  = Path(".cs_checkpoints")
+# Cookies opsional — pakai file yang sama dengan cs20_age_engine.py (folder .cs20/cookies.txt)
+COOKIES_PATH    = Path(__file__).resolve().parent / ".cs20" / "cookies.txt"
 WORKERS         = 4          # paralel download
 DL_SLEEP_BASE   = 0.8        # detik jeda antar request (lebih rendah dari v2)
 SOCK_TIMEOUT    = 15
@@ -175,16 +177,18 @@ def _classify_ytdlp_error(combined: str) -> str:
         return "unavailable"
     if "confirm your age" in c or "age-restricted" in c or "age restricted" in c:
         return "unavailable"          # age-restricted → tidak bisa diproses tanpa cookies
-    if "no subtitles" in c or "there are no" in c or "subtitles not available" in c \
-            or "no live_chat" in c or "live chat replay" not in c and "live_chat" not in c:
-        # yt-dlp akan tulis error jika tidak ada live_chat
-        return "no_chat"
+    if "sign in to confirm" in c or "not a bot" in c or "login required" in c:
+        return "auth_required"        # butuh cookies akun
     if "429" in c or "too many requests" in c or "http error 429" in c:
         return "rate_limited"
     if any(k in c for k in ("timeout", "timed out", "connection reset",
                              "remotedisconnected", "ssl", "broken pipe",
                              "network", "connectionerror", "socket")):
         return "network_error"
+    if "no subtitles" in c or "there are no" in c or "subtitles not available" in c \
+            or "no live_chat" in c or ("live_chat" not in c and "live chat" not in c):
+        # yt-dlp akan tulis error jika tidak ada live_chat
+        return "no_chat"
     return "error"
 
 
@@ -453,9 +457,10 @@ def _download_chat(video_id: str, work_dir: Path) -> dict:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/124.0.0.0 Safari/537.36",
-        "-o", outtmpl,
-        url,
     ]
+    if COOKIES_PATH.exists():
+        cmd += ["--cookies", str(COOKIES_PATH)]
+    cmd += ["-o", outtmpl, url]
 
     base = {"video_id": video_id, "chat_file": None,
             "error_type": None, "error_msg": None}
