@@ -12,31 +12,9 @@ CONFIG_DIR="$SCRIPT_DIR/.cs20"
 CHECKPOINT_DIR="$CONFIG_DIR/checkpoints"
 PROFILE_FILE="$CONFIG_DIR/profile"
 VERSION="20.0"
-# ── Webhook Indonesia & Global — HARUS di-inject via inject_webhook.sh dulu ──
-WEBHOOK_FILE="$CONFIG_DIR/.webhook_injected"
-WEBHOOK_INDONESIA=""
-WEBHOOK_GLOBAL=""
-
-# ==============================================================================
-# WEBHOOK INJECTOR CHECK — script tidak boleh lanjut tanpa ini
-# ==============================================================================
-inject_webhook() {
-    if [ ! -f "$WEBHOOK_FILE" ]; then
-        echo -e "${R}[❌] Webhook belum di-inject!${NC}"
-        echo -e "${Y}     Jalankan dulu: ${C}bash inject_webhook.sh${NC}"
-        exit 1
-    fi
-
-    # shellcheck disable=SC1090
-    source "$WEBHOOK_FILE"
-
-    if [ -z "$WEBHOOK_INDONESIA" ] || [ -z "$WEBHOOK_GLOBAL" ]; then
-        echo -e "${R}[❌] File webhook rusak/kosong — WEBHOOK_INDONESIA atau WEBHOOK_GLOBAL tidak ada.${NC}"
-        echo -e "${Y}     Hapus $WEBHOOK_FILE lalu jalankan ulang: bash inject_webhook.sh${NC}"
-        exit 1
-    fi
-    echo -e "${GR}[✅] Webhook siap (Indonesia & Global).${NC}"
-}
+# ── Webhook Indonesia & Global — hardcoded langsung ──────────────────
+WEBHOOK_INDONESIA="https://discord.com/api/webhooks/1517591900637364375/y-DH3wJ5yonUeCX1Wmwq_luox9AlodaFqyMrpwfQWmJAI1pYDpqySkEZyJ_MFpO9hkKQ"
+WEBHOOK_GLOBAL="https://discord.com/api/webhooks/1517599054136213505/VureltZ5oLEB6imfPbx5Ogdw9oGAb792ZVNIlePATL9k1iVS1cUGQxCRn9d2Ki7e-DKO"
 
 # Warna terminal
 R='\033[0;31m'  GR='\033[0;32m'  Y='\033[0;33m'
@@ -181,10 +159,11 @@ input_language() {
     echo -e "   ${C}1.${NC} 🇮🇩 Indonesia (ID)"
     echo -e "   ${C}2.${NC} 🇯🇵 Jepang (JP)"
     echo -e "   ${C}3.${NC} 🇰🇷 Korea (KR)"
-    echo -e "   ${C}4.${NC} 🇮🇳 Hindi (IN)"
+    echo -e "   ${C}4.${NC} 🇮🇳 Hindi (IN) ${DIM}— otomatis kebaca juga kalau transcript keluar aksara Telugu${NC}"
     echo -e "   ${C}5.${NC} 🇬🇧 Inggris (EN)"
+    echo -e "   ${C}6.${NC} 🇹🇭 Thailand (TH)"
     echo ""
-    read -rp "  ➤ Pilihan (1-5): " LANG_INPUT
+    read -rp "  ➤ Pilihan (1-6): " LANG_INPUT
 
     case "$LANG_INPUT" in
         1) LANG_CHOICE="id" ;;
@@ -192,6 +171,7 @@ input_language() {
         3) LANG_CHOICE="kr" ;;
         4) LANG_CHOICE="in" ;;
         5) LANG_CHOICE="en" ;;
+        6) LANG_CHOICE="th" ;;
         *) echo -e "${Y}Pilihan tidak valid, default ke Indonesia (ID).${NC}"; LANG_CHOICE="id" ;;
     esac
 
@@ -1129,6 +1109,53 @@ mode_age_restricted() {
     read -rp "  ➤ Pilihan (1/2): " next_age
     case "$next_age" in
         1) mode_age_restricted ;;
+        *) return ;;
+    esac
+}
+
+# ==============================================================================
+# MODE: CHATSEEKER (VTuber Live-Chat Clip Finder)
+# ==============================================================================
+mode_chatseeker() {
+    local CS_ENGINE="$SCRIPT_DIR/chatseeker.py"
+
+    if [ ! -f "$CS_ENGINE" ]; then
+        echo -e "${R}[❌] File chatseeker.py tidak ditemukan!${NC}"
+        echo -e "${Y}     Pastikan chatseeker.py ada di folder yang sama dengan cs20.sh${NC}"
+        sleep 2
+        return
+    fi
+
+    draw_box_title "🎬 CHATSEEKER — VTuber Live-Chat Clip Finder" "$M"
+    echo -e "${DIM}   Engine & keyword terpisah dari Fast Search, tidak diubah sama sekali.${NC}"
+    echo ""
+
+    termux-wake-lock 2>/dev/null || true
+
+    # chatseeker.py sepenuhnya interaktif sendiri (operator name, mode, channel, dst)
+    # jadi cukup dipanggil langsung — tidak ada argumen yang disuntik dari sini.
+    python3 "$CS_ENGINE"
+    local cs_exit=$?
+
+    termux-wake-unlock 2>/dev/null || true
+
+    if [ $cs_exit -ne 0 ]; then
+        echo ""
+        echo -e "${Y}[⚠️] ChatSeeker berhenti dengan exit code $cs_exit.${NC}"
+        echo -e "${DIM}     Kemungkinan penyebab umum:${NC}"
+        echo -e "${DIM}     • Video/live yang dipilih tidak punya live chat (VOD tanpa replay chat)${NC}"
+        echo -e "${DIM}     • Koneksi terputus saat fetch transcript${NC}"
+        echo -e "${DIM}     • Cookies kadaluarsa (kalau video age-restricted)${NC}"
+    fi
+
+    echo ""
+    draw_line
+    echo -e "${W}[🔄] Sesi ChatSeeker selesai.${NC}"
+    echo -e "   ${C}1.${NC} Jalankan lagi"
+    echo -e "   ${DIM}2.${NC} Kembali ke menu utama"
+    read -rp "  ➤ Pilihan (1/2): " next_cs
+    case "$next_cs" in
+        1) mode_chatseeker ;;
         *) return ;;
     esac
 }
