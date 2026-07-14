@@ -427,24 +427,24 @@ def _init_lang(lang: str):
         "en": ["en", "en-US", "en-GB"],
         "jp": ["ja", "ja-JP"],
         "kr": ["ko", "ko-KR"],
-        "in": ["hi", "hi-IN"],
+        "in": ["hi", "hi-IN", "te", "te-IN"],
         "th": ["th", "th-TH"],
-        "te": ["te", "te-IN", "id", "en"],
     }
     TRANSCRIPT_LANGS = _LANG_TRANSCRIPT_MAP.get(lang, ["id", "en", "id-ID"])
 
     KEYWORD_TIERS = _ALL_KEYWORD_TIERS.get(lang, _ALL_KEYWORD_TIERS["id"])
 
-    # ── Telugu digabung sebagai fallback dari 'id': jika auto-transcript ──
-    # ── keluar sebagai Telugu, gunakan gabungan pattern id + te ──────────
-    if lang == "te":
+    # ── Telugu selalu digabung ke 'in': satu bahasa (Hindi/India), beda aksara. ──
+    # ── Kalau auto-transcript keluar aksara Telugu, tetap kebaca tanpa perlu ────
+    # ── pilih bahasa terpisah — jadi pilihan menu "in" saja sudah cukup. ─────────
+    if lang == "in":
         merged = {}
         for tier_name in KEYWORD_TIERS:
-            id_pats = _ALL_KEYWORD_TIERS["id"].get(tier_name, {}).get("patterns", [])
+            in_pats = KEYWORD_TIERS.get(tier_name, {}).get("patterns", [])
             te_pats = _ALL_KEYWORD_TIERS["te"].get(tier_name, {}).get("patterns", [])
             merged[tier_name] = {
                 "bobot":    KEYWORD_TIERS[tier_name]["bobot"],
-                "patterns": list(dict.fromkeys(id_pats + te_pats)),  # dedupe, urutan terjaga
+                "patterns": list(dict.fromkeys(in_pats + te_pats)),  # dedupe, urutan terjaga
             }
         KEYWORD_TIERS = merged
 
