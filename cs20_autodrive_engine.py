@@ -304,12 +304,13 @@ def run_channel_scan(channel_id: str, lang: str, limit: int,
 
 def _relay_child_output(combined: str):
     """Tampilin baris penting dari output cs20_engine.py yang tadinya
-    di-swallow total oleh capture_output — khususnya status kirim Discord
-    (sukses/403/429/exception) biar gak senyap kalau gagal."""
+    di-swallow total oleh capture_output — status kirim Discord DAN
+    traceback/exception, biar gak senyap lagi kalau child crash."""
     keywords = (
         "Ringkasan terkirim", "403 Forbidden", "429", "rate-limited",
         "Gagal kirim embed", "Webhook URL tidak ditemukan",
         "File HTML berhasil dikirim", "terlalu besar",
+        "Traceback", "Error", "error", "Exception",
     )
     for line in combined.splitlines():
         s = line.strip()
@@ -571,10 +572,12 @@ def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
                         # yang tercatat ke history.
                         break  # keluar dari loop channel, lanjut ke siklus baru
             else:
-                # status normal lain (no_chat/unavailable/dll) — reset counter
+                # status normal lain (no_chat/unavailable/error/dll) — reset counter
                 _stats["channels_failed"] += 1
                 _consecutive_scan_fail = 0
-                safe_print(f"    [dim]status={status}[/dim]")
+                emsg = scan_result.get("error_msg", "")
+                safe_print(f"    [dim]status={status}"
+                           f"{' — ' + emsg[:150] if emsg else ''}[/dim]")
 
             time.sleep(random.uniform(*DELAY_ANTAR_CHANNEL))
 
