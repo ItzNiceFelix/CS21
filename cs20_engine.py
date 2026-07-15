@@ -493,13 +493,18 @@ def _channel_base_url(channel: str) -> str:
     return f"https://www.youtube.com/@{channel}"
 
 
+_display_name_override: str = ""  # diisi process_channel() dari --display-name kalau ada
+
 def _channel_label(channel: str) -> str:
     """Label buat DISPLAY doang (terminal/HTML/Discord) — bukan URL.
     Handle biasa tampil '@handle' seperti biasa. channel_id mentah
-    (dari Auto Drive) tampil 'channel/UCxxx' — BUKAN '@UCxxx', karena
-    '@UCxxx' itu bukan format valid YouTube sama sekali, cuma
-    ngebingungin walau URL fetch-nya sendiri udah benar."""
+    (dari Auto Drive) tampil nama asli '@uploader' kalau ada
+    (--display-name, diteruskan dari hasil search yt-dlp), fallback
+    'channel/UCxxx' kalau nama gak tersedia — BUKAN '@UCxxx' yang
+    bukan format valid YouTube sama sekali."""
     if _is_raw_channel_id(channel):
+        if _display_name_override:
+            return f"@{_display_name_override}"
         return f"channel/{channel}"
     return f"@{channel}"
 
@@ -2358,7 +2363,10 @@ def process_channel(args):
     config_dir   = args.config_dir
 
     webhook_url  = load_webhook_url(config_dir, args.webhook_url)
-    
+
+    global _display_name_override
+    _display_name_override = (args.display_name or "").strip()
+
     # ── Isi info darurat & blocked log ───────────────────────────
     global _emergency_info, _current_blocked_log, _partial_results
     _partial_results = []  # reset tiap channel baru
@@ -2593,6 +2601,9 @@ if __name__ == "__main__":
     parser.add_argument("--webhook-url",   default="")
     parser.add_argument("--lang",               default="id")
     parser.add_argument("--retry-blocked-log",  default="")
+    parser.add_argument("--display-name",       default="",
+                         help="Nama asli channel (dari yt-dlp uploader field) buat "
+                              "label tampilan — dipakai kalau --channel isi ID mentah (UCxxx).")
 
     args = parser.parse_args()
     process_channel(args)
