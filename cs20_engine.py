@@ -501,7 +501,10 @@ def _channel_label(channel: str) -> str:
     ngebingungin walau URL fetch-nya sendiri udah benar."""
     if _is_raw_channel_id(channel):
         return f"channel/{channel}"
-    return f"{_channel_label(channel)}"
+    return f"@{channel}"
+
+
+def get_video_ids(channel: str, limit: int, content_type: str) -> list:
     """Ambil list video ID dari channel via yt-dlp.
     limit <= 0 berarti UNLIMITED — semua arsip live/video diambil,
     tanpa --playlist-end dan tanpa slicing."""
