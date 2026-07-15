@@ -572,7 +572,7 @@ while true; do
 mode_pantau() {
     draw_box_title "👁️  MODE PANTAU — Live Dashboard" "$GR"
 
-    input_channels 999 "Pantau"
+    input_channels 2 "Pantau"
     input_content_type
     input_job_preset
 
@@ -1183,6 +1183,126 @@ mode_chatseeker() {
 }
 
 # ==============================================================================
+# MODE: AUTO DRIVE (Discovery channel baru otomatis)
+# ==============================================================================
+mode_autodrive() {
+    local AD_ENGINE="$SCRIPT_DIR/cs20_autodrive_engine.py"
+
+    if [ ! -f "$AD_ENGINE" ]; then
+        echo -e "${R}[❌] File cs20_autodrive_engine.py tidak ditemukan!${NC}"
+        echo -e "${Y}     Pastikan file ada di folder yang sama dengan cs20.sh${NC}"
+        sleep 2
+        return
+    fi
+
+    draw_box_title "🚗 AUTO DRIVE — Channel Discovery Otomatis" "$M"
+    echo -e "${DIM}   Nyari channel baru otomatis via search, scan pakai engine utama.${NC}"
+    echo -e "${DIM}   Fokus transcript (cs20_engine.py) — BUKAN chatseeker.${NC}"
+    echo ""
+    echo -e "   ${C}1.${NC} Mulai sesi baru"
+    echo -e "   ${C}2.${NC} 🗑️  Hapus history (per-bahasa)"
+    echo -e "   ${DIM}3.${NC}    Kembali ke menu utama"
+    echo ""
+    read -rp "  ➤ Pilihan (1-3): " ad_choice
+
+    case "$ad_choice" in
+        1) : ;;   # lanjut ke bawah
+        2) autodrive_clear_history; return ;;
+        *) return ;;
+    esac
+
+    # ── Pilih bahasa (reuse input_language, sets LANG_CHOICE & WEBHOOK_URL) ──
+    input_language
+
+    # ── Rentang waktu upload ──────────────────────────────────────────────
+    echo ""
+    echo -e "${W}[⏱️] RENTANG WAKTU UPLOAD${NC}"
+    echo -e "   ${C}1.${NC} Semua waktu (tanpa filter)"
+    echo -e "   ${C}2.${NC} 24 jam terakhir"
+    echo -e "   ${C}3.${NC} 7 hari terakhir"
+    echo -e "   ${C}4.${NC} 1 bulan terakhir"
+    echo -e "   ${C}5.${NC} 1 tahun terakhir"
+    read -rp "  ➤ Pilihan (1-5): " tr_choice
+    case "$tr_choice" in
+        1) AD_TIME_RANGE="all" ;;
+        2) AD_TIME_RANGE="1d" ;;
+        3) AD_TIME_RANGE="7d" ;;
+        4) AD_TIME_RANGE="1m" ;;
+        5) AD_TIME_RANGE="1y" ;;
+        *) echo -e "${Y}Default: semua waktu.${NC}"; AD_TIME_RANGE="all" ;;
+    esac
+
+    # ── Limit video per channel baru ──────────────────────────────────────
+    echo ""
+    read -rp "  ➤ Limit video per channel baru (default 10): " ad_limit
+    [[ "$ad_limit" =~ ^[0-9]+$ ]] || ad_limit=10
+
+    # ── Max siklus (kosong = tanpa batas) ──────────────────────────────────
+    read -rp "  ➤ Max siklus, kosongkan untuk tanpa batas: " ad_max_cycles
+    [[ "$ad_max_cycles" =~ ^[0-9]+$ ]] || ad_max_cycles=0
+
+    echo ""
+    echo -e "${GR}[✅] Konfigurasi:${NC}"
+    echo -e "   Bahasa         : $LANG_CHOICE"
+    echo -e "   Rentang waktu  : $AD_TIME_RANGE"
+    echo -e "   Limit/channel  : $ad_limit"
+    echo -e "   Max siklus     : ${ad_max_cycles:-tanpa batas}"
+    echo ""
+    read -rp "  ➤ Mulai? (y/n): " confirm_ad
+    if [[ ! "$confirm_ad" =~ ^[Yy]$ ]]; then
+        echo -e "${DIM}Dibatalkan.${NC}"
+        return
+    fi
+
+    termux-wake-lock 2>/dev/null || true
+
+    python3 "$AD_ENGINE" \
+        --lang "$LANG_CHOICE" \
+        --time-range "$AD_TIME_RANGE" \
+        --limit-per-channel "$ad_limit" \
+        --max-cycles "$ad_max_cycles" \
+        --config-dir "$CONFIG_DIR" \
+        --checkpoint-dir "$CHECKPOINT_DIR" \
+        --webhook-url "$WEBHOOK_URL"
+    local ad_exit=$?
+
+    termux-wake-unlock 2>/dev/null || true
+
+    if [ $ad_exit -ne 0 ]; then
+        echo ""
+        echo -e "${Y}[⚠️] Auto Drive berhenti dengan exit code $ad_exit.${NC}"
+    fi
+
+    echo ""
+    draw_line
+    echo -e "${W}[🔄] Sesi Auto Drive selesai.${NC}"
+    echo -e "   ${C}1.${NC} Kembali ke menu Auto Drive"
+    echo -e "   ${DIM}2.${NC} Kembali ke menu utama"
+    read -rp "  ➤ Pilihan (1/2): " next_ad
+    case "$next_ad" in
+        1) mode_autodrive ;;
+        *) return ;;
+    esac
+}
+
+autodrive_clear_history() {
+    local AD_ENGINE="$SCRIPT_DIR/cs20_autodrive_engine.py"
+    input_language
+    echo ""
+    echo -e "${R}[⚠️] Ini akan menghapus history Auto Drive untuk bahasa '$LANG_CHOICE'.${NC}"
+    echo -e "${Y}     Channel yang sudah pernah di-scan akan dianggap BARU lagi.${NC}"
+    read -rp "  ➤ Yakin hapus? Ketik 'HAPUS' untuk konfirmasi: " confirm_del
+    if [ "$confirm_del" != "HAPUS" ]; then
+        echo -e "${DIM}Dibatalkan.${NC}"
+        sleep 1
+        return
+    fi
+    python3 "$AD_ENGINE" --lang "$LANG_CHOICE" --config-dir "$CONFIG_DIR" \
+        --checkpoint-dir "$CHECKPOINT_DIR" --clear-history
+    sleep 2
+}
+
+# ==============================================================================
 # MENU UTAMA
 # ==============================================================================
 main_menu() {
@@ -1205,6 +1325,8 @@ main_menu() {
     echo -e "         ${DIM}Bypass via cookies, auto-detect log dari mode lain${NC}"
     echo -e "   ${M}7.${NC} 🎬 ${BOLD}CHATSEEKER${NC}  — VTuber live-chat clip finder"
     echo -e "         ${DIM}Engine terpisah, keyword & logika sendiri${NC}"
+    echo -e "   ${GR}8.${NC} 🚗 ${BOLD}AUTO DRIVE${NC}  — Discovery channel baru otomatis"
+    echo -e "         ${DIM}Search massal + dedup history, pakai engine utama${NC}"
     echo ""
     draw_line
     read -rp "  ➤ Pilihan: " MENU_INPUT
@@ -1221,6 +1343,7 @@ main_menu() {
         5) mode_index ;;
         6) mode_age_restricted ;;
         7) mode_chatseeker ;;
+        8) mode_autodrive ;;
         *) echo -e "${R}Pilihan tidak valid.${NC}" ; sleep 1 ; main_menu ;;
     esac
 }
