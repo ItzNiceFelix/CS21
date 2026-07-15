@@ -267,9 +267,9 @@ def run_channel_scan(channel_id: str, lang: str, limit: int,
     cmd = [
         sys.executable, str(ENGINE_PY),
         "--channel", channel_id,
-        "--limit", str(limit),
+        "--limit", str(limit),          # limit <= 0 = unlimited (semua arsip live)
         "--jobs", "3",
-        "--content-type", "videos",
+        "--content-type", "live",       # fokus arsip live (/streams), bukan gado2
         "--executor", executor,
         "--mode", "pantau",
         "--start-from", "0",
@@ -278,9 +278,15 @@ def run_channel_scan(channel_id: str, lang: str, limit: int,
         "--webhook-url", webhook_url,
         "--lang", lang,
     ]
+    # Timeout scan lebih longgar kalau unlimited — bisa banyak video sekali jalan
+    scan_timeout = 5400 if limit <= 0 else 1800
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=scan_timeout)
         comb = r.stdout + " " + r.stderr
+
+        # ── Relay baris penting dari child ke terminal Auto Drive ──
+        # (sebelumnya di-swallow total — gagal kirim Discord jadi senyap)
+        _relay_child_output(comb)
 
         status = _classify_engine_subprocess(r.returncode, comb)
         if status == "ok":
@@ -291,9 +297,24 @@ def run_channel_scan(channel_id: str, lang: str, limit: int,
 
     except subprocess.TimeoutExpired:
         return {"status": "network_error", "channel_id": channel_id,
-                "error_msg": "Timeout scan channel (>30 menit)"}
+                "error_msg": f"Timeout scan channel (>{scan_timeout//60} menit)"}
     except Exception as e:
         return {"status": "error", "channel_id": channel_id, "error_msg": str(e)[:200]}
+
+
+def _relay_child_output(combined: str):
+    """Tampilin baris penting dari output cs20_engine.py yang tadinya
+    di-swallow total oleh capture_output — khususnya status kirim Discord
+    (sukses/403/429/exception) biar gak senyap kalau gagal."""
+    keywords = (
+        "Ringkasan terkirim", "403 Forbidden", "429", "rate-limited",
+        "Gagal kirim embed", "Webhook URL tidak ditemukan",
+        "File HTML berhasil dikirim", "terlalu besar",
+    )
+    for line in combined.splitlines():
+        s = line.strip()
+        if s and any(k in s for k in keywords):
+            safe_print(f"    [dim]│ {s}[/dim]")
 
 
 # ==============================================================================
@@ -386,16 +407,24 @@ def _send_breaker_notice(webhook_url: str, layer: str):
 def _send_cycle_summary(webhook_url: str, lang: str, cycle_no: int):
     if not webhook_url or not _cycle_summary_batch:
         return
-    lines = "\n".join(
-        f"- `{c['channel_id']}` → {c['status']}" for c in _cycle_summary_batch
-    )
+    entries = [f"- `{c['channel_id']}` → {c['status']}" for c in _cycle_summary_batch]
+    lines = "\n".join(entries)
+    header = f"Channel baru diproses: {len(_cycle_summary_batch)}\n\n"
+    # Discord description limit 4096 — potong list kalau kepanjangan, sisanya diringkas
+    budget = 3900 - len(header)
+    if len(lines) > budget:
+        kept, used = [], 0
+        for e in entries:
+            if used + len(e) + 1 > budget:
+                break
+            kept.append(e)
+            used += len(e) + 1
+        lines = "\n".join(kept) + f"\n… +{len(entries) - len(kept)} channel lainnya"
     payload = {
         "embeds": [{
             "title": f"🚗 Auto Drive — Siklus #{cycle_no} Selesai ({lang})",
             "color": 3066993,
-            "description": (
-                f"Channel baru diproses: {len(_cycle_summary_batch)}\n\n{lines}"
-            )
+            "description": header + lines
         }]
     }
     try:
@@ -414,14 +443,22 @@ def _send_cycle_summary(webhook_url: str, lang: str, cycle_no: int):
 
 def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
                    max_cycles: int, config_dir: str, checkpoint_dir: str,
-                   webhook_url: str, executor: str):
+                   webhook_url: str, executor: str, custom_queries: list = None):
     global _last_known_good_video_id, _consecutive_search_fail, _consecutive_scan_fail
     global _cycle_summary_batch
 
-    queries = SEED_QUERIES.get(lang)
+    # Query custom SESI INI SAJA — tidak pernah nulis balik ke SEED_QUERIES.
+    # Kalau dikasih, override total (bukan nambah) buat sesi berjalan.
+    if custom_queries:
+        queries = custom_queries
+        safe_print(f"[cyan][ℹ️] Pakai custom query sesi ini (tidak disimpan): "
+                    f"{', '.join(queries)}[/cyan]")
+    else:
+        queries = SEED_QUERIES.get(lang)
+
     if not queries:
         safe_print(f"[red]Belum ada seed query untuk bahasa '{lang}'. "
-                    f"Edit SEED_QUERIES di cs20_autodrive_engine.py dulu.[/red]")
+                    f"Edit SEED_QUERIES di cs20_autodrive_engine.py, atau isi custom query dari menu.[/red]")
         return
 
     history          = load_history(config_dir, lang)
@@ -512,6 +549,7 @@ def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
             if status == "ok":
                 _stats["channels_ok"] += 1
                 _consecutive_scan_fail = 0
+                safe_print(f"    [green]✓ selesai, laporan terkirim.[/green]")
                 # Simpan sebagai last-known-good buat ping-check nanti
                 if item["video_id"]:
                     _last_known_good_video_id = item["video_id"]
@@ -536,6 +574,7 @@ def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
                 # status normal lain (no_chat/unavailable/dll) — reset counter
                 _stats["channels_failed"] += 1
                 _consecutive_scan_fail = 0
+                safe_print(f"    [dim]status={status}[/dim]")
 
             time.sleep(random.uniform(*DELAY_ANTAR_CHANNEL))
 
@@ -571,12 +610,17 @@ def main():
     parser.add_argument("--webhook-url", default="")
     parser.add_argument("--executor", default="autodrive")
     parser.add_argument("--clear-history", action="store_true")
+    parser.add_argument("--custom-query", default="",
+                         help="Query custom, pisah pakai '|' kalau lebih dari 1. "
+                              "SESI INI SAJA, tidak ditulis ke SEED_QUERIES.")
     args = parser.parse_args()
 
     if args.clear_history:
         cleared = clear_history(args.config_dir, args.lang)
         safe_print(f"[green]History {'dihapus' if cleared else 'sudah kosong'}.[/green]")
         return
+
+    custom_queries = [q.strip() for q in args.custom_query.split("|") if q.strip()] or None
 
     run_autodrive(
         lang=args.lang,
@@ -587,6 +631,7 @@ def main():
         checkpoint_dir=args.checkpoint_dir,
         webhook_url=args.webhook_url,
         executor=args.executor,
+        custom_queries=custom_queries,
     )
 
 
