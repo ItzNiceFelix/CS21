@@ -123,6 +123,8 @@ _ALL_KEYWORD_TIERS = {
                 r"\bje+g+[uo]+g+[ae]*n+\b",
                 r"\bje+k+[uo]+g+[ae]*n+\b",
                 r"\bc+e*b+u+k+a+n+\b",
+                r"\bja+g+u+k+[ae]*n+\b",
+                r"\bc+u+k+[ae]*n+\b",
             ]
         },
         "SILENT": {
