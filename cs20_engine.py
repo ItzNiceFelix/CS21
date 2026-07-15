@@ -475,27 +475,54 @@ def _init_lang(lang: str):
 # ==============================================================================
 # AMBIL VIDEO ID LIST VIA YT-DLP
 # ==============================================================================
-def get_video_ids(channel: str, limit: int, content_type: str) -> list:
+def _is_raw_channel_id(channel: str) -> bool:
+    """Deteksi channel_id mentah YouTube (format UCxxxxxxxxxxxxxxxxxxxxxxxx,
+    24 char total, diawali 'UC') vs handle biasa (windahbasudara, dll)."""
+    return bool(re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel))
+
+
+def _channel_base_url(channel: str) -> str:
+    """Bangun base URL channel yang BENAR sesuai formatnya:
+    - channel_id mentah (dari Auto Drive / yt-dlp search)  → /channel/UCxxx
+    - handle biasa (input manual user)                     → /@handle
+    Sebelumnya SELALU pakai format /@{channel} — kalau channel isinya
+    ID mentah, YouTube gak bisa resolve itu (bukan format @handle), jadi
+    yt-dlp gagal instan & video_ids selalu kosong tanpa pesan jelas."""
+    if _is_raw_channel_id(channel):
+        return f"https://www.youtube.com/channel/{channel}"
+    return f"https://www.youtube.com/@{channel}"
+
+
+def _channel_label(channel: str) -> str:
+    """Label buat DISPLAY doang (terminal/HTML/Discord) — bukan URL.
+    Handle biasa tampil '@handle' seperti biasa. channel_id mentah
+    (dari Auto Drive) tampil 'channel/UCxxx' — BUKAN '@UCxxx', karena
+    '@UCxxx' itu bukan format valid YouTube sama sekali, cuma
+    ngebingungin walau URL fetch-nya sendiri udah benar."""
+    if _is_raw_channel_id(channel):
+        return f"channel/{channel}"
+    return f"{_channel_label(channel)}"
     """Ambil list video ID dari channel via yt-dlp.
     limit <= 0 berarti UNLIMITED — semua arsip live/video diambil,
     tanpa --playlist-end dan tanpa slicing."""
     unlimited = limit <= 0
+    base = _channel_base_url(channel)
 
     # Tentukan URL tab + filter yang tepat per tipe konten
     # was_live tidak tersedia saat --flat-playlist, jadi pakai tab yang benar
     if content_type == "live":
         # Tab /streams = khusus arsip live, tidak perlu filter tambahan
-        url        = f"https://www.youtube.com/@{channel}/streams"
+        url        = f"{base}/streams"
         extra_args = []
     elif content_type == "video":
         # Tab /videos = video biasa, filter durasi >60 detik (exclude shorts)
-        url        = f"https://www.youtube.com/@{channel}/videos"
+        url        = f"{base}/videos"
         extra_args = ["--match-filter", "duration>60"]
     else:
         # "all" = gabung /streams + /videos, filter durasi >60 detik
         # Jalankan dua fetch terpisah lalu gabungkan
-        ids_live  = _fetch_ids(f"https://www.youtube.com/@{channel}/streams", limit, [])
-        ids_video = _fetch_ids(f"https://www.youtube.com/@{channel}/videos",  limit, ["--match-filter", "duration>60"])
+        ids_live  = _fetch_ids(f"{base}/streams", limit, [])
+        ids_video = _fetch_ids(f"{base}/videos",  limit, ["--match-filter", "duration>60"])
         # Gabung, deduplikasi, batasi limit (skip slicing kalau unlimited)
         seen, combined = set(), []
         for vid in ids_live + ids_video:
@@ -1159,12 +1186,12 @@ def run_display_tidur(channel, video_ids, worker_fn, checkpoint_info: dict, webh
 
     progress = _make_progress()
     task = progress.add_task(
-        f"@{channel}",
+        f"{_channel_label(channel)}",
         total=len(video_ids),
         hits=0,
     )
 
-    _console.print(f"\n[cyan]▶ Memulai @{channel} — {len(video_ids)} video[/cyan]\n")
+    _console.print(f"\n[cyan]▶ Memulai {_channel_label(channel)} — {len(video_ids)} video[/cyan]\n")
 
     with progress:
         with ThreadPoolExecutor(max_workers=_stats.get("_jobs", 4)) as pool:
@@ -1246,9 +1273,9 @@ def run_display_semi(channel, video_ids, worker_fn, checkpoint_info: dict, webho
     }
 
     progress = _make_progress()
-    task = progress.add_task(f"@{channel}", total=len(video_ids), hits=0)
+    task = progress.add_task(f"{_channel_label(channel)}", total=len(video_ids), hits=0)
 
-    _console.print(f"\n[cyan]▶ @{channel} — {len(video_ids)} video[/cyan]")
+    _console.print(f"\n[cyan]▶ {_channel_label(channel)} — {len(video_ids)} video[/cyan]")
 
     with progress:
         with ThreadPoolExecutor(max_workers=_stats.get("_jobs", 4)) as pool:
@@ -1422,7 +1449,7 @@ def _make_dashboard(channel: str) -> Table:
     tbl.add_column("key", style="dim",       width=16)
     tbl.add_column("val", style="bold white", width=30)
 
-    tbl.add_row("[bold green]Channel[/bold green]",  f"[cyan]@{channel}[/cyan]")
+    tbl.add_row("[bold green]Channel[/bold green]",  f"[cyan]{_channel_label(channel)}[/cyan]")
     tbl.add_row("Progress", f"[white]{done}[/white] / {total}  [cyan]{pct}[/cyan]")
     tbl.add_row("ETA",      f"[yellow]{eta}[/yellow]")
     tbl.add_row("", "")
@@ -1496,7 +1523,7 @@ def run_display_pantau(channel, video_ids, worker_fn, checkpoint_info: dict, web
     _parallel_status   = {}
 
     progress = _make_progress()
-    task = progress.add_task(f"@{channel}", total=len(video_ids), hits=0)
+    task = progress.add_task(f"{_channel_label(channel)}", total=len(video_ids), hits=0)
 
     layout = Layout()
     layout.split_column(
@@ -1672,7 +1699,7 @@ def build_html(channel: str, executor: str, results: list, lang: str = "id") -> 
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CS20 Intel Report — @{channel}</title>
+<title>CS20 Intel Report — {_channel_label(channel)}</title>
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
@@ -1952,7 +1979,7 @@ footer {{
     <div class="op-tag">&#9679; REPORT SELESAI</div>
   </div>
   <div class="header-meta">
-    <div class="meta-item"><span class="key">TARGET</span><span class="val">@{channel}</span></div>
+    <div class="meta-item"><span class="key">TARGET</span><span class="val">{_channel_label(channel)}</span></div>
     <div class="meta-item"><span class="key">OPERATOR</span><span class="val">{executor}</span></div>
     <div class="meta-item"><span class="key">ENGINE LANG</span><span class="val">{lang_name}</span></div>
     <div class="meta-item"><span class="key">TIMESTAMP</span><span class="val">{now_str}</span></div>
@@ -2086,8 +2113,8 @@ def send_discord(webhook_url: str, channel: str, executor: str,
     kw_text = "\n".join(f"• `{k}` ×{v}" for k, v in top_kw) if top_kw else "—"
 
     # ── Truncate tiap field biar gak pernah nabrak limit Discord ──
-    desc_val   = _trunc(f"Laporan forensik V20 untuk @{channel} telah selesai.", _DISCORD_DESC_LIMIT)
-    target_val = _trunc(f"@{channel}", _DISCORD_FIELD_LIMIT)
+    desc_val   = _trunc(f"Laporan forensik V20 untuk {_channel_label(channel)} telah selesai.", _DISCORD_DESC_LIMIT)
+    target_val = _trunc(f"{_channel_label(channel)}", _DISCORD_FIELD_LIMIT)
     exec_val   = _trunc(executor, _DISCORD_FIELD_LIMIT)
     stat_val   = _trunc(
         f"Total: {len(results)} | Valid: {len(valid_results)} | No-Trans: {no_trans_count} | Hits: {all_hits}",
@@ -2184,7 +2211,7 @@ def send_discord(webhook_url: str, channel: str, executor: str,
         with open(html_path, "rb") as f:
             resp2 = req_lib.post(
                 webhook_url,
-                data={"payload_json": json.dumps({"content": f"📄 Laporan lengkap @{channel}:"})},
+                data={"payload_json": json.dumps({"content": f"📄 Laporan lengkap {_channel_label(channel)}:"})},
                 files={"file": (fname, f, "text/html")},
                 timeout=60
             )
@@ -2265,7 +2292,7 @@ def handle_rate_limit(webhook_url: str, channel: str, executor: str,
             "title": "⚠️ PROSES TERHENTI — RATE LIMIT / CAPTCHA",
             "color": 16711680,
             "description": (
-                f"Proses untuk @{channel} terhenti karena rate limit YouTube.\n\n"
+                f"Proses untuk {_channel_label(channel)} terhenti karena rate limit YouTube.\n\n"
                 f"📊 **Progres tersimpan:** {done}/{total} video selesai\n"
                 f"👷 **Eksekutor:** {executor}\n\n"
                 f"💾 Checkpoint tersimpan. Jalankan ulang skrip untuk melanjutkan dari video ke-{done+1}."
@@ -2386,12 +2413,12 @@ def process_channel(args):
             safe_print(f"[red]❌ Gagal baca log: {e}[/red]")
             return
     else:
-        safe_print(f"\n[cyan][📥] Mengambil daftar video untuk @{channel}...[/cyan]")
+        safe_print(f"\n[cyan][📥] Mengambil daftar video untuk {_channel_label(channel)}...[/cyan]")
         video_ids = get_video_ids(channel, limit, content_type)
 
 
     if not video_ids:
-        safe_print(f"[red][❌] Tidak ada video ditemukan untuk @{channel}.[/red]")
+        safe_print(f"[red][❌] Tidak ada video ditemukan untuk {_channel_label(channel)}.[/red]")
         send_discord(webhook_url, channel, executor, [], "")
         return
 
@@ -2466,7 +2493,7 @@ def process_channel(args):
         f"🎯 {hits_total} total momen terdeteksi\n"
         f"⏱️  Waktu: {elapsed_min}m {elapsed_sec}s\n"
         f"📤 Laporan dikirim ke Discord[/white]",
-        title=f"[green]🏁 SELESAI — @{channel}[/green]",
+        title=f"[green]🏁 SELESAI — {_channel_label(channel)}[/green]",
         border_style="green",
         padding=(1, 2),
     ))
