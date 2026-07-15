@@ -1214,6 +1214,14 @@ mode_autodrive() {
     # ── Pilih bahasa (reuse input_language, sets LANG_CHOICE & WEBHOOK_URL) ──
     input_language
 
+    # ── Query custom (SESI INI SAJA, tidak ditulis ke SEED_QUERIES) ────────
+    echo ""
+    echo -e "${W}[🔎] QUERY PENCARIAN${NC}"
+    echo -e "   ${DIM}Kosongkan untuk pakai seed query bawaan bahasa ini.${NC}"
+    echo -e "   ${DIM}Isi buat query custom sesi ini saja (gak disimpan permanen).${NC}"
+    echo -e "   ${DIM}Pisah pakai '|' kalau mau lebih dari 1 variasi.${NC}"
+    read -rp "  ➤ Query custom (opsional): " AD_CUSTOM_QUERY
+
     # ── Rentang waktu upload ──────────────────────────────────────────────
     echo ""
     echo -e "${W}[⏱️] RENTANG WAKTU UPLOAD${NC}"
@@ -1234,7 +1242,9 @@ mode_autodrive() {
 
     # ── Limit video per channel baru ──────────────────────────────────────
     echo ""
-    read -rp "  ➤ Limit video per channel baru (default 10): " ad_limit
+    echo -e "${W}[🎬] LIMIT VIDEO PER CHANNEL BARU${NC}"
+    echo -e "   ${DIM}Isi angka, atau 0 untuk SEMUA arsip live (unlimited).${NC}"
+    read -rp "  ➤ Limit (default 10, 0=semua): " ad_limit
     [[ "$ad_limit" =~ ^[0-9]+$ ]] || ad_limit=10
 
     # ── Max siklus (kosong = tanpa batas) ──────────────────────────────────
@@ -1244,8 +1254,9 @@ mode_autodrive() {
     echo ""
     echo -e "${GR}[✅] Konfigurasi:${NC}"
     echo -e "   Bahasa         : $LANG_CHOICE"
+    echo -e "   Query          : ${AD_CUSTOM_QUERY:-(bawaan/default)}"
     echo -e "   Rentang waktu  : $AD_TIME_RANGE"
-    echo -e "   Limit/channel  : $ad_limit"
+    echo -e "   Limit/channel  : $([ "$ad_limit" = "0" ] && echo "SEMUA (unlimited)" || echo "$ad_limit")"
     echo -e "   Max siklus     : ${ad_max_cycles:-tanpa batas}"
     echo ""
     read -rp "  ➤ Mulai? (y/n): " confirm_ad
@@ -1263,7 +1274,8 @@ mode_autodrive() {
         --max-cycles "$ad_max_cycles" \
         --config-dir "$CONFIG_DIR" \
         --checkpoint-dir "$CHECKPOINT_DIR" \
-        --webhook-url "$WEBHOOK_URL"
+        --webhook-url "$WEBHOOK_URL" \
+        --custom-query "$AD_CUSTOM_QUERY"
     local ad_exit=$?
 
     termux-wake-unlock 2>/dev/null || true
