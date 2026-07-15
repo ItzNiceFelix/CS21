@@ -406,6 +406,7 @@ def _fetch_video_ids(channel: str) -> list[str]:
     cmd = [
         *ytdlp,
         "--flat-playlist",
+        "--extractor-args", "youtube:player_client=mweb",
         "--print", "id",
         "--no-warnings",
         "--socket-timeout", "20",
@@ -444,70 +445,112 @@ def _fetch_video_ids(channel: str) -> list[str]:
 
 def _download_chat(video_id: str, work_dir: Path) -> dict:
     """
-    Download live_chat subtitle untuk satu video_id.
-    Return dict {video_id, status, chat_file, error_type, error_msg}.
+    Download live_chat subtitle untuk satu video_id dengan strategi Two-Pass.
+    Pass 1: Client Android (Bypass PO Token, tanpa cookies) untuk video publik.
+    Pass 2: Client MWEB + Cookies untuk video Age-Restricted.
 
     Status:
-      "ok"          — chat_file tersedia
-      "no_chat"     — video tidak punya live chat / bukan livestream
-      "unavailable" — video private/dihapus/age-restricted
-      "rate_limited"— HTTP 429
-      "network_error"— timeout / koneksi gagal
-      "error"       — error lain
+      "ok"            — chat_file tersedia
+      "no_chat"       — video tidak punya live chat / bukan livestream
+      "unavailable"   — video private/dihapus
+      "age_restricted"— butuh cookies akun 18+
+      "auth_required" — YouTube minta konfirmasi "not a bot"
+      "rate_limited"  — HTTP 429
+      "network_error" — timeout / koneksi gagal
+      "error"         — error lain
     """
-    url    = f"https://www.youtube.com/watch?v={video_id}"
-    outtmpl = str(work_dir / f"chat_{video_id}")
+    url       = f"https://www.youtube.com/watch?v={video_id}"
+    outtmpl   = str(work_dir / f"chat_{video_id}")
+    chat_path = work_dir / f"chat_{video_id}.live_chat.json"
 
     ytdlp = _ytdlp_cmd()
     if not ytdlp:
-        return {**base, "status": "error",
+        return {"video_id": video_id, "status": "error", "chat_file": None,
                 "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan"}
 
-    cmd = [
+    base = {"video_id": video_id, "chat_file": None, "error_type": None, "error_msg": None}
+
+    # ───────────────────────────────────────────────────────────────────────
+    # STRATEGI 1: CLIENT ANDROID (TANPA COOKIES) — Kebal PO Token
+    # ───────────────────────────────────────────────────────────────────────
+    cmd_public = [
         *ytdlp,
         "--skip-download",
         "--write-subs",
         "--sub-langs", "live_chat",
+        "--extractor-args", "youtube:player_client=android",  # Inti bypass
         "--sleep-requests", str(DL_SLEEP_BASE),
         "--extractor-retries", str(EXTRACTOR_RETRY),
         "--socket-timeout", str(SOCK_TIMEOUT),
         "--no-warnings",
-        "--user-agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36",
+        "-o", outtmpl, url,
     ]
-    if COOKIES_PATH.exists():
-        cmd += ["--cookies", str(COOKIES_PATH)]
-    cmd += ["-o", outtmpl, url]
-
-    base = {"video_id": video_id, "chat_file": None,
-            "error_type": None, "error_msg": None}
 
     try:
-        r    = _run(cmd, timeout=60)
-        comb = (r.stdout + " " + r.stderr)
+        r1    = _run(cmd_public, timeout=60)
+        comb1 = r1.stdout + " " + r1.stderr
 
-        # Cari output file
-        chat_path = work_dir / f"chat_{video_id}.live_chat.json"
+        # Cek apakah file berhasil dibuat
         if chat_path.exists() and chat_path.stat().st_size > 10:
             return {**base, "status": "ok", "chat_file": chat_path}
 
-        # Tidak ada file — parse error dari output yt-dlp
-        status = _classify_ytdlp_error(comb)
-        return {**base, "status": status,
-                "error_type": status,
-                "error_msg":  r.stderr.strip()[:300] or r.stdout.strip()[:300]}
+        status1 = _classify_ytdlp_error(comb1)
+
+        # Kalau errornya BUKAN karena butuh login/umur, langsung kembalikan hasil
+        if status1 not in ("age_restricted", "auth_required"):
+            return {**base, "status": status1, "error_type": status1,
+                    "error_msg": r1.stderr.strip()[:300] or r1.stdout.strip()[:300]}
 
     except subprocess.TimeoutExpired:
         return {**base, "status": "network_error",
-                "error_type": "timeout", "error_msg": "yt-dlp timeout"}
+                "error_type": "timeout", "error_msg": "Timeout di Strategi 1 (android)"}
     except FileNotFoundError:
         return {**base, "status": "error",
                 "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan"}
     except Exception as e:
+        return {**base, "status": "error", "error_type": "unknown", "error_msg": str(e)[:200]}
+
+    # ───────────────────────────────────────────────────────────────────────
+    # STRATEGI 2: CLIENT MWEB + COOKIES (FALLBACK UNTUK AGE-RESTRICTED)
+    # ───────────────────────────────────────────────────────────────────────
+    if not COOKIES_PATH.exists():
+        # Menyerah kalau butuh cookies tapi file cookies belum ada
+        return {**base, "status": status1, "error_type": status1,
+                "error_msg": "Video restricted, butuh cookies.txt tapi file tidak ditemukan."}
+
+    cmd_restricted = [
+        *ytdlp,
+        "--skip-download",
+        "--write-subs",
+        "--sub-langs", "live_chat",
+        "--extractor-args", "youtube:player_client=mweb",  # client mweb baca cookies
+        "--cookies", str(COOKIES_PATH),
+        "--sleep-requests", str(DL_SLEEP_BASE),
+        "--extractor-retries", str(EXTRACTOR_RETRY),
+        "--socket-timeout", str(SOCK_TIMEOUT),
+        "--no-warnings",
+        "-o", outtmpl, url,
+    ]
+
+    try:
+        r2    = _run(cmd_restricted, timeout=60)
+        comb2 = r2.stdout + " " + r2.stderr
+
+        if chat_path.exists() and chat_path.stat().st_size > 10:
+            return {**base, "status": "ok", "chat_file": chat_path}
+
+        status2 = _classify_ytdlp_error(comb2)
+        return {**base, "status": status2, "error_type": status2,
+                "error_msg": r2.stderr.strip()[:300] or r2.stdout.strip()[:300]}
+
+    except subprocess.TimeoutExpired:
+        return {**base, "status": "network_error",
+                "error_type": "timeout", "error_msg": "Timeout di Strategi 2 (mweb+cookies)"}
+    except FileNotFoundError:
         return {**base, "status": "error",
-                "error_type": "unknown", "error_msg": str(e)[:200]}
+                "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan"}
+    except Exception as e:
+        return {**base, "status": "error", "error_type": "unknown", "error_msg": str(e)[:200]}
 
 
 # ==============================================================================
