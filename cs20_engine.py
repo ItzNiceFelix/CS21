@@ -476,7 +476,10 @@ def _init_lang(lang: str):
 # AMBIL VIDEO ID LIST VIA YT-DLP
 # ==============================================================================
 def get_video_ids(channel: str, limit: int, content_type: str) -> list:
-    """Ambil list video ID dari channel via yt-dlp."""
+    """Ambil list video ID dari channel via yt-dlp.
+    limit <= 0 berarti UNLIMITED — semua arsip live/video diambil,
+    tanpa --playlist-end dan tanpa slicing."""
+    unlimited = limit <= 0
 
     # Tentukan URL tab + filter yang tepat per tipe konten
     # was_live tidak tersedia saat --flat-playlist, jadi pakai tab yang benar
@@ -493,24 +496,29 @@ def get_video_ids(channel: str, limit: int, content_type: str) -> list:
         # Jalankan dua fetch terpisah lalu gabungkan
         ids_live  = _fetch_ids(f"https://www.youtube.com/@{channel}/streams", limit, [])
         ids_video = _fetch_ids(f"https://www.youtube.com/@{channel}/videos",  limit, ["--match-filter", "duration>60"])
-        # Gabung, deduplikasi, batasi limit
+        # Gabung, deduplikasi, batasi limit (skip slicing kalau unlimited)
         seen, combined = set(), []
         for vid in ids_live + ids_video:
             if vid not in seen:
                 seen.add(vid)
                 combined.append(vid)
-        return combined[:limit]
+        return combined if unlimited else combined[:limit]
 
     return _fetch_ids(url, limit, extra_args)
 
 
 def _fetch_ids(url: str, limit: int, extra_args: list) -> list:
-    """Helper: jalankan yt-dlp flat-playlist dan return list ID."""
+    """Helper: jalankan yt-dlp flat-playlist dan return list ID.
+    limit <= 0 berarti UNLIMITED — --playlist-end di-skip, gak ada slicing."""
+    unlimited = limit <= 0
     cmd = [
         "yt-dlp",
         "--flat-playlist",
         "--print", "id",
-        "--playlist-end", str(limit),
+    ]
+    if not unlimited:
+        cmd += ["--playlist-end", str(limit)]
+    cmd += [
         *extra_args,
         "--quiet",
         "--no-warnings",
@@ -518,14 +526,15 @@ def _fetch_ids(url: str, limit: int, extra_args: list) -> list:
     ]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        timeout_s = 180 if unlimited else 60
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
         ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
         seen, unique = set(), []
         for vid in ids:
             if vid not in seen:
                 seen.add(vid)
                 unique.append(vid)
-        return unique[:limit]
+        return unique if unlimited else unique[:limit]
     except subprocess.TimeoutExpired:
         return []
     except Exception:
@@ -1998,6 +2007,16 @@ def load_webhook_url(config_dir: str, webhook_url: str = "") -> str:
     """Return webhook URL dari argumen (sudah di-inject ke cs20.sh)."""
     return webhook_url.strip() if webhook_url else ""
 
+# ── Batas Discord: field value 1024 char, description 4096, total embed 6000 ──
+_DISCORD_FIELD_LIMIT = 1000   # sisa buffer dari 1024
+_DISCORD_DESC_LIMIT  = 4000   # sisa buffer dari 4096
+
+def _trunc(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit - 20].rstrip() + "\n… (dipotong)"
+
+
 def send_discord(webhook_url: str, channel: str, executor: str,
                  results: list, html_path: str):
     """Kirim laporan ke Discord webhook."""
@@ -2066,20 +2085,30 @@ def send_discord(webhook_url: str, channel: str, executor: str,
     top_kw = sorted(keyword_freq.items(), key=lambda x: x[1], reverse=True)[:5]
     kw_text = "\n".join(f"• `{k}` ×{v}" for k, v in top_kw) if top_kw else "—"
 
+    # ── Truncate tiap field biar gak pernah nabrak limit Discord ──
+    desc_val   = _trunc(f"Laporan forensik V20 untuk @{channel} telah selesai.", _DISCORD_DESC_LIMIT)
+    target_val = _trunc(f"@{channel}", _DISCORD_FIELD_LIMIT)
+    exec_val   = _trunc(executor, _DISCORD_FIELD_LIMIT)
+    stat_val   = _trunc(
+        f"Total: {len(results)} | Valid: {len(valid_results)} | No-Trans: {no_trans_count} | Hits: {all_hits}",
+        _DISCORD_FIELD_LIMIT
+    )
+    kw_val     = _trunc(kw_text, _DISCORD_FIELD_LIMIT)
+    tier_val   = _trunc(tier_text, _DISCORD_FIELD_LIMIT)
+    score_val  = _trunc(scoreboard, _DISCORD_FIELD_LIMIT)
+
     payload = {
         "embeds": [{
-            "title": kasta_global,
+            "title": kasta_global[:256],
             "color": warna,
-            "description": f"Laporan forensik V20 untuk @{channel} telah selesai.",
+            "description": desc_val,
             "fields": [
-                {"name": "👤 Target", "value": f"@{channel}", "inline": True},
-                {"name": "👷 Eksekutor", "value": executor, "inline": True},
-                {"name": "📊 Statistik",
-                 "value": f"Total: {len(results)} | Valid: {len(valid_results)} | No-Trans: {no_trans_count} | Hits: {all_hits}",
-                 "inline": False},
-                {"name": "🔑 Keyword Terdeteksi (Top 5)", "value": kw_text, "inline": False},
-                {"name": "📊 Tier Breakdown", "value": tier_text, "inline": False},
-                {"name": "📈 Top Scoreboard", "value": scoreboard, "inline": False},
+                {"name": "👤 Target", "value": target_val, "inline": True},
+                {"name": "👷 Eksekutor", "value": exec_val, "inline": True},
+                {"name": "📊 Statistik", "value": stat_val, "inline": False},
+                {"name": "🔑 Keyword Terdeteksi (Top 5)", "value": kw_val, "inline": False},
+                {"name": "📊 Tier Breakdown", "value": tier_val, "inline": False},
+                {"name": "📈 Top Scoreboard", "value": score_val, "inline": False},
             ]
         }]
     }
@@ -2098,26 +2127,45 @@ def send_discord(webhook_url: str, channel: str, executor: str,
         import requests as req_lib
 
     # ── LANGKAH 1: Kirim embed dulu (tanpa file) ──────────────────
-    try:
-        resp = req_lib.post(
-            webhook_url,
-            json=payload,
-            timeout=30
-        )
-        if resp.status_code in (200, 204):
-            safe_print(f"[green][✅] Ringkasan terkirim ke Discord![/green]")
-        elif resp.status_code == 403:
-            safe_print(f"[red][❌] Discord 403 Forbidden[/red]")
-            safe_print(f"[yellow]     Cek apakah webhook masih aktif di Discord:[/yellow]")
-            safe_print(f"[yellow]     Server → Edit Channel → Integrations → Webhooks[/yellow]")
+    # Retry SEKALI kalau kena 429 (rate-limit Discord sendiri) — bisa numpuk
+    # kalau beberapa channel kelar berdekatan (mis. Auto Drive kirim beruntun).
+    for attempt in range(2):
+        try:
+            resp = req_lib.post(
+                webhook_url,
+                json=payload,
+                timeout=30
+            )
+            if resp.status_code in (200, 204):
+                safe_print(f"[green][✅] Ringkasan terkirim ke Discord![/green]")
+                break
+            elif resp.status_code == 429:
+                retry_after = 2.0
+                try:
+                    retry_after = float(resp.json().get("retry_after", 2.0))
+                except Exception:
+                    pass
+                retry_after = min(retry_after, 15.0) + 0.5
+                if attempt == 0:
+                    safe_print(f"[yellow][⚠️] Discord 429 rate-limited, retry dalam {retry_after:.1f}s...[/yellow]")
+                    time.sleep(retry_after)
+                    continue
+                safe_print(f"[red][❌] Discord tetap 429 setelah retry. Skip.[/red]")
+                safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
+                return
+            elif resp.status_code == 403:
+                safe_print(f"[red][❌] Discord 403 Forbidden[/red]")
+                safe_print(f"[yellow]     Cek apakah webhook masih aktif di Discord:[/yellow]")
+                safe_print(f"[yellow]     Server → Edit Channel → Integrations → Webhooks[/yellow]")
+                safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
+                return
+            else:
+                safe_print(f"[yellow][⚠️] Discord response: {resp.status_code} — {resp.text[:100]}[/yellow]")
+                break
+        except Exception as e:
+            safe_print(f"[red][❌] Gagal kirim embed: {e}[/red]")
             safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
             return
-        else:
-            safe_print(f"[yellow][⚠️] Discord response: {resp.status_code} — {resp.text[:100]}[/yellow]")
-    except Exception as e:
-        safe_print(f"[red][❌] Gagal kirim embed: {e}[/red]")
-        safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
-        return
 
     # ── LANGKAH 2: Attach file HTML hanya jika ukuran aman ────────
     if not os.path.exists(html_path):
@@ -2344,6 +2392,7 @@ def process_channel(args):
 
     if not video_ids:
         safe_print(f"[red][❌] Tidak ada video ditemukan untuk @{channel}.[/red]")
+        send_discord(webhook_url, channel, executor, [], "")
         return
 
     # Apply checkpoint
