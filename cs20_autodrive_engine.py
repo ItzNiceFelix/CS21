@@ -245,15 +245,23 @@ def _classify_engine_subprocess(returncode: int, combined: str) -> str:
     cl = c.lower()
     if "sign in to confirm" in cl or "not a bot" in cl:
         return "auth_required"
+
+    # returncode 0 = child selesai NORMAL sampai akhir (udah kirim
+    # laporan sendiri ke Discord). Kata "network"/"timeout" yang
+    # nyangkut di output cuma log PER-VIDEO yang di-relay ke terminal
+    # (contoh: 1 video kena network error tapi channel tetep lanjut
+    # sampai selesai) — itu BUKAN indikasi subprocess-nya gagal.
+    # Jangan pernah override "ok" jadi "network_error" cuma gara-gara
+    # keyword match, kalau returncode udah 0 duluan.
+    if returncode == 0:
+        return "ok"
+
     if any(k in cl for k in ("timeout", "timed out", "connection reset",
                               "remotedisconnected", "network", "socket")):
         return "network_error"
 
-    if returncode != 0:
-        # Crash/exception asli, bukan rate-limit — traceback dsb
-        return "error"
-
-    return "ok"
+    # Crash/exception asli, bukan rate-limit — traceback dsb
+    return "error"
 
 
 # ==============================================================================
