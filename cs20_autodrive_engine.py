@@ -219,6 +219,39 @@ def extract_new_channels(items: list, seen_history: set, seen_this_run: set) -> 
 
 
 # ==============================================================================
+# KLASIFIKASI ERROR — CS20_ENGINE.PY SUBPROCESS LAYER
+# ==============================================================================
+# PENTING: cs20_engine.py TIDAK exit(1) saat rate-limit darurat — dia cuma
+# pool.shutdown() + break lalu lanjut sampai akhir fungsi (exit code tetap 0).
+# Jadi returncode SENDIRIAN gak bisa dipakai buat deteksi rate-limit di sini.
+# Harus grep marker teks pasti yang dicetak handle_rate_limit() di engine.
+
+_ENGINE_RATE_LIMIT_MARKER = "RATE LIMIT TERDETEKSI"
+
+def _classify_engine_subprocess(returncode: int, combined: str) -> str:
+    c = combined  # marker case-sensitive, jangan di-lower()
+
+    # Marker pasti dari handle_rate_limit() — ini definisi rate-limit
+    # darurat YANG SAMA dengan yang dipakai cs20_engine.py sendiri
+    # (10 consecutive_errors), jadi paling akurat, bukan tebakan.
+    if _ENGINE_RATE_LIMIT_MARKER in c:
+        return "rate_limited"
+
+    cl = c.lower()
+    if "sign in to confirm" in cl or "not a bot" in cl:
+        return "auth_required"
+    if any(k in cl for k in ("timeout", "timed out", "connection reset",
+                              "remotedisconnected", "network", "socket")):
+        return "network_error"
+
+    if returncode != 0:
+        # Crash/exception asli, bukan rate-limit — traceback dsb
+        return "error"
+
+    return "ok"
+
+
+# ==============================================================================
 # STEP 6 — PROSES SATU CHANNEL (subprocess ke cs20_engine.py, reuse existing)
 # ==============================================================================
 
@@ -249,10 +282,10 @@ def run_channel_scan(channel_id: str, lang: str, limit: int,
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
         comb = r.stdout + " " + r.stderr
 
-        if r.returncode == 0:
+        status = _classify_engine_subprocess(r.returncode, comb)
+        if status == "ok":
             return {"status": "ok", "channel_id": channel_id}
 
-        status = _classify_search_error(comb)  # reuse klasifikasi yang sama
         return {"status": status, "channel_id": channel_id,
                 "error_msg": r.stderr.strip()[:300]}
 
@@ -397,7 +430,11 @@ def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
     cycle_no         = 0
 
     def _on_sigint(sig, frame):
-        safe_print("\n[yellow][⚠️] Ctrl+C — menyimpan history & keluar...[/yellow]")
+        safe_print("\n[yellow][⚠️] Ctrl+C diterima — menghentikan Auto Drive...[/yellow]")
+        safe_print("[green][✓] History AMAN — sudah ditulis real-time per-channel, "
+                   "bukan cuma di akhir sesi. Channel yang belum sempat diproses "
+                   "TIDAK tercatat di history, jadi otomatis akan dicoba lagi "
+                   "di sesi berikutnya (bukan ke-skip permanen).[/green]")
         safe_print(f"[dim]Total siklus: {_stats['cycles']} | "
                     f"Channel diproses: {_stats['channels_processed']}[/dim]")
         sys.exit(0)
@@ -486,6 +523,14 @@ def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
                 if _consecutive_scan_fail >= BREAKER_THRESHOLD_SCAN:
                     confirmed = handle_breaker_trigger("scan", config_dir, webhook_url)
                     if confirmed:
+                        # SENGAJA: channel sisa di `new_channels` yang belum
+                        # sempat diproses TIDAK ditulis ke history (karena
+                        # belum pernah benar-benar di-scan). Ini benar secara
+                        # desain — mereka akan otomatis masuk antrian lagi di
+                        # siklus berikutnya (kalau query yang sama nemu channel
+                        # yang sama lagi), BUKAN ke-skip permanen. Cuma channel
+                        # yang di dalam loop ini SUDAH diproses (baris di atas)
+                        # yang tercatat ke history.
                         break  # keluar dari loop channel, lanjut ke siklus baru
             else:
                 # status normal lain (no_chat/unavailable/dll) — reset counter
