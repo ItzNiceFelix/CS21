@@ -572,7 +572,7 @@ while true; do
 mode_pantau() {
     draw_box_title "👁️  MODE PANTAU — Live Dashboard" "$GR"
 
-    input_channels 2 "Pantau"
+    input_channels 999 "Pantau"
     input_content_type
     input_job_preset
 
