@@ -61,6 +61,11 @@ COOLDOWN_CONFIRMED    = 600          # 10 menit, kalau breaker CONFIRMED
 DELAY_ANTAR_CHANNEL   = (5, 10)      # detik, antar channel dalam 1 siklus
 DELAY_ANTAR_SIKLUS    = (60, 120)    # detik, antar siklus search
 
+# network_error dianggap gangguan jaringan LOKAL (bukan sinyal blokir
+# YouTube) — retry channel yang SAMA di tempat, bukan skip ke channel lain.
+MAX_NETWORK_RETRY     = 5            # max retry per channel buat network_error
+NETWORK_RETRY_DELAY   = (10, 20)     # detik, jeda antar retry channel sama
+
 # Mapping preset rentang waktu → flag --dateafter yt-dlp
 TIME_RANGE_MAP = {
     "all":   None,
@@ -257,7 +262,8 @@ def _classify_engine_subprocess(returncode: int, combined: str) -> str:
 
 def run_channel_scan(channel_id: str, lang: str, limit: int,
                       config_dir: str, checkpoint_dir: str,
-                      webhook_url: str, executor: str) -> dict:
+                      webhook_url: str, executor: str,
+                      display_name: str = "") -> dict:
     """
     Panggil cs20_engine.py sebagai subprocess — SAMA PERSIS pola yang
     dipakai cs20.sh (run_engine), supaya semua logic scoring/checkpoint/
@@ -277,6 +283,7 @@ def run_channel_scan(channel_id: str, lang: str, limit: int,
         "--config-dir", config_dir,
         "--webhook-url", webhook_url,
         "--lang", lang,
+        "--display-name", display_name,   # nama asli dari uploader hasil search, buat label
     ]
     # Timeout scan lebih longgar kalau unlimited — bisa banyak video sekali jalan
     scan_timeout = 5400 if limit <= 0 else 1800
@@ -531,53 +538,84 @@ def run_autodrive(lang: str, time_range: str, limit_per_channel: int,
         # ── STEP 6-7: Proses tiap channel baru ─────────────────────
         for item in new_channels:
             cid = item["channel_id"]
+            uploader = item.get("uploader", "")
             seen_this_run.add(cid)
 
-            safe_print(f"  [cyan]→ Scan channel {cid} ({item['uploader']})...[/cyan]")
-            scan_result = run_channel_scan(
-                cid, lang, limit_per_channel,
-                config_dir, checkpoint_dir, webhook_url, executor
-            )
+            safe_print(f"  [cyan]→ Scan channel {cid} ({uploader})...[/cyan]")
 
-            # Tulis history SEGERA — biar aman kalau ke-interrupt
-            append_history(config_dir, lang, cid)
-            history.add(cid)
+            # ── network_error = kemungkinan gangguan jaringan LOKAL, bukan
+            # sinyal blokir YouTube. Retry channel yang SAMA di tempat
+            # (bukan skip ke channel lain), gak dihitung ke breaker. ──
+            net_retry = 0
+            while True:
+                scan_result = run_channel_scan(
+                    cid, lang, limit_per_channel,
+                    config_dir, checkpoint_dir, webhook_url, executor,
+                    display_name=uploader,
+                )
+                status = scan_result["status"]
+                if status == "network_error" and net_retry < MAX_NETWORK_RETRY:
+                    net_retry += 1
+                    delay = random.uniform(*NETWORK_RETRY_DELAY)
+                    safe_print(f"    [yellow]network_error (kemungkinan jaringan lokal) — "
+                               f"retry channel sama {net_retry}/{MAX_NETWORK_RETRY} "
+                               f"dalam {delay:.0f}s...[/yellow]")
+                    time.sleep(delay)
+                    continue
+                break
 
             _stats["channels_processed"] += 1
-            _cycle_summary_batch.append({"channel_id": cid, "status": scan_result["status"]})
+            _cycle_summary_batch.append({"channel_id": cid, "status": status})
 
-            status = scan_result["status"]
             if status == "ok":
+                # Final & sukses — tulis history, gak akan diulang lagi.
+                append_history(config_dir, lang, cid)
+                history.add(cid)
                 _stats["channels_ok"] += 1
                 _consecutive_scan_fail = 0
                 safe_print(f"    [green]✓ selesai, laporan terkirim.[/green]")
-                # Simpan sebagai last-known-good buat ping-check nanti
                 if item["video_id"]:
                     _last_known_good_video_id = item["video_id"]
-            elif status in RATE_LIMIT_SIGNALS:
+
+            elif status in ("rate_limited", "auth_required"):
+                # Sinyal ASLI dari YouTube — hitung ke breaker.
+                # TIDAK ditulis ke history biar bisa dicoba lagi di sesi
+                # berikutnya (dulu ini bug: ditulis history juga, jadi
+                # channel gagal permanen ke-skip padahal cuma gangguan).
                 _stats["channels_failed"] += 1
                 _consecutive_scan_fail += 1
                 safe_print(f"    [yellow]status={status}, "
-                           f"consecutive={_consecutive_scan_fail}[/yellow]")
+                           f"consecutive={_consecutive_scan_fail} — "
+                           f"TIDAK ditulis ke history, dicoba lagi nanti.[/yellow]")
                 if _consecutive_scan_fail >= BREAKER_THRESHOLD_SCAN:
                     confirmed = handle_breaker_trigger("scan", config_dir, webhook_url)
                     if confirmed:
-                        # SENGAJA: channel sisa di `new_channels` yang belum
-                        # sempat diproses TIDAK ditulis ke history (karena
-                        # belum pernah benar-benar di-scan). Ini benar secara
-                        # desain — mereka akan otomatis masuk antrian lagi di
-                        # siklus berikutnya (kalau query yang sama nemu channel
-                        # yang sama lagi), BUKAN ke-skip permanen. Cuma channel
-                        # yang di dalam loop ini SUDAH diproses (baris di atas)
-                        # yang tercatat ke history.
+                        # Channel sisa di new_channels yang belum sempat
+                        # diproses juga otomatis TIDAK ke history — sama
+                        # kayak channel ini, semuanya bakal dicoba lagi di
+                        # siklus/sesi berikutnya, bukan ke-skip permanen.
                         break  # keluar dari loop channel, lanjut ke siklus baru
+
+            elif status == "network_error":
+                # Exhausted retry lokal — TIDAK ditulis ke history (biar
+                # dicoba lagi nanti), TIDAK dihitung ke breaker (ini
+                # kemungkinan besar jaringan lokal, bukan sinyal YouTube).
+                _stats["channels_failed"] += 1
+                safe_print(f"    [yellow]network_error persisten setelah "
+                           f"{MAX_NETWORK_RETRY}x retry — nyerah sesi ini, "
+                           f"TIDAK ditulis ke history (dicoba lagi nanti).[/yellow]")
+
             else:
-                # status normal lain (no_chat/unavailable/error/dll) — reset counter
+                # "error" (crash/exception di child) — status ambigu, tapi
+                # kita anggap final biar gak infinite-retry channel yang
+                # emang rusak/gak kompatibel selama-lamanya.
                 _stats["channels_failed"] += 1
                 _consecutive_scan_fail = 0
+                append_history(config_dir, lang, cid)
+                history.add(cid)
                 emsg = scan_result.get("error_msg", "")
                 safe_print(f"    [dim]status={status}"
-                           f"{' — ' + emsg[:150] if emsg else ''}[/dim]")
+                           f"{' — ' + emsg[:150] if emsg else ''} — ditulis ke history (final).[/dim]")
 
             time.sleep(random.uniform(*DELAY_ANTAR_CHANNEL))
 
