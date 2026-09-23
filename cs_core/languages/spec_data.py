@@ -1,7 +1,8 @@
-"""Data tier keyword — PORT APA ADANYA dari `_ALL_KEYWORD_TIERS`
-(cs20_engine.py), dikurangi `(?!)` (P4: tier kosong jadi list kosong).
+"""LEGACY (Fase 2): baseline referensi keyword — JANGAN dihapus.
 
-Fase 2 akan menggantinya dengan deklarasi `core_forms` + generator varian.
+Deklarasi kata hidup di `cs_core/languages/forms.py` (generator varian);
+`tools/diff_forms.py` membaca modul ini sebagai baseline untuk memastikan
+tidak ada form CORE lama yang hilang (P10). Tidak dipakai `load()` lagi.
 """
 
 __all__ = ['KEYWORD_TIERS', 'TRANSCRIPT_LANGS']

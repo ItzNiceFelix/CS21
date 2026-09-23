@@ -1,89 +1,147 @@
-"""Registry bahasa. Fase 1: data di-port apa adanya dari `_ALL_KEYWORD_TIERS`.
+"""Registry bahasa — bangun `LanguageSpec` dari deklarasi `forms.FORMS`.
 
 `load(lang)`:
-- mengambil tier dari `spec_data.KEYWORD_TIERS` (fallback `id` seperti baseline),
-- menggabung `in` + `te` per tier (dedupe urutan terjaga, bobot dari `in`),
-- membangun `LanguageSpec` frozen; `compile()` memanggil kompilasi regex sekali.
+- ambil deklarasi bentuk dari `forms.FORMS` (fallback `id` seperti baseline),
+- merge Telugu ke `in` per-tier (arch §4.4, dedupe urutan terjaga),
+- generate varian (`auto_typo`/`phonetic_id`/`romanized`) + regex via
+  `variants.build_regex`, gabung `core_forms` + `regex` + varian,
+- `compile()` sekali (regex + prefilter) — tidak ada global mutable.
+
+`spec_data.KEYWORD_TIERS` tetap baseline referensi (dibaca `tools/diff_forms.py`).
 """
 
 from __future__ import annotations
 
-from . import spec_data
-from .base import KeywordCore, LanguageSpec, TIER_ORDER, TierWeights
+from . import forms as _forms
+from .base import (
+    DEFAULT_FUZZY_THRESHOLD,
+    KeywordCore,
+    LanguageSpec,
+    TIER_ORDER,
+    TierWeights,
+)
+from .variants import auto_typo, build_regex, phonetic_id, romanize
 
 __all__ = ["load", "available", "LanguageSpec", "KeywordCore", "TierWeights", "TIER_ORDER"]
 
-_ALL = spec_data.KEYWORD_TIERS
 _DEFAULT_LANG = "id"
+_ALL = _forms.FORMS
 
-# Script per bahasa (dipakai fuzzy/fonetik/fase berikutnya).
-_SCRIPTS = {
-    "id": "latin",
-    "en": "latin",
-    "jp": "nonlatin",
-    "kr": "nonlatin",
-    "in": "nonlatin",
-    "th": "nonlatin",
-    "te": "nonlatin",
-}
+# tier -> script yang memakai romanisasi untuk bentuk Latin TYPO.
+_SCRIPTS = _forms.SCRIPTS
 
 
 def available() -> tuple[str, ...]:
     return tuple(_ALL.keys())
 
 
-def _tier_names(spec: dict) -> tuple[str, ...]:
-    """Tier sesuai urutan data (baseline memakai urutan dict ini)."""
-    return tuple(spec.keys())
+def _tier_names(raw: dict) -> tuple[str, ...]:
+    return tuple(raw.get("tiers", {}).keys())
 
 
-def _merge_in_te(spec: dict) -> dict:
-    """Gabung pattern te ke in per-tier, dedupe urutan terjaga."""
-    te = _ALL["te"]
-    merged = {}
-    for tier_name, data in spec.items():
-        in_pats = data.get("patterns", [])
-        te_pats = te.get(tier_name, {}).get("patterns", [])
-        merged[tier_name] = {
-            "bobot": data["bobot"],
-            "patterns": list(dict.fromkeys(list(in_pats) + list(te_pats))),
-        }
-    return merged
+def _merge_in_te(raw: dict) -> dict:
+    """Gabung core_forms/regex/romanized `te` ke `in` per-tier, dedupe terjaga."""
+    te = _ALL.get("te", {}).get("tiers", {})
+    tiers = {}
+    for name, data in raw.get("tiers", {}).items():
+        te_data = te.get(name, {})
+        merged = dict(data)
+        for key in ("core_forms", "regex", "romanized", "variants"):
+            merged[key] = list(
+                dict.fromkeys(list(data.get(key, [])) + list(te_data.get(key, [])))
+            )
+        tiers[name] = merged
+    out = dict(raw)
+    out["tiers"] = tiers
+    return out
+
+
+def _expand_forms(data: dict, script: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Kembalikan (core_forms, patterns) untuk satu tier dari deklarasi."""
+    core_forms = list(data.get("core_forms", []))
+
+    literal_forms = list(core_forms)
+    gen_variants: set[str] = set()
+    if "auto_typo" in data.get("variants", []):
+        cap = int(data.get("max_variants", 24))
+        for form in literal_forms:
+            if form.isascii() and form.isalpha():
+                gen_variants |= auto_typo(form, cap)
+    if "phonetic_id" in data.get("variants", []):
+        # fonetik ID = lookup L3 (arch §3.1), bukan pattern regex — hanya
+        # menyumbang ke pattern bila ekuivalennya berupa kata Latin.
+        for form in literal_forms:
+            if form.isascii() and form.isalpha():
+                key = phonetic_id(form)
+                if key and key != form.lower():
+                    gen_variants.add(key)
+
+    romanized = [romanize(f, script) for f in data.get("romanized", [])]
+    latin_forms = sorted(
+        {f for f in (list(gen_variants) + romanized) if f and f.isascii()}
+    )
+
+    patterns: list[str] = []
+    if core_forms:
+        patterns.append(build_regex(core_forms, script))
+    if latin_forms:
+        patterns.append(build_regex(latin_forms, "latin"))
+    patterns.extend(data.get("regex", []))
+    return tuple(core_forms), tuple(patterns)
 
 
 def load(lang: str) -> LanguageSpec:
     """Muat `LanguageSpec` terkompilasi untuk `lang` (default id)."""
-    raw = _ALL.get(lang, _ALL[_DEFAULT_LANG])
-    if lang == "in":
+    key = lang if lang in _ALL else _DEFAULT_LANG
+    raw = dict(_ALL[key])
+    if key == "in":
         raw = _merge_in_te(raw)
 
-    default_tiers = _tier_names(_ALL[_DEFAULT_LANG])
+    script = raw.get("script", _SCRIPTS.get(key, "latin"))
+    tiers = raw.get("tiers", {})
 
-    cores = []
-    # Tier yang ada di data, lalu pastikan 5 tier inti selalu hadir (key=0).
-    for name in list(default_tiers) + [n for n in _tier_names(raw) if n not in default_tiers]:
-        data = raw.get(name, {"bobot": TierWeights().as_dict().get(name, 0), "patterns": []})
-        if data.get("patterns") is None:
-            data = {"bobot": data.get("bobot", 0), "patterns": []}
+    cores: list[KeywordCore] = []
+    fuzzy_skip: set[str] = set()
+    thresholds: dict[str, float] = {}
+    for name in TIER_ORDER:
+        data = tiers.get(name, {})
+        _core_forms, patterns = _expand_forms(data, script)
+        weight = int(data.get("weight", TierWeights().as_dict().get(name, 0)))
         cores.append(
             KeywordCore(
                 tier=name,
-                weight=data["bobot"],
-                patterns=tuple(data["patterns"]),
+                weight=weight,
+                patterns=patterns,
+                core_forms=tuple(data.get("core_forms", [])),
+                neg_context=tuple(data.get("neg_context", [])),
+                fuzzy_skip=frozenset(data.get("fuzzy_skip", [])),
+                fuzzy_threshold=float(
+                    data.get("fuzzy_threshold", DEFAULT_FUZZY_THRESHOLD)
+                ),
             )
         )
+        fuzzy_skip.update(data.get("fuzzy_skip", []))
+        if "fuzzy_threshold" in data:
+            thresholds[name] = float(data["fuzzy_threshold"])
 
     weights = TierWeights(
-        **{k: (raw.get(k, {}).get("bobot", v)) for k, v in TierWeights().as_dict().items()}
+        **{k: int(tiers.get(k, {}).get("weight", v)) for k, v in TierWeights().as_dict().items()}
     )
 
     spec = LanguageSpec(
-        lang=lang if lang in _ALL else _DEFAULT_LANG,
+        lang=key,
         transcript_langs=tuple(
-            spec_data.TRANSCRIPT_LANGS.get(lang, spec_data.DEFAULT_TRANSCRIPT_LANGS)
+            _forms.TRANSCRIPT_LANGS.get(lang, _forms.DEFAULT_TRANSCRIPT_LANGS)
         ),
-        script=_SCRIPTS.get(lang, "latin"),
+        script=script,
         weights=weights,
         cores=tuple(cores),
+        neg_context=tuple(
+            dict.fromkeys(list(raw.get("neg_context_global", []))
+                          + [c for t in tiers.values() for c in t.get("neg_context", [])])
+        ),
+        fuzzy_skip=frozenset(fuzzy_skip),
+        fuzzy_threshold=thresholds,
+        fuzzy_hits_cap=int(raw.get("fuzzy_hits_cap", 8)),
     )
     return spec.compile()
