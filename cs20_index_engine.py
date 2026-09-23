@@ -396,18 +396,8 @@ def run_analysis_phase(
     """
     global _stats
 
-    # Import keyword tiers dari engine lama
-    try:
-        from cs20_engine import _ALL_KEYWORD_TIERS, _init_lang
-        _init_lang(lang)
-        from cs20_engine import COMPILED_TIERS, ALL_PATTERNS_COMBINED
-        use_fuzzy = True
-    except ImportError:
-        use_fuzzy = False
-        safe_print(
-            "[yellow][⚠️] cs20_engine.py tidak ditemukan. "
-            "Analysis menggunakan exact match fallback.[/yellow]"
-        )
+    # Set bahasa aktif; scoring didelegasikan ke cs_core (Fase 5/T5.2).
+    _load_lang(lang)
 
     idx_dir    = index_dir_for(batch_dir)
     json_files = sorted(
@@ -452,13 +442,7 @@ def run_analysis_phase(
             video_id = data.get("video_id", fname.replace(".json", ""))
             segments = data.get("segments", [])
 
-            if use_fuzzy:
-                result = _analyze_from_segments(
-                    video_id, channel, segments,
-                    COMPILED_TIERS, ALL_PATTERNS_COMBINED
-                )
-            else:
-                result = _analyze_fallback(video_id, channel, segments)
+            result = _analyze_from_segments(video_id, channel, segments)
 
             results.append(result)
 
@@ -476,26 +460,28 @@ def run_analysis_phase(
     return results
 
 
-def _analyze_from_segments(
-    video_id:            str,
-    channel:             str,
-    segments:            list,
-    COMPILED_TIERS:      dict,
-    ALL_PATTERNS_COMBINED,
-) -> dict:
-    """
-    Reuse logika analisis dari cs20_engine.analyze_video,
-    tapi input dari segments JSON index (sudah di-parse).
-    """
-    # Import fungsi helper dari engine lama
-    try:
-        from cs20_engine import analyze_video as _av
-        # Tidak bisa langsung call karena butuh fetch transcript.
-        # Kita reimplementasi inline dengan segments yang sudah ada.
-    except ImportError:
-        pass
+# Bahasa aktif analisis index (signature lama tak membawa lang).
+_CURRENT_LANG = "id"
 
-    base = {
+# Sentinel: modul cs_core tak bisa dimuat -> fallback regex minimal.
+_CORE_DEGRADED = False
+
+
+def _load_lang(lang: str) -> None:
+    """Simpan bahasa aktif untuk `_analyze_from_segments` (dipanggil run_analysis_phase)."""
+    global _CURRENT_LANG, _CORE_DEGRADED
+    _CURRENT_LANG = lang
+    try:
+        from cs_core.languages import load as _cs_load
+        _cs_load(lang)
+        _CORE_DEGRADED = False
+    except Exception:
+        _CORE_DEGRADED = True
+
+
+def _no_match_base(video_id: str, channel: str, tiers=None) -> dict:
+    """Dict base identik engine lama untuk no_match / fallback."""
+    return {
         "video_id":    video_id,
         "channel":     channel,
         "status":      "no_match",
@@ -503,7 +489,7 @@ def _analyze_from_segments(
         "hits":        [],
         "score":       0,
         "persentase":  0,
-        "tier_counts": {t: 0 for t in COMPILED_TIERS},
+        "tier_counts": {t: 0 for t in (tiers or ("CORE", "TYPO", "SILENT", "CONTEXT", "FP"))},
         "cluster_count": 0,
         "maraton_mins": 0,
         "is_valid":    False,
@@ -512,220 +498,18 @@ def _analyze_from_segments(
         "html_rows":   "",
     }
 
+
+def _degraded_result(video_id: str, channel: str, segments: list) -> dict:
+    """Fallback minimal tanpa cs_core: regex CORE tunggal (perilaku lama)."""
+    base = _no_match_base(video_id, channel)
     if not segments:
         return base
-
-    # Pre-check cepat
-    full_text = " ".join(s.get("text", "") for s in segments)
-    if not ALL_PATTERNS_COMBINED.search(full_text):
-        return base
-
-    # Analisis per segmen
-    HIT_LIST    = []
-    LAST_TEXT   = ""
-    LAST_SEC    = -1
-    tier_counts = {t: 0 for t in COMPILED_TIERS}
-
-    def _sec_to_hms(sec):
-        h, rem = divmod(sec, 3600)
-        m, s   = divmod(rem, 60)
-        return f"{h:02d}:{m:02d}:{s:02d}"
-
-    def classify_text(text):
-        res = {tier: 0 for tier in COMPILED_TIERS}
-        for tier_name, tier_data in COMPILED_TIERS.items():
-            for pat in tier_data["patterns"]:
-                if pat.search(text):
-                    res[tier_name] += 1
-        return res
-
-    for seg in segments:
-        text      = seg.get("text", "").strip()
-        start_sec = int(seg.get("sec", 0))
-
-        if not text or text == LAST_TEXT:
-            continue
-        if not ALL_PATTERNS_COMBINED.search(text):
-            continue
-        if abs(start_sec - LAST_SEC) < 1:
-            continue
-
-        hit_tiers = classify_text(text)
-        if not any(v > 0 for v in hit_tiers.values()):
-            continue
-
-        for tier, count in hit_tiers.items():
-            if count > 0:
-                tier_counts[tier] += 1
-
-        HIT_LIST.append({
-            "sec":   start_sec,
-            "time":  _sec_to_hms(start_sec),
-            "text":  text,
-            "tiers": hit_tiers,
-            "url":   f"https://youtu.be/{video_id}?t={start_sec}",
-        })
-        LAST_TEXT = text
-        LAST_SEC  = start_sec
-
-    if not HIT_LIST:
-        return base
-
-    # Cluster analysis (sama persis dengan engine lama)
-    total_dur = (HIT_LIST[-1]["sec"] - HIT_LIST[0]["sec"]) // 60 if HIT_LIST else 0
-    if total_dur > 180:
-        CLUSTER_GAP = 60 * 60
-    elif total_dur > 60:
-        CLUSTER_GAP = 30 * 60
-    else:
-        CLUSTER_GAP = 20 * 60
-
-    clusters, current = [], []
-    for hit in HIT_LIST:
-        if not current:
-            current = [hit]
-        elif hit["sec"] - current[-1]["sec"] >= CLUSTER_GAP:
-            clusters.append(current)
-            current = [hit]
-        else:
-            current.append(hit)
-    if current:
-        clusters.append(current)
-
-    # Scoring V20 (identik)
-    CORE_HITS    = tier_counts.get("CORE", 0)
-    SCORE_CAP    = 60
-    GLOBAL_SCORE = 0
-    MARATON_MINS = 0
-    VALID_CLUSTERS = 0
-
-    for cluster in clusters:
-        c_hits = len(cluster)
-        c_dur  = max(1, (cluster[-1]["sec"] - cluster[0]["sec"]) // 60)
-        c_core   = sum(1 for h in cluster if h["tiers"].get("CORE", 0))
-        c_typo   = sum(1 for h in cluster if h["tiers"].get("TYPO", 0))
-        c_silent = sum(1 for h in cluster if h["tiers"].get("SILENT", 0))
-        c_ctx    = sum(1 for h in cluster if h["tiers"].get("CONTEXT", 0))
-        c_fp     = sum(1 for h in cluster if h["tiers"].get("FP", 0))
-        c_base   = (c_core*5) + (c_typo*4) + (c_silent*4) + (c_ctx*2) + (c_fp*1)
-        c_density = min(10, (c_hits // c_dur) * 2)
-        c_silent_b = 15 if c_silent > 0 else 0
-        GLOBAL_SCORE += c_base + c_density + c_silent_b
-        if c_dur > MARATON_MINS:
-            MARATON_MINS = c_dur
-        if c_core >= 2:
-            VALID_CLUSTERS += 1
-
-    clusters_with_core = sum(
-        1 for cl in clusters if any(h["tiers"].get("CORE", 0) for h in cl)
-    )
-    if clusters_with_core > 1:
-        GLOBAL_SCORE += 20 * (clusters_with_core - 1)
-
-    PERSENTASE = min(100, (GLOBAL_SCORE * 100) // SCORE_CAP)
-
-    IS_MARATON   = (len(clusters) == 1 and MARATON_MINS >= 30 and GLOBAL_SCORE >= 8)
-    IS_MULTISESI = (VALID_CLUSTERS >= 2)
-    HAS_SILENT   = tier_counts.get("SILENT", 0) > 0
-
-    kasta = "ZONK"; kasta_label = "💀 ZONK"; is_valid = False
-
-    if CORE_HITS == 0:
-        PERSENTASE  = min(PERSENTASE, 15)
-        kasta       = "AMBIGU"
-        kasta_label = "⚠️ AMBIGU — Indikasi Lemah (0 Hit Core)"
-    elif IS_MARATON and PERSENTASE >= 60:
-        PERSENTASE  = 100
-        kasta       = "GOD_MODE"
-        kasta_label = f"👑 GOD MODE — MARATON {MARATON_MINS} MENIT NON-STOP"
-        is_valid    = True
-    elif IS_MULTISESI and PERSENTASE >= 60:
-        kasta       = "VALID_HIGH"
-        kasta_label = f"🔥 VALID HIGH — {VALID_CLUSTERS} SESI KAMBUHAN"
-        is_valid    = True
-    elif HAS_SILENT and CORE_HITS >= 1:
-        PERSENTASE  = max(PERSENTASE, 75)
-        kasta       = "SILENT"
-        kasta_label = "🤫 VALID — SILENT TREATMENT DETECTED"
-        is_valid    = True
-    elif CORE_HITS >= 3 and PERSENTASE >= 60:
-        kasta       = "VALID_HIGH"
-        kasta_label = "✅ VALID HIGH"
-        is_valid    = True
-    elif CORE_HITS >= 1 and PERSENTASE >= 40:
-        kasta       = "VALID"
-        kasta_label = "✅ VALID"
-        is_valid    = True
-    elif CORE_HITS >= 1:
-        kasta       = "LOW"
-        kasta_label = "📋 LOW INDICATOR"
-    else:
-        PERSENTASE  = min(PERSENTASE, 15)
-        kasta       = "AMBIGU"
-        kasta_label = "⚠️ AMBIGU"
-
-    kasta_label += f" | {len(clusters)} cluster, {len(HIT_LIST)} hit"
-
-    # Build HTML rows
-    html_rows = ""
-    for hit in HIT_LIST:
-        safe_text = (
-            hit["text"]
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-        if hit["tiers"].get("SILENT", 0):
-            hl = "silent"
-        elif hit["tiers"].get("CORE", 0):
-            hl = "core"
-        elif hit["tiers"].get("TYPO", 0):
-            hl = "typo"
-        elif hit["tiers"].get("CONTEXT", 0):
-            hl = "ctx"
-        else:
-            hl = ""
-
-        tier_strip = ""
-        if hit["tiers"].get("CORE"):    tier_strip += "<span class='tc core'>CORE</span> "
-        if hit["tiers"].get("TYPO"):    tier_strip += "<span class='tc typo'>TYPO</span> "
-        if hit["tiers"].get("SILENT"):  tier_strip += "<span class='tc silent'>SILENT</span> "
-        if hit["tiers"].get("CONTEXT"): tier_strip += "<span class='tc ctx'>CTX</span> "
-
-        html_rows += (
-            f"<tr>"
-            f"<td><a href='{hit['url']}' target='_blank' class='t-link'>[{hit['time']}]</a></td>"
-            f"<td>{tier_strip}{safe_text}</td>"
-            f"</tr>\n"
-        )
-
-    base.update({
-        "status":        "analyzed",
-        "status_label":  kasta_label,
-        "hits":          HIT_LIST,
-        "score":         GLOBAL_SCORE,
-        "persentase":    PERSENTASE,
-        "tier_counts":   tier_counts,
-        "cluster_count": len(clusters),
-        "maraton_mins":  MARATON_MINS,
-        "is_valid":      is_valid,
-        "kasta":         kasta,
-        "kasta_label":   kasta_label,
-        "html_rows":     html_rows,
-    })
-    return base
-
-
-def _analyze_fallback(video_id: str, channel: str, segments: list) -> dict:
-    """Fallback analysis tanpa fuzzy engine — simple keyword match."""
-    HICCUP_RE = re.compile(
-        r"cegukan|hiccup|cekukan|jegukan", re.IGNORECASE
-    )
+    pat = re.compile(r"cegukan|hiccup|cekukan|jegukan", re.IGNORECASE)
     hits = []
     for seg in segments:
-        text = seg.get("text", "")
-        sec  = seg.get("sec", 0)
-        if HICCUP_RE.search(text):
+        text = str(seg.get("text", "")).strip()
+        sec  = int(seg.get("sec", 0) or 0)
+        if pat.search(text):
             hits.append({
                 "sec":   sec,
                 "time":  f"{sec//3600:02d}:{(sec%3600)//60:02d}:{sec%60:02d}",
@@ -733,30 +517,67 @@ def _analyze_fallback(video_id: str, channel: str, segments: list) -> dict:
                 "tiers": {"CORE": 1, "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
                 "url":   f"https://youtu.be/{video_id}?t={sec}",
             })
-    is_valid = len(hits) >= 1
-    html_rows = ""
-    for h in hits:
-        html_rows += (
-            f"<tr><td><a href='{h['url']}' target='_blank' class='t-link'>"
-            f"[{h['time']}]</a></td>"
-            f"<td><span class='tc core'>CORE</span> {h['text']}</td></tr>\n"
-        )
-    return {
-        "video_id":    video_id,
-        "channel":     channel,
-        "status":      "analyzed" if hits else "no_match",
-        "status_label": f"✅ VALID ({len(hits)} hit)" if is_valid else "⬜ No Match",
+    if not hits:
+        return base
+    base.update({
+        "status":      "analyzed",
+        "status_label": f"⚠️ DEGRADED — {len(hits)} hit (cs_core absen)",
         "hits":        hits,
         "score":       len(hits) * 5,
         "persentase":  min(100, len(hits) * 10),
         "tier_counts": {"CORE": len(hits), "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
         "cluster_count": 1,
-        "maraton_mins": 0,
-        "is_valid":    is_valid,
-        "kasta":       "VALID" if is_valid else "ZONK",
-        "kasta_label": f"✅ VALID ({len(hits)} hit)" if is_valid else "💀 ZONK",
-        "html_rows":   html_rows,
-    }
+        "is_valid":    True,
+        "kasta":       "VALID",
+        "kasta_label": f"✅ VALID — {len(hits)} hit | DEGRADED",
+        "html_rows":   "",
+        "degraded":    True,
+    })
+    return base
+
+
+def _analyze_from_segments(
+    video_id:            str,
+    channel:             str,
+    segments:            list,
+    COMPILED_TIERS:      dict = None,
+    ALL_PATTERNS_COMBINED = None,
+) -> dict:
+    """Analisis segmen index — delegasi `cs_core.scoring` + `compat.to_legacy`.
+
+    Dua arg terakhir dipertahankan demi signature lama (kompatibel pemanggil);
+    diabaikan. Mode BASELINE: `hit_span` + `int0` + exact (tanpa fuzzy) ->
+    identik engine lama. `degraded=True` hanya bila cs_core absen.
+    """
+    if _CORE_DEGRADED:
+        return _degraded_result(video_id, channel, segments)
+
+    try:
+        from cs_core.compat import to_legacy as _cs_to_legacy
+        from cs_core.languages import load as _cs_load
+        from cs_core.scoring import score_segments as _cs_score
+
+        spec = _cs_load(_CURRENT_LANG)
+        result = _cs_score(
+            segments, spec,
+            video_id=video_id, lang=_CURRENT_LANG,
+            cluster_mode="hit_span", dedup_mode="int0",
+            enable_fuzzy=False,
+        )
+        out = _cs_to_legacy(result, mode="BASELINE", engine="IE")
+    except Exception:
+        # cs_core rusak saat runtime -> fallback minimal sekali, jangan crash.
+        return _degraded_result(video_id, channel, segments)
+
+    if result.status == "no_match":
+        base = _no_match_base(video_id, channel)
+        base["tier_counts"] = dict(out["tier_counts"])
+        return base
+
+    out["video_id"] = video_id
+    out["channel"] = channel
+    out["degraded"] = False
+    return out
 
 
 # ==============================================================================

@@ -494,183 +494,139 @@ def _download_subtitle_with_cookies(
                 "error_type": "unknown", "error_msg": str(e)[:200]}
 
 # ==============================================================================
-# ANALISIS (reuse fuzzy engine dari cs20_engine)
+# ANALISIS — DELEGASI KE cs_core (Fase 5/T5.1)
 # ==============================================================================
+# Bahasa aktif dipakai `_analyze_segments` (signature lama tak membawa lang).
+_CURRENT_LANG = "id"
+
+# Sentinel: menandai modul cs_core tak bisa dimuat (fallback regex minimal).
+_DEGRADED = False
+
+
 def _load_fuzzy_engine(lang: str):
     """
-    Import COMPILED_TIERS & ALL_PATTERNS_COMBINED dari cs20_engine.
-    Return (COMPILED_TIERS, ALL_PATTERNS_COMBINED) atau fallback.
-    """
-    try:
-        from cs20_engine import _ALL_KEYWORD_TIERS, _init_lang
-        _init_lang(lang)
-        from cs20_engine import COMPILED_TIERS, ALL_PATTERNS_COMBINED
-        return COMPILED_TIERS, ALL_PATTERNS_COMBINED, True
-    except ImportError:
-        pass
+    Muat LanguageSpec cs_core untuk `lang`.
 
-    # Fallback minimal
-    import re as _re
-    fallback_pat = _re.compile(
-        r"cegukan|hiccup|cekukan|jegukan|しゃっくり|딸꾹질", _re.IGNORECASE
-    )
-    fallback_tiers = {
-        "CORE": {"bobot": 5, "patterns": [fallback_pat]},
+    Signature tetap 3-tuple `(spec, combined, ok)` agar pemanggil lama
+    (`run_analysis_phase`, `tools/baseline_capture.py`) tidak berubah.
+    Return `ok=False` bila cs_core absen -> `_analyze_segments` pakai fallback.
+    """
+    global _CURRENT_LANG, _DEGRADED
+    _CURRENT_LANG = lang
+    try:
+        from cs_core.languages import load as _cs_load
+        spec = _cs_load(lang)
+        _DEGRADED = False
+        return spec, spec.combined_prefilter, True
+    except Exception:
+        _DEGRADED = True
+        import re as _re
+        fallback_pat = _re.compile(
+            r"cegukan|hiccup|cekukan|jegukan|しゃっくり|딸꾹질", _re.IGNORECASE
+        )
+        return None, fallback_pat, False
+
+
+def _degraded_result(video_id, channel, segments, fallback_pat) -> dict:
+    """Fallback minimal tanpa cs_core: regex CORE tunggal (perilaku lama)."""
+    base = _no_match_base(video_id, channel)
+    base["tier_counts"] = {"CORE": 0, "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0}
+    if not segments or fallback_pat is None:
+        return base
+
+    hits = []
+    last_text, last_sec = "", -1
+    for seg in segments:
+        text = (seg.get("text") or "").strip()
+        sec = int(seg.get("sec", 0) or 0)
+        if not text or text == last_text or not fallback_pat.search(text):
+            continue
+        if abs(sec - last_sec) < 1:
+            continue
+        hits.append({
+            "sec": sec, "time": _sec_to_hms(sec), "text": text,
+            "tiers": {"CORE": 1, "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
+            "url": f"https://youtu.be/{video_id}?t={sec}",
+        })
+        last_text, last_sec = text, sec
+
+    if not hits:
+        return base
+
+    base.update({
+        "status": "analyzed",
+        "status_label": f"⚠️ DEGRADED — {len(hits)} hit (cs_core absen)",
+        "hits": hits,
+        "score": len(hits) * 5,
+        "persentase": min(100, len(hits) * 5 * 100 // 60),
+        "tier_counts": {"CORE": len(hits), "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
+        "cluster_count": 1,
+        "is_valid": True,
+        "kasta": "VALID",
+        "kasta_label": f"✅ VALID — {len(hits)} hit | DEGRADED",
+        "html_rows": "",
+        "degraded": True,
+    })
+    return base
+
+
+def _no_match_base(video_id: str, channel: str) -> dict:
+    """Dict base identik engine lama (dipakai untuk no_match & fallback)."""
+    return {
+        "video_id": video_id, "channel": channel,
+        "status": "no_match", "status_label": "⬜ Tidak Ada Indikasi",
+        "hits": [], "score": 0, "persentase": 0,
+        "tier_counts": {"CORE": 0, "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
+        "cluster_count": 0, "maraton_mins": 0,
+        "is_valid": False, "kasta": "ZONK", "kasta_label": "💀 ZONK",
+        "html_rows": "",
     }
-    return fallback_tiers, fallback_pat, False
+
 
 def _analyze_segments(
     video_id: str,
     channel:  str,
     segments: list,
-    COMPILED_TIERS,
-    ALL_PATTERNS,
+    COMPILED_TIERS=None,
+    ALL_PATTERNS=None,
 ) -> dict:
-    """Analisis segmen VTT dengan fuzzy regex. Sama dengan cs20_engine."""
-    base = {
-        "video_id":    video_id, "channel": channel,
-        "status":      "no_match", "status_label": "⬜ Tidak Ada Indikasi",
-        "hits": [], "score": 0, "persentase": 0,
-        "tier_counts": {t: 0 for t in COMPILED_TIERS},
-        "cluster_count": 0, "maraton_mins": 0,
-        "is_valid": False, "kasta": "ZONK", "kasta_label": "💀 ZONK",
-        "html_rows": "",
-    }
-    if not segments:
-        return base
+    """Analisis segmen VTT — delegasi ke cs_core.scoring + compat.to_legacy.
 
-    full_text = " ".join(s.get("text", "") for s in segments)
-    if not ALL_PATTERNS.search(full_text):
-        return base
+    Dua arg terakhir dipertahankan demi signature lama; diabaikan. Bahasa aktif
+    diambil dari `_load_fuzzy_engine` (`_CURRENT_LANG`, default "id").
 
-    HIT_LIST  = []
-    LAST_TEXT = ""
-    LAST_SEC  = -1
-    tier_counts = {t: 0 for t in COMPILED_TIERS}
+    Mode BASELINE: `hit_span` + `int0` + exact (tanpa fuzzy) -> identik hasil
+    engine lama. `degraded=True` hanya bila cs_core absen.
+    """
+    if _DEGRADED:
+        return _degraded_result(video_id, channel, segments, ALL_PATTERNS)
 
-    def _classify(text):
-        res = {t: 0 for t in COMPILED_TIERS}
-        for tname, tdata in COMPILED_TIERS.items():
-            pats = tdata.get("patterns", [])
-            for pat in pats:
-                if pat.search(text):
-                    res[tname] += 1
-        return res
+    try:
+        from cs_core.compat import to_legacy as _cs_to_legacy
+        from cs_core.languages import load as _cs_load
+        from cs_core.scoring import score_segments as _cs_score
 
-    for seg in segments:
-        text = seg.get("text", "").strip()
-        sec  = int(seg.get("sec", 0))
-        if not text or text == LAST_TEXT:
-            continue
-        if not ALL_PATTERNS.search(text):
-            continue
-        if abs(sec - LAST_SEC) < 1:
-            continue
-        hit_tiers = _classify(text)
-        if not any(v > 0 for v in hit_tiers.values()):
-            continue
-        for t, cnt in hit_tiers.items():
-            if cnt:
-                tier_counts[t] += 1
-        HIT_LIST.append({
-            "sec": sec, "time": _sec_to_hms(sec), "text": text,
-            "tiers": hit_tiers, "url": f"https://youtu.be/{video_id}?t={sec}",
-        })
-        LAST_TEXT = text
-        LAST_SEC  = sec
-
-    if not HIT_LIST:
-        return base
-
-    # Cluster
-    total_dur = (HIT_LIST[-1]["sec"] - HIT_LIST[0]["sec"]) // 60 if HIT_LIST else 0
-    CLUSTER_GAP = 60*60 if total_dur > 180 else (30*60 if total_dur > 60 else 20*60)
-    clusters, cur = [], []
-    for hit in HIT_LIST:
-        if not cur:
-            cur = [hit]
-        elif hit["sec"] - cur[-1]["sec"] >= CLUSTER_GAP:
-            clusters.append(cur); cur = [hit]
-        else:
-            cur.append(hit)
-    if cur:
-        clusters.append(cur)
-
-    # Scoring
-    CORE_HITS    = tier_counts.get("CORE", 0)
-    GLOBAL_SCORE = 0
-    MARATON_MINS = 0
-    VALID_CLUSTERS = 0
-    for cl in clusters:
-        c_dur = max(1, (cl[-1]["sec"] - cl[0]["sec"]) // 60)
-        c_core   = sum(1 for h in cl if h["tiers"].get("CORE"))
-        c_typo   = sum(1 for h in cl if h["tiers"].get("TYPO"))
-        c_silent = sum(1 for h in cl if h["tiers"].get("SILENT"))
-        c_ctx    = sum(1 for h in cl if h["tiers"].get("CONTEXT"))
-        c_fp     = sum(1 for h in cl if h["tiers"].get("FP"))
-        c_base   = c_core*5 + c_typo*4 + c_silent*4 + c_ctx*2 + c_fp
-        GLOBAL_SCORE += c_base + min(10, (len(cl)//c_dur)*2) + (15 if c_silent else 0)
-        if c_dur > MARATON_MINS: MARATON_MINS = c_dur
-        if c_core >= 2: VALID_CLUSTERS += 1
-    cwc = sum(1 for cl in clusters if any(h["tiers"].get("CORE") for h in cl))
-    if cwc > 1: GLOBAL_SCORE += 20 * (cwc - 1)
-    PERSENTASE = min(100, (GLOBAL_SCORE * 100) // 60)
-
-    IS_MARATON = len(clusters) == 1 and MARATON_MINS >= 30 and GLOBAL_SCORE >= 8
-    IS_MULTI   = VALID_CLUSTERS >= 2
-    HAS_SILENT = tier_counts.get("SILENT", 0) > 0
-
-    kasta = "ZONK"; kasta_label = "💀 ZONK"; is_valid = False
-    if CORE_HITS == 0:
-        PERSENTASE = min(PERSENTASE, 15); kasta = "AMBIGU"
-        kasta_label = "⚠️ AMBIGU — Indikasi Lemah"
-    elif IS_MARATON and PERSENTASE >= 60:
-        PERSENTASE = 100; kasta = "GOD_MODE"; is_valid = True
-        kasta_label = f"👑 GOD MODE — MARATON {MARATON_MINS} MENIT"
-    elif IS_MULTI and PERSENTASE >= 60:
-        kasta = "VALID_HIGH"; is_valid = True
-        kasta_label = f"🔥 VALID HIGH — {VALID_CLUSTERS} SESI"
-    elif HAS_SILENT and CORE_HITS >= 1:
-        PERSENTASE = max(PERSENTASE, 75); kasta = "SILENT"; is_valid = True
-        kasta_label = "🤫 VALID — SILENT TREATMENT"
-    elif CORE_HITS >= 3 and PERSENTASE >= 60:
-        kasta = "VALID_HIGH"; is_valid = True; kasta_label = "✅ VALID HIGH"
-    elif CORE_HITS >= 1 and PERSENTASE >= 40:
-        kasta = "VALID"; is_valid = True; kasta_label = "✅ VALID"
-    elif CORE_HITS >= 1:
-        kasta = "LOW"; kasta_label = "📋 LOW INDICATOR"
-    else:
-        PERSENTASE = min(PERSENTASE, 15); kasta = "AMBIGU"; kasta_label = "⚠️ AMBIGU"
-
-    kasta_label += f" | {len(clusters)} cluster, {len(HIT_LIST)} hit"
-
-    # HTML rows
-    html_rows = ""
-    for hit in HIT_LIST:
-        safe_text = hit["text"].replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-        if hit["tiers"].get("SILENT"):   hl = "silent"
-        elif hit["tiers"].get("CORE"):   hl = "core"
-        elif hit["tiers"].get("TYPO"):   hl = "typo"
-        elif hit["tiers"].get("CONTEXT"): hl = "ctx"
-        else: hl = ""
-        ts = ""
-        if hit["tiers"].get("CORE"):    ts += "<span class='tc core'>CORE</span> "
-        if hit["tiers"].get("TYPO"):    ts += "<span class='tc typo'>TYPO</span> "
-        if hit["tiers"].get("SILENT"):  ts += "<span class='tc silent'>SILENT</span> "
-        if hit["tiers"].get("CONTEXT"): ts += "<span class='tc ctx'>CTX</span> "
-        html_rows += (
-            f"<tr><td><a href='{hit['url']}' target='_blank' class='t-link'>"
-            f"[{hit['time']}]</a></td><td>{ts}{safe_text}</td></tr>\n"
+        spec = _cs_load(_CURRENT_LANG)
+        result = _cs_score(
+            segments, spec,
+            video_id=video_id, lang=_CURRENT_LANG,
+            cluster_mode="hit_span", dedup_mode="int0",
+            enable_fuzzy=False,
         )
+        out = _cs_to_legacy(result, mode="BASELINE", engine="AE")
+    except Exception:
+        # cs_core rusak saat runtime -> fallback minimal sekali, jangan crash.
+        return _degraded_result(video_id, channel, segments, ALL_PATTERNS)
 
-    base.update({
-        "status": "analyzed", "status_label": kasta_label,
-        "hits": HIT_LIST, "score": GLOBAL_SCORE, "persentase": PERSENTASE,
-        "tier_counts": tier_counts, "cluster_count": len(clusters),
-        "maraton_mins": MARATON_MINS, "is_valid": is_valid,
-        "kasta": kasta, "kasta_label": kasta_label, "html_rows": html_rows,
-    })
-    return base
+    if result.status == "no_match":
+        base = _no_match_base(video_id, channel)
+        base["tier_counts"] = dict(out["tier_counts"])
+        return base
+
+    out["video_id"] = video_id
+    out["channel"] = channel
+    out["degraded"] = False
+    return out
 
 # ==============================================================================
 # RICH DASHBOARD

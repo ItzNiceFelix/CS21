@@ -420,26 +420,68 @@ _ALL_KEYWORD_TIERS = {
 KEYWORD_TIERS       = {}
 COMPILED_TIERS      = {}
 ALL_PATTERNS_COMBINED = re.compile(r"(?!)")  # dummy, diganti saat runtime
+# Spesifikasi cs_core hasil _init_lang; dipakai jalur scoring analyze_video.
+LANG_SPEC           = None
+
+# Peta transcript lama (dipakai bila cs_core absen; cs_core punya peta sendiri).
+_LANG_TRANSCRIPT_MAP = {
+    "id": ["id", "en", "id-ID"],
+    "en": ["en", "en-US", "en-GB"],
+    "jp": ["ja", "ja-JP"],
+    "kr": ["ko", "ko-KR"],
+    "in": ["hi", "hi-IN", "te", "te-IN"],
+    "th": ["th", "th-TH"],
+}
+
+def _compiled_from_spec(spec) -> dict:
+    """Turunkan `COMPILED_TIERS` skema lama dari `LanguageSpec` cs_core.
+
+    Bentuk: `{tier: {"bobot": int, "patterns": [re.Pattern, ...]}}` — sama
+    seperti `_init_lang` lama, supaya pemanggil lama (`tools/*.py`) tetap jalan.
+    """
+    compiled = {}
+    for core in spec.cores:
+        compiled[core.tier] = {
+            "bobot":    core.weight,
+            "patterns": list(core.regexes or ()),
+        }
+    return compiled
+
 
 def _init_lang(lang: str):
-    """Inisialisasi KEYWORD_TIERS, COMPILED_TIERS, ALL_PATTERNS_COMBINED, dan TRANSCRIPT_LANGS."""
-    global KEYWORD_TIERS, COMPILED_TIERS, ALL_PATTERNS_COMBINED, TRANSCRIPT_LANGS
+    """Inisialisasi bahasa — delegasi ke `cs_core.languages.load` (Fase 5/T5.4).
 
-    _LANG_TRANSCRIPT_MAP = {
-        "id": ["id", "en", "id-ID"],
-        "en": ["en", "en-US", "en-GB"],
-        "jp": ["ja", "ja-JP"],
-        "kr": ["ko", "ko-KR"],
-        "in": ["hi", "hi-IN", "te", "te-IN"],
-        "th": ["th", "th-TH"],
-    }
+    Global lama (`KEYWORD_TIERS`, `COMPILED_TIERS`, `ALL_PATTERNS_COMBINED`,
+    `TRANSCRIPT_LANGS`, `LANG_SPEC`) tetap diekspor demi `tools/*.py`.
+    Bila cs_core gagal dimuat, fallback ke tabel `_ALL_KEYWORD_TIERS` lama
+    agar engine tetap berfungsi (perilaku lama).
+    """
+    global KEYWORD_TIERS, COMPILED_TIERS, ALL_PATTERNS_COMBINED, TRANSCRIPT_LANGS, LANG_SPEC
+
+    try:
+        from cs_core.languages import load as _cs_load
+
+        spec = _cs_load(lang)
+        LANG_SPEC = spec
+        COMPILED_TIERS = _compiled_from_spec(spec)
+        ALL_PATTERNS_COMBINED = spec.combined_prefilter
+        TRANSCRIPT_LANGS = list(spec.transcript_langs)
+        # `KEYWORD_TIERS` tak lagi dipakai scoring, tapi diterbitkan utk kompat.
+        KEYWORD_TIERS = {
+            tier: {
+                "bobot":    data["bobot"],
+                "patterns": [pat.pattern for pat in data["patterns"]],
+            }
+            for tier, data in COMPILED_TIERS.items()
+        }
+        return spec
+    except Exception:
+        LANG_SPEC = None
+
     TRANSCRIPT_LANGS = _LANG_TRANSCRIPT_MAP.get(lang, ["id", "en", "id-ID"])
-
     KEYWORD_TIERS = _ALL_KEYWORD_TIERS.get(lang, _ALL_KEYWORD_TIERS["id"])
 
     # ── Telugu selalu digabung ke 'in': satu bahasa (Hindi/India), beda aksara. ──
-    # ── Kalau auto-transcript keluar aksara Telugu, tetap kebaca tanpa perlu ────
-    # ── pilih bahasa terpisah — jadi pilihan menu "in" saja sudah cukup. ─────────
     if lang == "in":
         merged = {}
         for tier_name in KEYWORD_TIERS:
@@ -474,6 +516,7 @@ def _init_lang(lang: str):
         "|".join(valid_pats) if valid_pats else r"(?!)",
         re.IGNORECASE
     )
+    return None
 
 # ==============================================================================
 # AMBIL VIDEO ID LIST VIA YT-DLP
@@ -664,7 +707,16 @@ def _fetch_transcript(video_id: str) -> list:
 # ANALISIS SATU VIDEO
 # ==============================================================================
 def classify_text(text: str) -> dict:
-    """Klasifikasikan teks ke tier-tier keyword."""
+    """Klasifikasikan teks ke tier-tier keyword (delegasi cs_core bila ada).
+
+    Skema lama: `{tier: jumlah pattern match}`. cs_core memakai `_exact_tier_counts`
+    yang identik; fallback lokal dipakai bila spec cs_core tak termuat.
+    """
+    if LANG_SPEC is not None:
+        from cs_core.scoring import _exact_tier_counts
+
+        return _exact_tier_counts(text, LANG_SPEC)
+
     result = {tier: 0 for tier in COMPILED_TIERS}
 
     for tier_name, tier_data in COMPILED_TIERS.items():
@@ -678,6 +730,32 @@ def sec_to_hms(sec: int) -> str:
     h, rem = divmod(sec, 3600)
     m, s   = divmod(rem, 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
+
+def _analyze_with_cs_core(video_id: str, channel: str, segments: list) -> "dict | None":
+    """Analisis segmen via `cs_core.scoring` + `compat.to_legacy` (BASELINE/E).
+
+    Return dict skema lama (lengkap dgn `status`, `channel`, `degraded`), atau
+    `None` bila cs_core bermasalah -> pemanggil pakai lintasan lama.
+    """
+    try:
+        from cs_core.compat import to_legacy as _cs_to_legacy
+        from cs_core.scoring import score_segments as _cs_score
+
+        result = _cs_score(
+            segments, LANG_SPEC,
+            video_id=video_id, lang=LANG_SPEC.lang,
+            cluster_mode="hit_span", dedup_mode="int0",
+            enable_fuzzy=False,
+        )
+        out = _cs_to_legacy(result, mode="BASELINE", engine="E")
+    except Exception:
+        return None
+
+    out["video_id"] = video_id
+    out["channel"] = channel
+    out["degraded"] = False
+    return out
+
 
 def analyze_video(video_id: str, channel: str) -> dict:
     """Fetch transkrip dan analisis. Return dict hasil."""
@@ -785,6 +863,17 @@ def analyze_video(video_id: str, channel: str) -> dict:
             base_result["status"] = "error"
             base_result["status_label"] = f"⚠️ Unknown Error ({etype})"
             return base_result
+
+    # ── SCORING (Fase 5/T5.4) ───────────────────────────────────────
+    # Jalur "analyzed" didelegasikan ke cs_core.scoring; cabang error di atas
+    # tetap seperti semula. Mode BASELINE engine E: `hit_span` + `int0` +
+    # `enable_fuzzy=False` (engine E lama tak pakai fuzzy). Fuzzy diaktifkan
+    # Fase 6 lewat mode IMPROVED, bukan di sini.
+    if LANG_SPEC is not None:
+        hit128 = _analyze_with_cs_core(video_id, channel, segments)
+        if hit128 is not None:
+            return hit128
+        # cs_core gagal saat runtime -> jatuh ke lintasan lama di bawah.
 
     # ── PRE-CHECK CEPAT ─────────────────────────────────────────────
     full_text = " ".join(seg.get("text", "") for seg in segments)
