@@ -2145,11 +2145,15 @@ def _trunc(text: str, limit: int) -> str:
 
 
 def send_discord(webhook_url: str, channel: str, executor: str,
-                 results: list, html_path: str):
-    """Kirim laporan ke Discord webhook."""
+                 results: list, html_path: str) -> bool:
+    """Kirim laporan ke Discord webhook.
+
+    Return True bila ringkasan (dan file bila ada) berhasil terkirim; False
+    bila dilewati/gagal. Dipakai pemanggil untuk memutuskan hapus HTML lokal.
+    """
     if not webhook_url:
         safe_print(f"[yellow][⚠️] Webhook URL tidak ditemukan. Skip Discord.[/yellow]")
-        return
+        return False
 
     valid_results  = [r for r in results if r.get("is_valid")]
     no_trans_count = sum(1 for r in results if r["status"] in ("no_transcript","disabled","unavailable"))
@@ -2279,31 +2283,33 @@ def send_discord(webhook_url: str, channel: str, executor: str,
                     continue
                 safe_print(f"[red][❌] Discord tetap 429 setelah retry. Skip.[/red]")
                 safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
-                return
+                return False
             elif resp.status_code == 403:
                 safe_print(f"[red][❌] Discord 403 Forbidden[/red]")
                 safe_print(f"[yellow]     Cek apakah webhook masih aktif di Discord:[/yellow]")
                 safe_print(f"[yellow]     Server → Edit Channel → Integrations → Webhooks[/yellow]")
                 safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
-                return
+                return False
             else:
                 safe_print(f"[yellow][⚠️] Discord response: {resp.status_code} — {resp.text[:100]}[/yellow]")
                 break
         except Exception as e:
             safe_print(f"[red][❌] Gagal kirim embed: {e}[/red]")
             safe_print(f"[yellow]     File HTML disimpan lokal: {html_path}[/yellow]")
-            return
+            return False
 
     # ── LANGKAH 2: Attach file HTML hanya jika ukuran aman ────────
+    # Embed sudah terkirim; file absen/terlalu besar tetap dianggap sukses
+    # embed (caller boleh hapus HTML) tetapi file dibiarkan lokal.
     if not os.path.exists(html_path):
-        return
+        return False
 
     file_size_mb = os.path.getsize(html_path) / (1024 * 1024)
 
     if file_size_mb > 7.5:
         safe_print(f"[yellow][⚠️] HTML terlalu besar ({file_size_mb:.1f}MB), tidak bisa attach ke Discord.[/yellow]")
         safe_print(f"[yellow]     File disimpan lokal: {html_path}[/yellow]")
-        return
+        return False
 
     safe_print(f"[dim][📎] Mengirim file HTML ({file_size_mb:.2f}MB)...[/dim]")
     try:
@@ -2317,12 +2323,15 @@ def send_discord(webhook_url: str, channel: str, executor: str,
             )
         if resp2.status_code in (200, 204):
             safe_print(f"[green][✅] File HTML berhasil dikirim ke Discord![/green]")
-        else:
-            safe_print(f"[yellow][⚠️] File response: {resp2.status_code} — file disimpan lokal[/yellow]")
-            safe_print(f"[yellow]     {html_path}[/yellow]")
+            return True
+        safe_print(f"[yellow][⚠️] File response: {resp2.status_code} — file disimpan lokal[/yellow]")
+        safe_print(f"[yellow]     {html_path}[/yellow]")
+        return False
     except Exception as e:
         safe_print(f"[red][❌] Gagal kirim file: {e}[/red]")
         safe_print(f"[yellow]     File disimpan lokal: {html_path}[/yellow]")
+        return False
+
 
 # ==============================================================================
 # CHECKPOINT
@@ -2347,6 +2356,9 @@ def _init_blocked_log(path: str, channel: str, lang: str,
     """Buat file log blocked jika belum ada."""
     if os.path.exists(path):
         return
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     data = {
         "channel":    channel,
         "engine":     engine_name,
@@ -2453,6 +2465,8 @@ def process_channel(args):
     start_from   = args.start_from
     checkpoint_dir = args.checkpoint_dir
     config_dir   = args.config_dir
+
+    os.makedirs(config_dir, exist_ok=True)  # engine standalone tanpa cs20.sh
 
     webhook_url  = load_webhook_url(config_dir, args.webhook_url)
 
@@ -2617,14 +2631,18 @@ def process_channel(args):
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    send_discord(webhook_url, channel, executor, results, html_path)
+    sent = send_discord(webhook_url, channel, executor, results, html_path)
 
-    # Hapus HTML lokal hanya jika ukurannya aman dan sudah terkirim
-    # Jika terlalu besar atau forbidden, file dibiarkan untuk akses manual
+    # Hapus HTML lokal HANYA bila benar-benar terkirim ke Discord. Kalau
+    # webhook kosong / gagal / file terlalu besar, file DIBIARKAN supaya hasil
+    # tak hilang (dulu dihapus membabi buta -> laporan hilang saat no webhook).
     if os.path.exists(html_path):
         file_size_mb = os.path.getsize(html_path) / (1024 * 1024)
-        if file_size_mb <= 7.5:
-            os.remove(html_path)
+        if sent and file_size_mb <= 7.5:
+            try:
+                os.remove(html_path)
+            except OSError:
+                pass
         else:
             safe_print(f"[yellow][📁] HTML disimpan di: {html_path}[/yellow]")
 
