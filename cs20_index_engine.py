@@ -229,6 +229,7 @@ def run_download_phase(
     error_log:    str,
     total_batches: int,
     batches_per_run: int,
+    config_dir:   str = "",
 ) -> dict:
     """
     Download subtitle + parse semua video_ids untuk satu batch.
@@ -329,7 +330,7 @@ def run_download_phase(
                         try:
                             from cs20_age_engine import hook_log_age_restricted
                             hook_log_age_restricted(
-                                config_dir=args_config_dir,
+                                config_dir=config_dir,
                                 channel=channel,
                                 video_id=vid_id,
                                 lang=lang,
@@ -1112,6 +1113,7 @@ def process_index_mode(args):
             video_ids, channel, batch_no, bdir, lang,
             jobs, error_log,
             meta["total_batches"], meta["batches_per_run"],
+            config_dir,
         )
 
         # Error count summary

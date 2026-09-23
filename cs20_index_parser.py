@@ -146,6 +146,7 @@ def download_subtitle_single(
     output_dir: str,
     lang: str = "id",
     timeout: int = 30,
+    channel: str = "",
 ) -> dict:
     """
     Download auto-generated subtitle untuk satu video via yt-dlp.
@@ -202,7 +203,7 @@ def download_subtitle_single(
                     "error_type": "unavailable", "error_msg": stderr[:200]}
 
         if "confirm your age" in combined_err or "age-restricted" in combined_err:
-            # Hook: catat ke log age_restricted
+            # Hook: catat ke log age_restricted (channel diteruskan dari caller)
             _hook_age_parser(
                 config_dir=os.path.dirname(output_dir),  # estimasi config_dir
                 channel=channel,
@@ -269,7 +270,7 @@ def download_and_index_video(
     Hapus file VTT setelah parse berhasil.
     Return dict hasil (siap masuk status.json).
     """
-    dl = download_subtitle_single(video_id, output_dir, lang)
+    dl = download_subtitle_single(video_id, output_dir, lang, channel=channel)
 
     base = {
         "video_id":    video_id,
@@ -499,51 +500,21 @@ def count_error_log(path: str) -> dict:
 _PHRASE_RE   = re.compile(r'"([^"]+)"')
 _OPERATOR_RE = re.compile(r'\b(AND|OR)\b')
 
-def _tokenize_query(query: str) -> dict:
-    """
-    Parse query string menjadi struktur search.
-
-    Supported:
-      - Single word        : cegukan
-      - Phrase (quote)     : "lagi minum"
-      - AND                : cegukan AND minum
-      - OR                 : cegukan OR hiccup
-      - Mixed              : "lagi minum" OR "sambil makan" AND cegukan
-      - Fuzzy (default)    : setiap term di-match dengan re.IGNORECASE + partial
-
-    Return:
-      {
-        "terms":    [{"type": "phrase"|"word", "value": str, "compiled": re}],
-        "operator": "AND"|"OR"  (default OR jika campur/tidak ada)
-      }
-    """
-    # Tentukan operator dominan
-    ops_found = _OPERATOR_RE.findall(query)
-    if ops_found:
-        operator = "AND" if ops_found.count("AND") >= ops_found.count("OR") else "OR"
-    else:
-        operator = "OR"
-
+def _parse_clause(clause: str) -> list:
+    """Parse satu clausa (tanpa OR) → list term yang harus semuanya ada (AND)."""
     terms = []
-
-    # Extract phrase dulu
-    phrase_matches = _PHRASE_RE.findall(query)
-    query_remainder = _PHRASE_RE.sub("", query)
-
+    phrase_matches = _PHRASE_RE.findall(clause)
     for phrase in phrase_matches:
         phrase = phrase.strip()
         if phrase:
-            # Phrase: semua kata harus muncul berurutan (dengan kemungkinan spasi/karakter antar kata)
-            escaped = re.escape(phrase)
             try:
-                compiled = re.compile(escaped, re.IGNORECASE)
-            except re.error:
                 compiled = re.compile(re.escape(phrase), re.IGNORECASE)
+            except re.error:
+                continue
             terms.append({"type": "phrase", "value": phrase, "compiled": compiled})
 
-    # Extract kata tunggal dari sisa (buang operator keywords)
-    remainder_clean = _OPERATOR_RE.sub(" ", query_remainder)
-    for word in remainder_clean.split():
+    remainder = _OPERATOR_RE.sub(" ", _PHRASE_RE.sub("", clause))
+    for word in remainder.split():
         word = word.strip().strip('"').strip("'")
         if word and len(word) >= 2:
             try:
@@ -551,8 +522,39 @@ def _tokenize_query(query: str) -> dict:
             except re.error:
                 continue
             terms.append({"type": "word", "value": word, "compiled": compiled})
+    return terms
 
-    return {"terms": terms, "operator": operator}
+
+def _tokenize_query(query: str) -> dict:
+    """
+    Parse query menjadi grup OR, tiap grup = kumpulan term AND.
+
+    Nah sekarang operator benar-benar dihormati per-clausa, jadi
+    `"lagi minum" OR "sambil makan" AND cegukan` = video match kalau
+    (punya "lagi minum") ATAU (punya "sambil makan" DAN "cegukan").
+
+    Return:
+      {
+        "groups":  [[term, ...], [term, ...]],   # OR antar grup
+        "terms":   [term, ...] flattened,         # kompat lama
+        "operator": "AND"|"OR",                   # label sisa, tidak dipakai matcher
+      }
+    """
+    # Split atas OR (case-insensitive, word-boundary)
+    or_parts = re.split(r"\bOR\b", query, flags=re.IGNORECASE)
+
+    groups = []
+    for part in or_parts:
+        terms = _parse_clause(part)
+        if terms:
+            groups.append(terms)
+
+    all_terms = [t for g in groups for t in g]
+
+    ops_found = _OPERATOR_RE.findall(query)
+    operator = "AND" if ops_found and ops_found.count("AND") >= ops_found.count("OR") else "OR"
+
+    return {"groups": groups, "terms": all_terms, "operator": operator}
 
 
 def search_index_batch(
@@ -564,11 +566,10 @@ def search_index_batch(
     Search semua JSON index di index_dir menggunakan parsed query.
     Return list of result dicts (compatible dengan build_html di engine lama).
     """
-    parsed   = _tokenize_query(query)
-    terms    = parsed["terms"]
-    operator = parsed["operator"]
+    parsed = _tokenize_query(query)
+    groups = parsed["groups"]
 
-    if not terms:
+    if not groups:
         return []
 
     results  = []
@@ -584,7 +585,7 @@ def search_index_batch(
         if not segments or not video_id:
             continue
 
-        hits = _search_segments(segments, terms, operator, video_id)
+        hits = _search_segments(segments, groups, video_id)
         if not hits:
             continue
 
@@ -616,47 +617,49 @@ def search_index_batch(
 
 def _search_segments(
     segments: list,
-    terms:    list,
-    operator: str,
+    groups:   list,
     video_id: str,
 ) -> list:
     """
-    Cari term di segments. Return list of hit dicts.
-    AND = semua term harus ada di video (anywhere)
-    OR  = minimal satu term ada
+    Cari term di segments dengan semantik OR antar-grup, AND di dalam grup.
+
+    groups = [[term, ...], [term, ...]]  → hasil kalau >= 1 grup terpenuhi,
+    dan sebuah grup terpenuhi kalau SEMUA term-nya ada di video (anywhere).
+
+    Return list of hit dicts (satu baris per timestamp yang match).
     """
-    if operator == "AND":
-        # Cek semua term ada di video dulu
-        full_text = " ".join(s["text"] for s in segments)
-        for term in terms:
-            if not term["compiled"].search(full_text):
-                return []
+    full_text = " ".join(s.get("text", "") for s in segments)
+
+    # Grup mana saja yang terpenuhi (AND penuh di level video)
+    matched_groups = [
+        g for g in groups
+        if all(t["compiled"].search(full_text) for t in g)
+    ]
+    if not matched_groups:
+        return []
+
+    # Baris yang ditampilkan: yang match term mana pun dari grup yang lolos
+    active_terms = [t for g in matched_groups for t in g]
 
     hits = []
     seen_secs = set()
-
     for seg in segments:
-        text     = seg.get("text", "")
+        text      = seg.get("text", "")
         start_sec = seg.get("sec", 0)
 
         if start_sec in seen_secs:
             continue
+        if not any(t["compiled"].search(text) for t in active_terms):
+            continue
 
-        matched = False
-        if operator == "OR":
-            matched = any(t["compiled"].search(text) for t in terms)
-        else:  # AND — tampilkan semua baris yang match term manapun
-            matched = any(t["compiled"].search(text) for t in terms)
-
-        if matched:
-            seen_secs.add(start_sec)
-            hits.append({
-                "sec":   start_sec,
-                "time":  _sec_to_hms(start_sec),
-                "text":  text,
-                "tiers": {"CORE": 1, "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
-                "url":   f"https://youtu.be/{video_id}?t={start_sec}",
-            })
+        seen_secs.add(start_sec)
+        hits.append({
+            "sec":   start_sec,
+            "time":  _sec_to_hms(start_sec),
+            "text":  text,
+            "tiers": {"CORE": 1, "TYPO": 0, "SILENT": 0, "CONTEXT": 0, "FP": 0},
+            "url":   f"https://youtu.be/{video_id}?t={start_sec}",
+        })
 
     return hits
 

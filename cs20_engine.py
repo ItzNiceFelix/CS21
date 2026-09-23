@@ -5,6 +5,7 @@
 # ==============================================================================
 
 import argparse
+import itertools
 import json
 import os
 import re
@@ -2468,12 +2469,19 @@ def process_channel(args):
     _stats["tier_FP"]      = 0
 
     # ── Worker function ───────────────────────────────────────────
+    # Counter gc terpisah + lock sendiri: jangan baca _stats["done"] dari
+    # worker (race, nilai bisa kebaca kapan saja oleh thread lain).
+    _gc_counter = itertools.count()
+    _gc_lock    = threading.Lock()
+
     def worker(vid_id):
         if _current_mode == "pantau":
             with _parallel_lock:
                 _parallel_status[vid_id] = "fetching..."
         result = analyze_video(vid_id, channel)
-        if _stats["done"] % 20 == 0:
+        with _gc_lock:
+            n = next(_gc_counter)
+        if n % 20 == 19:
             gc.collect()
         time.sleep(random.uniform(2.0, 4.0))
         return result

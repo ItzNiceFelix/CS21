@@ -1,0 +1,541 @@
+{
+  "meta": {
+    "tool": "fixtures_synthetic.py",
+    "dedup_mode": "baseline",
+    "cluster_mode": "baseline",
+    "case_names": [
+      "zero_core",
+      "maraton_single_cluster",
+      "multisisi",
+      "silent_treatment",
+      "dedup_float",
+      "typo_asr"
+    ]
+  },
+  "segments": [
+    {
+      "sec": 0,
+      "text": "eh ada nyendawa tadi"
+    },
+    {
+      "sec": 30,
+      "text": "kayaknya cuma tersedak kopi"
+    },
+    {
+      "sec": 60,
+      "text": "hiks hiks sedih banget"
+    },
+    {
+      "sec": 0,
+      "text": "cegukan lagi nih menit 0"
+    },
+    {
+      "sec": 60,
+      "text": "cegukan lagi nih menit 1"
+    },
+    {
+      "sec": 120,
+      "text": "cegukan lagi nih menit 2"
+    },
+    {
+      "sec": 180,
+      "text": "cegukan lagi nih menit 3"
+    },
+    {
+      "sec": 240,
+      "text": "cegukan lagi nih menit 4"
+    },
+    {
+      "sec": 300,
+      "text": "cegukan lagi nih menit 5"
+    },
+    {
+      "sec": 360,
+      "text": "cegukan lagi nih menit 6"
+    },
+    {
+      "sec": 420,
+      "text": "cegukan lagi nih menit 7"
+    },
+    {
+      "sec": 480,
+      "text": "cegukan lagi nih menit 8"
+    },
+    {
+      "sec": 540,
+      "text": "cegukan lagi nih menit 9"
+    },
+    {
+      "sec": 600,
+      "text": "cegukan lagi nih menit 10"
+    },
+    {
+      "sec": 660,
+      "text": "cegukan lagi nih menit 11"
+    },
+    {
+      "sec": 720,
+      "text": "cegukan lagi nih menit 12"
+    },
+    {
+      "sec": 780,
+      "text": "cegukan lagi nih menit 13"
+    },
+    {
+      "sec": 840,
+      "text": "cegukan lagi nih menit 14"
+    },
+    {
+      "sec": 900,
+      "text": "cegukan lagi nih menit 15"
+    },
+    {
+      "sec": 960,
+      "text": "cegukan lagi nih menit 16"
+    },
+    {
+      "sec": 1020,
+      "text": "cegukan lagi nih menit 17"
+    },
+    {
+      "sec": 1080,
+      "text": "cegukan lagi nih menit 18"
+    },
+    {
+      "sec": 1140,
+      "text": "cegukan lagi nih menit 19"
+    },
+    {
+      "sec": 1200,
+      "text": "cegukan lagi nih menit 20"
+    },
+    {
+      "sec": 1260,
+      "text": "cegukan lagi nih menit 21"
+    },
+    {
+      "sec": 1320,
+      "text": "cegukan lagi nih menit 22"
+    },
+    {
+      "sec": 1380,
+      "text": "cegukan lagi nih menit 23"
+    },
+    {
+      "sec": 1440,
+      "text": "cegukan lagi nih menit 24"
+    },
+    {
+      "sec": 1500,
+      "text": "cegukan lagi nih menit 25"
+    },
+    {
+      "sec": 1560,
+      "text": "cegukan lagi nih menit 26"
+    },
+    {
+      "sec": 1620,
+      "text": "cegukan lagi nih menit 27"
+    },
+    {
+      "sec": 1680,
+      "text": "cegukan lagi nih menit 28"
+    },
+    {
+      "sec": 1740,
+      "text": "cegukan lagi nih menit 29"
+    },
+    {
+      "sec": 1800,
+      "text": "cegukan lagi nih menit 30"
+    },
+    {
+      "sec": 1860,
+      "text": "cegukan lagi nih menit 31"
+    },
+    {
+      "sec": 1920,
+      "text": "cegukan lagi nih menit 32"
+    },
+    {
+      "sec": 1980,
+      "text": "cegukan lagi nih menit 33"
+    },
+    {
+      "sec": 2040,
+      "text": "cegukan lagi nih menit 34"
+    },
+    {
+      "sec": 2100,
+      "text": "cegukan lagi nih menit 35"
+    },
+    {
+      "sec": 2160,
+      "text": "cegukan lagi nih menit 36"
+    },
+    {
+      "sec": 2220,
+      "text": "cegukan lagi nih menit 37"
+    },
+    {
+      "sec": 2280,
+      "text": "cegukan lagi nih menit 38"
+    },
+    {
+      "sec": 2340,
+      "text": "cegukan lagi nih menit 39"
+    },
+    {
+      "sec": 0,
+      "text": "cegukan mulai"
+    },
+    {
+      "sec": 10,
+      "text": "cegukan lagi"
+    },
+    {
+      "sec": 20,
+      "text": "cegukan terus"
+    },
+    {
+      "sec": 30,
+      "text": "cegukan juga"
+    },
+    {
+      "sec": 3000,
+      "text": "cegukan balik lagi"
+    },
+    {
+      "sec": 3010,
+      "text": "cegukan kambuh"
+    },
+    {
+      "sec": 3020,
+      "text": "cegukan kambuh lagi"
+    },
+    {
+      "sec": 3030,
+      "text": "cegukan kambuh terus"
+    },
+    {
+      "sec": 0,
+      "text": "cegukan gak ilang dari tadi"
+    },
+    {
+      "sec": 60,
+      "text": "capek cegukan"
+    },
+    {
+      "sec": 120,
+      "text": "cegukan terus mulu"
+    },
+    {
+      "sec": 0,
+      "text": "cegukan awal"
+    },
+    {
+      "sec": 120,
+      "text": "cegukan",
+      "duration": 1.2
+    },
+    {
+      "sec": 120,
+      "text": "cegukan panjang",
+      "duration": 2.8
+    },
+    {
+      "sec": 180,
+      "text": "cegukan penutup"
+    },
+    {
+      "sec": 0,
+      "text": "aku jegukan terus"
+    },
+    {
+      "sec": 30,
+      "text": "segukan nih kayaknya"
+    },
+    {
+      "sec": 60,
+      "text": "cekukan mulu"
+    }
+  ],
+  "cases": {
+    "zero_core": {
+      "note": "hanya FP/CONTEXT, 0 CORE -> kasta AMBIGU",
+      "segments": [
+        {
+          "sec": 0,
+          "text": "eh ada nyendawa tadi"
+        },
+        {
+          "sec": 30,
+          "text": "kayaknya cuma tersedak kopi"
+        },
+        {
+          "sec": 60,
+          "text": "hiks hiks sedih banget"
+        }
+      ]
+    },
+    "maraton_single_cluster": {
+      "note": "40 hit CORE tersebar 39 menit, gap < 20 menit -> 1 cluster",
+      "segments": [
+        {
+          "sec": 0,
+          "text": "cegukan lagi nih menit 0"
+        },
+        {
+          "sec": 60,
+          "text": "cegukan lagi nih menit 1"
+        },
+        {
+          "sec": 120,
+          "text": "cegukan lagi nih menit 2"
+        },
+        {
+          "sec": 180,
+          "text": "cegukan lagi nih menit 3"
+        },
+        {
+          "sec": 240,
+          "text": "cegukan lagi nih menit 4"
+        },
+        {
+          "sec": 300,
+          "text": "cegukan lagi nih menit 5"
+        },
+        {
+          "sec": 360,
+          "text": "cegukan lagi nih menit 6"
+        },
+        {
+          "sec": 420,
+          "text": "cegukan lagi nih menit 7"
+        },
+        {
+          "sec": 480,
+          "text": "cegukan lagi nih menit 8"
+        },
+        {
+          "sec": 540,
+          "text": "cegukan lagi nih menit 9"
+        },
+        {
+          "sec": 600,
+          "text": "cegukan lagi nih menit 10"
+        },
+        {
+          "sec": 660,
+          "text": "cegukan lagi nih menit 11"
+        },
+        {
+          "sec": 720,
+          "text": "cegukan lagi nih menit 12"
+        },
+        {
+          "sec": 780,
+          "text": "cegukan lagi nih menit 13"
+        },
+        {
+          "sec": 840,
+          "text": "cegukan lagi nih menit 14"
+        },
+        {
+          "sec": 900,
+          "text": "cegukan lagi nih menit 15"
+        },
+        {
+          "sec": 960,
+          "text": "cegukan lagi nih menit 16"
+        },
+        {
+          "sec": 1020,
+          "text": "cegukan lagi nih menit 17"
+        },
+        {
+          "sec": 1080,
+          "text": "cegukan lagi nih menit 18"
+        },
+        {
+          "sec": 1140,
+          "text": "cegukan lagi nih menit 19"
+        },
+        {
+          "sec": 1200,
+          "text": "cegukan lagi nih menit 20"
+        },
+        {
+          "sec": 1260,
+          "text": "cegukan lagi nih menit 21"
+        },
+        {
+          "sec": 1320,
+          "text": "cegukan lagi nih menit 22"
+        },
+        {
+          "sec": 1380,
+          "text": "cegukan lagi nih menit 23"
+        },
+        {
+          "sec": 1440,
+          "text": "cegukan lagi nih menit 24"
+        },
+        {
+          "sec": 1500,
+          "text": "cegukan lagi nih menit 25"
+        },
+        {
+          "sec": 1560,
+          "text": "cegukan lagi nih menit 26"
+        },
+        {
+          "sec": 1620,
+          "text": "cegukan lagi nih menit 27"
+        },
+        {
+          "sec": 1680,
+          "text": "cegukan lagi nih menit 28"
+        },
+        {
+          "sec": 1740,
+          "text": "cegukan lagi nih menit 29"
+        },
+        {
+          "sec": 1800,
+          "text": "cegukan lagi nih menit 30"
+        },
+        {
+          "sec": 1860,
+          "text": "cegukan lagi nih menit 31"
+        },
+        {
+          "sec": 1920,
+          "text": "cegukan lagi nih menit 32"
+        },
+        {
+          "sec": 1980,
+          "text": "cegukan lagi nih menit 33"
+        },
+        {
+          "sec": 2040,
+          "text": "cegukan lagi nih menit 34"
+        },
+        {
+          "sec": 2100,
+          "text": "cegukan lagi nih menit 35"
+        },
+        {
+          "sec": 2160,
+          "text": "cegukan lagi nih menit 36"
+        },
+        {
+          "sec": 2220,
+          "text": "cegukan lagi nih menit 37"
+        },
+        {
+          "sec": 2280,
+          "text": "cegukan lagi nih menit 38"
+        },
+        {
+          "sec": 2340,
+          "text": "cegukan lagi nih menit 39"
+        }
+      ]
+    },
+    "multisisi": {
+      "note": "dua gugus CORE dipisah 40 menit -> >=2 cluster",
+      "segments": [
+        {
+          "sec": 0,
+          "text": "cegukan mulai"
+        },
+        {
+          "sec": 10,
+          "text": "cegukan lagi"
+        },
+        {
+          "sec": 20,
+          "text": "cegukan terus"
+        },
+        {
+          "sec": 30,
+          "text": "cegukan juga"
+        },
+        {
+          "sec": 3000,
+          "text": "cegukan balik lagi"
+        },
+        {
+          "sec": 3010,
+          "text": "cegukan kambuh"
+        },
+        {
+          "sec": 3020,
+          "text": "cegukan kambuh lagi"
+        },
+        {
+          "sec": 3030,
+          "text": "cegukan kambuh terus"
+        }
+      ]
+    },
+    "silent_treatment": {
+      "note": "pola SILENT dengan CORE -> kasta SILENT",
+      "segments": [
+        {
+          "sec": 0,
+          "text": "cegukan gak ilang dari tadi"
+        },
+        {
+          "sec": 60,
+          "text": "capek cegukan"
+        },
+        {
+          "sec": 120,
+          "text": "cegukan terus mulu"
+        }
+      ]
+    },
+    "dedup_float": {
+      "note": "dua segmen start=120 durasi beda -> uji dedup_key float (P8)",
+      "segments": [
+        {
+          "sec": 0,
+          "text": "cegukan awal"
+        },
+        {
+          "sec": 120,
+          "text": "cegukan",
+          "duration": 1.2
+        },
+        {
+          "sec": 120,
+          "text": "cegukan panjang",
+          "duration": 2.8
+        },
+        {
+          "sec": 180,
+          "text": "cegukan penutup"
+        }
+      ]
+    },
+    "typo_asr": {
+      "note": "jegukan/segukan/cekukan -> tier TYPO/CORE",
+      "segments": [
+        {
+          "sec": 0,
+          "text": "aku jegukan terus"
+        },
+        {
+          "sec": 30,
+          "text": "segukan nih kayaknya"
+        },
+        {
+          "sec": 60,
+          "text": "cekukan mulu"
+        }
+      ]
+    }
+  }
+}

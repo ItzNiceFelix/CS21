@@ -893,9 +893,13 @@ def run_forensik_engine(
     """
     global _current_target, _tmp_dir, _html_kolektif, _score_buckets
 
-    _current_target = target
-    _html_kolektif  = []
-    _score_buckets  = {4: [], 3: [], 2: [], 1: []}
+    # Reset state di bawah lock MASING-MASING dulu, baru pindah _current_target
+    # paling akhir. Kalau SIGINT datang di tengah reset, handler masih lihat
+    # target lama dengan bucket lama (konsisten), bukan target baru + bucket lama.
+    with _html_lock:
+        _html_kolektif = []
+    with _score_lock:
+        _score_buckets = {4: [], 3: [], 2: [], 1: []}
 
     # Reset stats
     with _stats_lock:
@@ -903,6 +907,8 @@ def run_forensik_engine(
             if k not in ("start_time",):
                 _stats[k] = 0
         _stats["phase"] = "dl"
+
+    _current_target = target
 
     # ── FASE 0: Fetch ID ───────────────────────────────────────────────────────
     _console.print("")
