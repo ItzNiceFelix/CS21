@@ -663,8 +663,7 @@ def send_discord_index(
 
     try:
         from cs20_engine import send_discord as _sd
-        _sd(webhook_url, channel, executor_tagged, results, html_path)
-        return
+        return bool(_sd(webhook_url, channel, executor_tagged, results, html_path))
     except ImportError:
         pass
 
@@ -789,18 +788,20 @@ def run_manual_search_loop(
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
-            send_discord_index(
+            sent = send_discord_index(
                 webhook_url, channel, executor,
                 results, html_path, batch_no, query
             )
 
-            # Hapus HTML lokal jika sudah terkirim dan ukuran aman
+            # Hapus HTML lokal HANYA bila benar-benar terkirim & aman.
             if os.path.exists(html_path):
-                if os.path.getsize(html_path) / (1024*1024) <= 7.5:
+                if sent and os.path.getsize(html_path) / (1024*1024) <= 7.5:
                     try:
                         os.remove(html_path)
                     except Exception:
                         pass
+                else:
+                    safe_print(f"[yellow][📁] HTML disimpan: {html_path}[/yellow]")
 
         # Tanya search lagi?
         lagi = _console.input(
@@ -826,6 +827,8 @@ def process_index_mode(args):
     total_batches  = args.total_batches
     batches_per_run = args.batches_per_run
     start_batch    = args.start_batch    # 1-based
+
+    os.makedirs(config_dir, exist_ok=True)  # engine standalone tanpa cs20.sh
 
     cache_root   = detect_cache_root()
     session_dir  = session_dir_for(cache_root, channel)
@@ -983,18 +986,20 @@ def process_index_mode(args):
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        send_discord_index(
+        sent = send_discord_index(
             webhook_url, channel, executor,
             results, html_path, batch_no
         )
 
-        # Hapus HTML lokal jika aman
+        # Hapus HTML lokal HANYA bila benar-benar terkirim & aman.
         if os.path.exists(html_path):
-            if os.path.getsize(html_path) / (1024*1024) <= 7.5:
+            if sent and os.path.getsize(html_path) / (1024*1024) <= 7.5:
                 try:
                     os.remove(html_path)
                 except Exception:
                     pass
+            else:
+                safe_print(f"[yellow][📁] HTML disimpan: {html_path}[/yellow]")
 
         # ── SEARCH MANUAL ────────────────────────────────────────────
         safe_print("")

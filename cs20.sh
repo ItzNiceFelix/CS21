@@ -105,6 +105,13 @@ check_and_install_deps() {
         exit 1
     fi
 
+    # Cek cs_core importable (opsional — HANYA peringatan, jangan exit).
+    # CLI baru: python -m cs_core --help
+    if ! python3 -c "import cs_core" 2>/dev/null; then
+        echo -e "${Y}[⚠️] Paket cs_core tidak bisa di-import dari sini.${NC}"
+        echo -e "${DIM}     Engine lama tetap jalan. CLI baru: cd $(dirname "$SCRIPT_DIR") && python3 -m cs_core --help${NC}"
+    fi
+
     echo -e "${GR}[✅] Semua dependensi siap!${NC}"
 }
 

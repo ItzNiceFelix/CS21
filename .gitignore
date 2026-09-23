@@ -1,6 +1,6 @@
 ﻿__pycache__/
 *.pyc
-.cs20/
+.cs20*
 .cs_tmp_*/
 .cs_checkpoints/
 .chatseeker_log.json

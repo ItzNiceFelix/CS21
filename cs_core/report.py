@@ -11,7 +11,6 @@ import html as _html
 import json as _json
 import os as _os
 import time as _time
-import urllib.request as _urlreq
 from datetime import datetime as _datetime
 
 from . import config as _config
@@ -41,9 +40,6 @@ _LANG_LABELS = {
 
 # Kanal ber-ID mentah (bukan @handle). Duck-typed: engine lama punya
 # `_is_raw_channel_id`; di sini dicek pola UC + 22 char (tak import engine).
-_RAW_ID_CHANNEL_RE = None
-
-
 def _is_raw_channel_id(channel: str) -> bool:
     import re
 

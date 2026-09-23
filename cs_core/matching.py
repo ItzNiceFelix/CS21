@@ -1,6 +1,7 @@
 """Matching berlapis: L1 exact/regex → L2 fuzzy token → L3 phonetic-rule.
 
-- `count_rule_hits`/`classify_tiers`: L1 lama (Fase 1), DIPERTAHANKAN apa adanya.
+- `classify_tiers`: helper L1 exact per tier. Dipakai test anti-typo
+  (`tests/test_anti_typo.py`); production memakai `scoring._exact_tier_counts`.
 - `fuzzy_match_token`: rapidfuzz `process.extractOne` bila ada, else
   `difflib.SequenceMatcher` + length gate (arch §5.3).
 - `phonetic_hit`: lookup `phonetic_key(token)` di set fonetik (L3).
@@ -14,16 +15,14 @@ deteksi tier yang L1-nya kosong, tidak pernah mengubah hit exact.
 
 from __future__ import annotations
 
-import re
 from difflib import SequenceMatcher
 
 from . import diagnostics as _diag
 from .languages.base import DEFAULT_FUZZY_THRESHOLD, KeywordCore, LanguageSpec
 from .languages.variants import phonetic_key
-from .tokens import TokenList, extract
+from .tokens import extract
 
 __all__ = [
-    "count_rule_hits",
     "classify_tiers",
     "fuzzy_match_token",
     "phonetic_hit",
@@ -47,25 +46,12 @@ def _has_rapidfuzz() -> bool:
 # ---------------------------------------------------------------------------
 # L1 — exact/regex (Fase 1, tidak berubah)
 # ---------------------------------------------------------------------------
-def count_rule_hits(toks: TokenList, rules, text: str) -> int:
-    """L1 exact/regex: 1 bila ada rule yang match, else 0 (semantik Fase 1)."""
-    if isinstance(rules, KeywordCore):
-        pats = rules.regexes or ()
-    elif isinstance(rules, LanguageSpec):
-        pats = tuple(p for c in rules.cores for p in (c.regexes or ()))
-    else:
-        pats = tuple(rules)
-    for pat in pats:
-        if isinstance(pat, re.Pattern):
-            if pat.search(text):
-                return 1
-        elif re.search(pat, text):
-            return 1
-    return 0
-
-
 def classify_tiers(text: str, spec: LanguageSpec) -> dict[str, int]:
-    """Hitung jumlah pattern yang match per tier (semua tier selalu hadir)."""
+    """Hitung jumlah pattern yang match per tier (semua tier selalu hadir).
+
+    Helper/test-only: production scoring memakai `scoring._exact_tier_counts`
+    (logika sama). Dipertahankan karena `tests/test_anti_typo.py` memakainya.
+    """
     result = {c.tier: 0 for c in spec.cores}
     for core in spec.cores:
         for pat in core.regexes or ():

@@ -955,27 +955,25 @@ def _build_html(channel: str, executor: str, results: list, lang: str,
 # DISCORD (reuse cs20_engine.send_discord)
 # ==============================================================================
 def _send_discord(webhook_url: str, channel: str, executor: str,
-                  results: list, html_path: str, session_label: str):
+                  results: list, html_path: str, session_label: str) -> bool:
     tag = f"{executor} [AGE-BYPASS {session_label}]"
 
     # Fase 6: satu implementasi di cs_core.report.
     try:
         from cs_core.report import send_discord as _cs_send_discord
 
-        _cs_send_discord(webhook_url, channel, tag, results, html_path)
-        return
+        return bool(_cs_send_discord(webhook_url, channel, tag, results, html_path))
     except Exception:
         pass
 
     try:
         from cs20_engine import send_discord as _sd
-        _sd(webhook_url, channel, tag, results, html_path)
-        return
+        return bool(_sd(webhook_url, channel, tag, results, html_path))
     except ImportError:
         pass
 
     if not webhook_url:
-        return
+        return False
     try:
         import requests as rq
         valid_count = sum(1 for r in results if r.get("is_valid"))
@@ -983,17 +981,20 @@ def _send_discord(webhook_url: str, channel: str, executor: str,
                                     "color": 16711680,
                                     "description": f"Sesi: {session_label}\n"
                                                    f"Valid: {valid_count}/{len(results)}"}]}
-        rq.post(webhook_url, json=payload, timeout=30)
+        resp = rq.post(webhook_url, json=payload, timeout=30)
+        ok = resp.status_code in (200, 204)
         if os.path.exists(html_path):
             sz = os.path.getsize(html_path) / (1024*1024)
             if sz <= 7.5:
                 with open(html_path, "rb") as f:
-                    rq.post(webhook_url,
-                            data={"payload_json": json.dumps({"content": f"📄 @{channel} age report:"})},
-                            files={"file": (os.path.basename(html_path), f, "text/html")},
-                            timeout=60)
+                    r2 = rq.post(webhook_url,
+                                 data={"payload_json": json.dumps({"content": f"📄 @{channel} age report:"})},
+                                 files={"file": (os.path.basename(html_path), f, "text/html")},
+                                 timeout=60)
+                ok = ok and r2.status_code in (200, 204)
+        return ok
     except Exception:
-        pass
+        return False
 
 # ==============================================================================
 # COOKIES CHECK UI — dipanggil saat masuk mode
@@ -1130,6 +1131,7 @@ def process_age_mode(args):
     executor     = args.executor
     webhook_url  = args.webhook_url
     config_dir   = args.config_dir
+    os.makedirs(config_dir, exist_ok=True)  # engine standalone tanpa cs20.sh
     cookies_path = os.path.join(config_dir, "cookies.txt")
     content_type = args.content_type
     limit        = args.limit
@@ -1389,12 +1391,12 @@ def process_age_mode(args):
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        _send_discord(webhook_url, channel, executor,
-                      final_results, html_path, session_label)
+        sent = _send_discord(webhook_url, channel, executor,
+                             final_results, html_path, session_label)
 
         if os.path.exists(html_path):
             sz = os.path.getsize(html_path) / (1024 * 1024)
-            if sz <= 7.5:
+            if sent and sz <= 7.5:
                 try:
                     os.remove(html_path)
                 except Exception:

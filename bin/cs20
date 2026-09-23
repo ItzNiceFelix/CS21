@@ -1,0 +1,8 @@
+#!/bin/sh
+# Shim opsional: jalankan cs_core CLI dari mana saja tanpa `cd` ke repo.
+# Pakai: bash bin/cs20 analyze --video gAQIEyzUHYc --lang id
+# Argumen diteruskan apa adanya ke `python -m cs_core`.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT" || exit 1
+exec python3 -m cs_core "$@"

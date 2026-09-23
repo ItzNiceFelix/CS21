@@ -361,6 +361,18 @@ def get_playlist_count(channel: str, content_type: str) -> int:
     return 0
 
 
+def _is_raw_channel_id(channel: str) -> bool:
+    """channel_id mentah YouTube (UC + 22 char) vs handle biasa."""
+    return bool(re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel))
+
+
+def _channel_base_url(channel: str) -> str:
+    """Base URL channel: /channel/UCxxx untuk ID mentah, else /@handle."""
+    if _is_raw_channel_id(channel):
+        return f"https://www.youtube.com/channel/{channel}"
+    return f"https://www.youtube.com/@{channel}"
+
+
 def fetch_video_ids_range(
     channel:      str,
     content_type: str,
@@ -371,16 +383,17 @@ def fetch_video_ids_range(
     Ambil video ID untuk range index [start, end] (1-based, inklusif).
     Return list of video_id strings.
     """
+    base = _channel_base_url(channel)
     if content_type == "live":
-        urls       = [f"https://www.youtube.com/@{channel}/streams"]
+        urls       = [f"{base}/streams"]
         extra_args = []
     elif content_type == "video":
-        urls       = [f"https://www.youtube.com/@{channel}/videos"]
+        urls       = [f"{base}/videos"]
         extra_args = ["--match-filter", "duration>60"]
     else:
         urls = [
-            f"https://www.youtube.com/@{channel}/streams",
-            f"https://www.youtube.com/@{channel}/videos",
+            f"{base}/streams",
+            f"{base}/videos",
         ]
         extra_args = ["--match-filter", "duration>60"]
 
