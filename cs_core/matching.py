@@ -242,6 +242,19 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
     script_latin = spec.script == "latin"
     spec_skip = spec.fuzzy_skip or frozenset()
 
+    # Token yang sudah diklaim EXACT oleh tier mana pun tidak boleh jadi
+    # kandidat fuzzy tier lain. Contoh: "cegukan" exact-match CORE; token yang
+    # sama tidak boleh lalu di-fuzzy ke form TYPO ("jegukan"/"segukan") dan
+    # menambah TYPO — itu menaikkan skor di luar baseline (aturan emas arch
+    # §3.3: L1 selalu menang, fuzzy hanya mengisi tier yang L1-nya kosong).
+    claimed: set[str] = set()
+    for core in spec.cores:
+        for tok in token_norms:
+            if tok in claimed:
+                continue
+            if _rules_hit(core, tok):
+                claimed.add(tok)
+
     for core in spec.cores:
         tier = core.tier
         # ── L1 exact ────────────────────────────────────────────────
@@ -265,6 +278,8 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
                     continue
                 if tok in spec_skip or tok in (core.fuzzy_skip or ()):
                     continue
+                if tok in claimed:
+                    continue  # sudah exact-match tier lain (mis. CORE)
                 if fuzzy_match_token(tok, cands, float(threshold)):
                     fuzzy_ok = True
                     break
@@ -276,6 +291,8 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
                 for tok in token_norms:
                     if tok in spec_skip or tok in (core.fuzzy_skip or ()):
                         continue
+                    if tok in claimed:
+                        continue  # sudah exact-match tier lain
                     if len(tok) >= MIN_FUZZY_LEN and tok.isalpha() and tok.isascii() \
                             and phonetic_hit(tok, pset):
                         fuzzy_ok = True

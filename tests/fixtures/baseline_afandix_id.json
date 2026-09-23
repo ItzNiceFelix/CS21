@@ -1,0 +1,623 @@
+{
+  "meta": {
+    "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+    "lang": "id",
+    "limit": 5,
+    "engines": [
+      "ae",
+      "e",
+      "ie"
+    ],
+    "dedup_mode": "baseline",
+    "cluster_mode": "baseline",
+    "captured_at": "2026-09-24T00:28:07",
+    "source": "yt-api",
+    "tool": "baseline_capture.py"
+  },
+  "videos": [
+    {
+      "video_id": "x4sO124A8rk",
+      "source": "none",
+      "segments_raw": [],
+      "engines": {
+        "e": {
+          "video_id": "x4sO124A8rk",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "disabled",
+          "status_label": "🔒 Transkrip Dinonaktifkan oleh Channel",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ie": {
+          "skipped": "tanpa segmen index"
+        },
+        "ae": {
+          "skipped": "tanpa segmen VTT"
+        }
+      }
+    },
+    {
+      "video_id": "7HqV3oJjo2I",
+      "source": "none",
+      "segments_raw": [],
+      "engines": {
+        "e": {
+          "video_id": "7HqV3oJjo2I",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "disabled",
+          "status_label": "🔒 Transkrip Dinonaktifkan oleh Channel",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ie": {
+          "skipped": "tanpa segmen index"
+        },
+        "ae": {
+          "skipped": "tanpa segmen VTT"
+        }
+      }
+    },
+    {
+      "video_id": "T7cEGKY5iOw",
+      "source": "yt-api",
+      "segments_raw": [
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5.2,
+          "duration": 3.099
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 14.15,
+          "duration": 5.52
+        },
+        {
+          "text": "[Musik]",
+          "start": 16.61,
+          "duration": 3.06
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 22.26,
+          "duration": 6.7
+        },
+        {
+          "text": "dasarull",
+          "start": 27.359,
+          "duration": 6.92
+        },
+        {
+          "text": "jarang menggamit kenangan Zan",
+          "start": 28.96,
+          "duration": 5.319
+        },
+        {
+          "text": "persekolahan sa",
+          "start": 34.879,
+          "duration": 9.0
+        },
+        {
+          "text": "Tiara mimpi kita bersanding atas",
+          "start": 38.559,
+          "duration": 7.16
+        },
+        {
+          "text": "kayangan",
+          "start": 43.879,
+          "duration": 4.121
+        },
+        {
+          "text": "seki",
+          "start": 45.719,
+          "duration": 7.36
+        },
+        {
+          "text": "seakan bisa kusentuh peristiwa semalam",
+          "start": 48.0,
+          "duration": 9.0
+        },
+        {
+          "text": "di malam pesta engkau",
+          "start": 53.079,
+          "duration": 9.561
+        },
+        {
+          "text": "bisikan kata azimat di",
+          "start": 57.0,
+          "duration": 5.64
+        },
+        {
+          "text": "telinga Kita terpaksa berpisah untuk",
+          "start": 65.04,
+          "duration": 7.6
+        },
+        {
+          "text": "mencari",
+          "start": 70.0,
+          "duration": 2.64
+        },
+        {
+          "text": "arah Kita dipukul lombak hidupalam yang",
+          "start": 74.32,
+          "duration": 7.839
+        },
+        {
+          "text": "nyata",
+          "start": 83.439,
+          "duration": 7.561
+        },
+        {
+          "text": "engkau jauh meniki Puncak menarang",
+          "start": 85.4,
+          "duration": 6.88
+        },
+        {
+          "text": "yang",
+          "start": 91.0,
+          "duration": 3.6
+        },
+        {
+          "text": "menjanjikan hidup",
+          "start": 92.28,
+          "duration": 7.839
+        },
+        {
+          "text": "sempurna tapi aku hanya tunduk ke bumi",
+          "start": 94.6,
+          "duration": 8.159
+        },
+        {
+          "text": "hidup",
+          "start": 100.119,
+          "duration": 2.64
+        },
+        {
+          "text": "tertekan",
+          "start": 104.079,
+          "duration": 5.441
+        },
+        {
+          "text": "Jik Kau",
+          "start": 106.92,
+          "duration": 5.6
+        },
+        {
+          "text": "bertemuaku",
+          "start": 109.52,
+          "duration": 3.0
+        },
+        {
+          "text": "Begini",
+          "start": 113.84,
+          "duration": 7.599
+        },
+        {
+          "text": "perlumpur tubuh dan keringat",
+          "start": 116.439,
+          "duration": 5.0
+        },
+        {
+          "text": "pjaraurung",
+          "start": 126.2,
+          "duration": 3.759
+        },
+        {
+          "text": "terhuku",
+          "start": 128.119,
+          "duration": 4.681
+        },
+        {
+          "text": "hanya bertemankan",
+          "start": 129.959,
+          "duration": 5.56
+        },
+        {
+          "text": "Sei",
+          "start": 132.8,
+          "duration": 6.799
+        },
+        {
+          "text": "bisak kau",
+          "start": 135.519,
+          "duration": 6.241
+        },
+        {
+          "text": "menghargai",
+          "start": 139.599,
+          "duration": 4.761
+        },
+        {
+          "text": "cintaku yang",
+          "start": 141.76,
+          "duration": 5.6
+        },
+        {
+          "text": "suci",
+          "start": 144.36,
+          "duration": 3.0
+        },
+        {
+          "text": "ini",
+          "start": 148.84,
+          "duration": 3.61
+        },
+        {
+          "text": "mutiara",
+          "start": 151.239,
+          "duration": 2.761
+        },
+        {
+          "text": "[Musik]",
+          "start": 152.45,
+          "duration": 5.19
+        },
+        {
+          "text": "berinya Dapatkah kau",
+          "start": 154.0,
+          "duration": 6.76
+        },
+        {
+          "text": "merasakan Oh",
+          "start": 157.64,
+          "duration": 5.4
+        },
+        {
+          "text": "Tiara",
+          "start": 160.76,
+          "duration": 5.0
+        },
+        {
+          "text": "bedihya",
+          "start": 163.04,
+          "duration": 7.16
+        },
+        {
+          "text": "dapatkan kau merasakannya",
+          "start": 165.76,
+          "duration": 4.44
+        },
+        {
+          "text": "[Musik]",
+          "start": 178.93,
+          "duration": 12.37
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 181.46,
+          "duration": 14.56
+        },
+        {
+          "text": "[Musik]",
+          "start": 191.3,
+          "duration": 4.72
+        },
+        {
+          "text": "kaset alami perasaan jiwa",
+          "start": 203.68,
+          "duration": 4.72
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 210.41,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 213.39,
+          "duration": 2.02
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 213.65,
+          "duration": 3.35
+        },
+        {
+          "text": "[Musik]",
+          "start": 215.41,
+          "duration": 4.07
+        },
+        {
+          "text": "Kita terpaksa",
+          "start": 217.0,
+          "duration": 6.2
+        },
+        {
+          "text": "berpisangur mencari",
+          "start": 219.48,
+          "duration": 3.72
+        },
+        {
+          "text": "arah Kita dipukul lombak hidup alam yang",
+          "start": 224.92,
+          "duration": 7.679
+        },
+        {
+          "text": "nyata",
+          "start": 233.799,
+          "duration": 6.601
+        },
+        {
+          "text": "engkau jauh menitip Puncak menara",
+          "start": 235.879,
+          "duration": 6.961
+        },
+        {
+          "text": "adi yang",
+          "start": 240.4,
+          "duration": 7.0
+        },
+        {
+          "text": "menjanjikan hidup sempurna nanti aku",
+          "start": 242.84,
+          "duration": 10.36
+        },
+        {
+          "text": "hanya tunduk ke bumi hidup",
+          "start": 247.4,
+          "duration": 5.8
+        },
+        {
+          "text": "tertekan",
+          "start": 254.879,
+          "duration": 5.121
+        },
+        {
+          "text": "jika kau",
+          "start": 257.4,
+          "duration": 5.6
+        },
+        {
+          "text": "bertemuaku",
+          "start": 260.0,
+          "duration": 3.0
+        },
+        {
+          "text": "begini",
+          "start": 264.28,
+          "duration": 8.24
+        },
+        {
+          "text": "berlumpur tubuh dan King Wu masa",
+          "start": 266.88,
+          "duration": 8.48
+        },
+        {
+          "text": "bumi di",
+          "start": 272.52,
+          "duration": 5.88
+        },
+        {
+          "text": "penjara teruru",
+          "start": 275.36,
+          "duration": 4.96
+        },
+        {
+          "text": "beriku",
+          "start": 278.4,
+          "duration": 7.56
+        },
+        {
+          "text": "hanya pertemankan sepi",
+          "start": 280.32,
+          "duration": 5.64
+        },
+        {
+          "text": "Baka kau",
+          "start": 286.479,
+          "duration": 5.72
+        },
+        {
+          "text": "mengharai",
+          "start": 289.56,
+          "duration": 5.199
+        },
+        {
+          "text": "jisanku yang",
+          "start": 292.199,
+          "duration": 6.56
+        },
+        {
+          "text": "suci ini",
+          "start": 294.759,
+          "duration": 4.0
+        },
+        {
+          "text": "mutiara",
+          "start": 301.88,
+          "duration": 6.72
+        },
+        {
+          "text": "Pedihnya Dapatkah kau",
+          "start": 304.4,
+          "duration": 6.799
+        },
+        {
+          "text": "merasakan",
+          "start": 308.6,
+          "duration": 4.8
+        },
+        {
+          "text": "mutiarah",
+          "start": 311.199,
+          "duration": 5.041
+        },
+        {
+          "text": "Pedihnya",
+          "start": 313.4,
+          "duration": 7.28
+        },
+        {
+          "text": "dakah kau merasakannya",
+          "start": 316.24,
+          "duration": 4.44
+        }
+      ],
+      "engines": {
+        "e": {
+          "video_id": "T7cEGKY5iOw",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "no_match",
+          "status_label": "⬜ Tidak Ada Indikasi",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ie": {
+          "video_id": "T7cEGKY5iOw",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "no_match",
+          "status_label": "⬜ Tidak Ada Indikasi",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ae": {
+          "video_id": "T7cEGKY5iOw",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "no_match",
+          "status_label": "⬜ Tidak Ada Indikasi",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        }
+      }
+    },
+    {
+      "video_id": "h5wa9wrNnks",
+      "source": "none",
+      "segments_raw": [],
+      "engines": {
+        "e": {
+          "video_id": "h5wa9wrNnks",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "disabled",
+          "status_label": "🔒 Transkrip Dinonaktifkan oleh Channel",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ie": {
+          "skipped": "tanpa segmen index"
+        },
+        "ae": {
+          "skipped": "tanpa segmen VTT"
+        }
+      }
+    },
+    {
+      "video_id": "fgF2uLaNvZA",
+      "source": "none",
+      "segments_raw": [],
+      "engines": {
+        "e": {
+          "video_id": "fgF2uLaNvZA",
+          "channel": "UCm8GZknB5eRkbzkNPy5bfbg",
+          "status": "disabled",
+          "status_label": "🔒 Transkrip Dinonaktifkan oleh Channel",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ie": {
+          "skipped": "tanpa segmen index"
+        },
+        "ae": {
+          "skipped": "tanpa segmen VTT"
+        }
+      }
+    }
+  ]
+}

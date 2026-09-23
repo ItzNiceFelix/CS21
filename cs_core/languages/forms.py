@@ -96,7 +96,9 @@ FORMS: dict[str, dict] = {
                     "\\*hi+c+\\*",
                     "\\*ngi+k+\\*",
                 ],
-                variants=["auto_typo", "phonetic_id"],
+                # CORE TIDAK memakai auto_typo/phonetic: regex manual di atas sudah
+                # menangani varian ejaan; auto_typo di CORE over-generate (mis.
+                # menghasilkan "cekukan"/"segukan" yang justru TYPO) -> FP + skor naik.
                 compounds=["*hik*", "*hic*", "*ngik*"],
                 fuzzy_threshold=0.88,
             ),

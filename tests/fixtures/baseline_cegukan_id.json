@@ -1,0 +1,6664 @@
+{
+  "meta": {
+    "channel": "fixtures",
+    "lang": "id",
+    "engines": [
+      "e",
+      "ie",
+      "ae"
+    ],
+    "dedup_mode": "baseline",
+    "cluster_mode": "baseline",
+    "source": "yt-api",
+    "tool": "inline"
+  },
+  "videos": [
+    {
+      "video_id": "gAQIEyzUHYc",
+      "source": "yt-api",
+      "segments_raw": [
+        {
+          "text": "[Musik]",
+          "start": 1.07,
+          "duration": 8.8
+        },
+        {
+          "text": "[Musik]",
+          "start": 39.37,
+          "duration": 3.78
+        },
+        {
+          "text": "coba tahan nafas semampunya",
+          "start": 91.38,
+          "duration": 3.739
+        },
+        {
+          "text": "masih coy",
+          "start": 106.159,
+          "duration": 3.42
+        },
+        {
+          "text": "ulang ulang ulang ulang",
+          "start": 110.579,
+          "duration": 3.201
+        },
+        {
+          "text": "gak bisa kiasa",
+          "start": 123.18,
+          "duration": 3.68
+        },
+        {
+          "text": "Oh my God",
+          "start": 134.819,
+          "duration": 6.56
+        },
+        {
+          "text": "nih gimana caranya",
+          "start": 137.84,
+          "duration": 3.539
+        },
+        {
+          "text": "[Musik]",
+          "start": 146.71,
+          "duration": 3.429
+        },
+        {
+          "text": "tahan tidak ada nampasnya Oke tahan",
+          "start": 166.739,
+          "duration": 4.461
+        },
+        {
+          "text": "tidak ada",
+          "start": 168.9,
+          "duration": 2.3
+        },
+        {
+          "text": "Aduh Udah dari tadi udah minum air udah",
+          "start": 202.379,
+          "duration": 6.921
+        },
+        {
+          "text": "hampir satu galon anjir",
+          "start": 205.739,
+          "duration": 3.561
+        },
+        {
+          "text": "ya Allah",
+          "start": 210.0,
+          "duration": 6.18
+        },
+        {
+          "text": "karena jangan dibuang Bang kenapa tapi",
+          "start": 212.519,
+          "duration": 5.761
+        },
+        {
+          "text": "jangan dibuang ya",
+          "start": 216.18,
+          "duration": 5.1
+        },
+        {
+          "text": "123",
+          "start": 218.28,
+          "duration": 3.0
+        },
+        {
+          "text": "Harusnya kita ganti judul",
+          "start": 268.38,
+          "duration": 3.62
+        },
+        {
+          "text": "24 jam cegukan",
+          "start": 272.06,
+          "duration": 3.84
+        },
+        {
+          "text": "kalau gua minum tapi ngadatnya ke atas",
+          "start": 304.5,
+          "duration": 7.22
+        },
+        {
+          "text": "minum sambil menghadap ke atas oke",
+          "start": 307.62,
+          "duration": 4.1
+        },
+        {
+          "text": "virus cegukan Kayaknya sih gitu",
+          "start": 378.74,
+          "duration": 5.34
+        },
+        {
+          "text": "tapi",
+          "start": 385.039,
+          "duration": 7.44
+        },
+        {
+          "text": "ada cewek-cewek yang nonton nggak malam",
+          "start": 387.56,
+          "duration": 4.919
+        },
+        {
+          "text": "Bang aku cewek Iya aku cowok",
+          "start": 413.58,
+          "duration": 4.94
+        },
+        {
+          "text": "[Musik]",
+          "start": 429.54,
+          "duration": 3.12
+        },
+        {
+          "text": "susah banget anjir",
+          "start": 439.759,
+          "duration": 3.66
+        },
+        {
+          "text": "bukan smr Ki 24 jam cegukan udah dari",
+          "start": 448.02,
+          "duration": 5.48
+        },
+        {
+          "text": "kemarin",
+          "start": 452.16,
+          "duration": 5.599
+        },
+        {
+          "text": "Magrib belum hilang sampai sekarang",
+          "start": 453.5,
+          "duration": 4.259
+        },
+        {
+          "text": "disuruh kayang sih",
+          "start": 468.5,
+          "duration": 3.36
+        },
+        {
+          "text": "live 1 minggu live satu minggu nggak",
+          "start": 494.22,
+          "duration": 5.699
+        },
+        {
+          "text": "ngapa-ngapain minum air putih gua udah",
+          "start": 497.34,
+          "duration": 4.82
+        },
+        {
+          "text": "live",
+          "start": 499.919,
+          "duration": 2.241
+        },
+        {
+          "text": "gua udah minum air minum air putih dalam",
+          "start": 504.72,
+          "duration": 5.36
+        },
+        {
+          "text": "parah dari kemarin maghrib kok sekarang",
+          "start": 516.419,
+          "duration": 6.261
+        },
+        {
+          "text": "belum ngilang-ngilang",
+          "start": 519.779,
+          "duration": 2.901
+        },
+        {
+          "text": "Astaghfirullahalazim",
+          "start": 528.12,
+          "duration": 3.0
+        },
+        {
+          "text": "Aduh makan sambal banyak-banyak gue mah",
+          "start": 547.68,
+          "duration": 7.159
+        },
+        {
+          "text": "nggak kuat nggak kuat pedas",
+          "start": 551.339,
+          "duration": 3.5
+        },
+        {
+          "text": "minum air simpan di simpan dulu di",
+          "start": 590.04,
+          "duration": 8.04
+        },
+        {
+          "text": "mulutnya pas pas ngadap ke atas adanya",
+          "start": 594.68,
+          "duration": 6.099
+        },
+        {
+          "text": "pelan-pelan terus langsung tarik nafas",
+          "start": 598.08,
+          "duration": 7.16
+        },
+        {
+          "text": "Tarik nafas banyak tahan di dada",
+          "start": 600.779,
+          "duration": 4.461
+        },
+        {
+          "text": "oke",
+          "start": 605.339,
+          "duration": 3.0
+        },
+        {
+          "text": "minum air",
+          "start": 609.959,
+          "duration": 3.021
+        },
+        {
+          "text": "bisa cok Nah itu sudah itu sudah cobalah",
+          "start": 637.98,
+          "duration": 9.72
+        },
+        {
+          "text": "sambal saranku coba hirup 3 kg anjir",
+          "start": 641.76,
+          "duration": 10.16
+        },
+        {
+          "text": "pikiran gua sambungan pagi",
+          "start": 647.7,
+          "duration": 4.22
+        },
+        {
+          "text": "minum air putihnya udah Ki Dari tadi",
+          "start": 672.0,
+          "duration": 5.64
+        },
+        {
+          "text": "Dari tadi dan habisnya udah setengah",
+          "start": 674.339,
+          "duration": 5.221
+        },
+        {
+          "text": "galon sumpah udah setengah harga lo",
+          "start": 677.64,
+          "duration": 4.28
+        },
+        {
+          "text": "habisnya",
+          "start": 679.56,
+          "duration": 2.36
+        },
+        {
+          "text": "malam minggu cegukan coy",
+          "start": 685.38,
+          "duration": 3.68
+        },
+        {
+          "text": "ini udah dari kemarin magrib",
+          "start": 699.959,
+          "duration": 5.181
+        },
+        {
+          "text": "kemarin kan habis makan",
+          "start": 702.779,
+          "duration": 8.601
+        },
+        {
+          "text": "jam 5 Nah sekarang mah belum selesai",
+          "start": 705.14,
+          "duration": 6.24
+        },
+        {
+          "text": "sekarang belum selesai cegukannya dari",
+          "start": 713.279,
+          "duration": 5.661
+        },
+        {
+          "text": "jam 5 kemarin",
+          "start": 715.62,
+          "duration": 3.32
+        },
+        {
+          "text": "nonton video lucu coba udah",
+          "start": 723.72,
+          "duration": 4.1
+        },
+        {
+          "text": "nggak ada yang berhasil",
+          "start": 728.7,
+          "duration": 3.259
+        },
+        {
+          "text": "siap-siap dulu",
+          "start": 738.62,
+          "duration": 3.12
+        },
+        {
+          "text": "sampai pergi ke dokter tuh beli obat",
+          "start": 746.88,
+          "duration": 4.579
+        },
+        {
+          "text": "aku juga sudah sakit ini batuk-batuk gak",
+          "start": 754.14,
+          "duration": 4.62
+        },
+        {
+          "text": "sembuh dan seminggu ini sampai kadang",
+          "start": 756.66,
+          "duration": 5.4
+        },
+        {
+          "text": "ada darahnya pas batuk Iyah jangan",
+          "start": 758.76,
+          "duration": 5.96
+        },
+        {
+          "text": "main-main lu",
+          "start": 762.06,
+          "duration": 2.66
+        },
+        {
+          "text": "bismillah Semoga bisa",
+          "start": 768.959,
+          "duration": 4.161
+        },
+        {
+          "text": "[Musik]",
+          "start": 788.07,
+          "duration": 3.049
+        },
+        {
+          "text": "sial sial",
+          "start": 841.88,
+          "duration": 3.72
+        },
+        {
+          "text": "ya aku batuk berdahak Jadi pas mau Bunda",
+          "start": 846.12,
+          "duration": 5.519
+        },
+        {
+          "text": "kadang tercampur darah",
+          "start": 848.94,
+          "duration": 6.86
+        },
+        {
+          "text": "ke dokter lagi yang main",
+          "start": 851.639,
+          "duration": 4.161
+        },
+        {
+          "text": "kalau gitu minta cekik aja Bang mati",
+          "start": 856.339,
+          "duration": 5.521
+        },
+        {
+          "text": "dong gua",
+          "start": 859.2,
+          "duration": 2.66
+        },
+        {
+          "text": "makin parah Sakitnya",
+          "start": 891.38,
+          "duration": 3.78
+        },
+        {
+          "text": "atau gua coba cari cewek ya ngobrol sama",
+          "start": 915.66,
+          "duration": 5.88
+        },
+        {
+          "text": "cewek siapa tahu ngobrol sama cewek",
+          "start": 918.779,
+          "duration": 6.321
+        },
+        {
+          "text": "cegukannya hilang gitu loh",
+          "start": 921.54,
+          "duration": 3.56
+        },
+        {
+          "text": "cewek-cewek Thailand",
+          "start": 925.459,
+          "duration": 3.301
+        },
+        {
+          "text": "gimana Menurut kalian Ki gimana cari",
+          "start": 930.3,
+          "duration": 6.38
+        },
+        {
+          "text": "cewek apa gimana",
+          "start": 933.959,
+          "duration": 2.721
+        },
+        {
+          "text": "16 menit",
+          "start": 987.18,
+          "duration": 3.019
+        },
+        {
+          "text": "yang bisa sembuhin cegukannya Bang Affan",
+          "start": 1011.48,
+          "duration": 5.219
+        },
+        {
+          "text": "X dikasih mobil guys",
+          "start": 1014.899,
+          "duration": 4.581
+        },
+        {
+          "text": "oke",
+          "start": 1016.699,
+          "duration": 2.781
+        },
+        {
+          "text": "coba mengganggu aktivitas banget cok",
+          "start": 1034.339,
+          "duration": 4.521
+        },
+        {
+          "text": "kayaknya kayang",
+          "start": 1066.799,
+          "duration": 6.0
+        },
+        {
+          "text": "sayang Bang sambil tahan nafas Safa",
+          "start": 1069.5,
+          "duration": 4.94
+        },
+        {
+          "text": "nafas",
+          "start": 1072.799,
+          "duration": 5.76
+        },
+        {
+          "text": "makan Bang gua habis makan Ki sumpah",
+          "start": 1074.44,
+          "duration": 6.94
+        },
+        {
+          "text": "demi apapun Sebelum gua live abis gue",
+          "start": 1078.559,
+          "duration": 6.201
+        },
+        {
+          "text": "live makan dulu banyak pula",
+          "start": 1081.38,
+          "duration": 3.38
+        },
+        {
+          "text": "baru sekarang gua agak gemukan",
+          "start": 1085.22,
+          "duration": 3.8
+        },
+        {
+          "text": "Aku bingung mau bikin mie atau",
+          "start": 1115.12,
+          "duration": 4.439
+        },
+        {
+          "text": "pesan go food aja Ki biar lu nggak",
+          "start": 1123.919,
+          "duration": 6.421
+        },
+        {
+          "text": "capek-capek kan gue lagi sakit ya udah",
+          "start": 1127.1,
+          "duration": 6.02
+        },
+        {
+          "text": "kalau nggak mau sembuh",
+          "start": 1130.34,
+          "duration": 2.78
+        },
+        {
+          "text": "gimana dong ini Coy",
+          "start": 1179.24,
+          "duration": 5.72
+        },
+        {
+          "text": "please lah",
+          "start": 1181.94,
+          "duration": 3.02
+        },
+        {
+          "text": "sambil tahan nafas",
+          "start": 1185.38,
+          "duration": 3.78
+        },
+        {
+          "text": "mesin gak bisa Ki Astaga gimana nih",
+          "start": 1215.179,
+          "duration": 4.941
+        },
+        {
+          "text": "Apa yang harus kita lakukan brother",
+          "start": 1220.76,
+          "duration": 4.039
+        },
+        {
+          "text": "gua udah nonton YouTube segala macam",
+          "start": 1231.799,
+          "duration": 5.12
+        },
+        {
+          "text": "tuh makin parah",
+          "start": 1243.5,
+          "duration": 3.2
+        },
+        {
+          "text": "atau gimana kita cari cewek dulu",
+          "start": 1250.4,
+          "duration": 5.84
+        },
+        {
+          "text": "Siapa tahu dengan ngobrol sama cewek",
+          "start": 1253.6,
+          "duration": 5.439
+        },
+        {
+          "text": "cegukannya hilang Tapi sumpah sekali",
+          "start": 1256.24,
+          "duration": 4.08
+        },
+        {
+          "text": "ketemu cewek",
+          "start": 1259.039,
+          "duration": 4.561
+        },
+        {
+          "text": "yang penting cegukan gue ilang",
+          "start": 1260.32,
+          "duration": 5.14
+        },
+        {
+          "text": "kan cowok kalau ketemu cewek ada",
+          "start": 1263.6,
+          "duration": 5.34
+        },
+        {
+          "text": "grogi-gerogi nya tuh",
+          "start": 1265.46,
+          "duration": 6.32
+        },
+        {
+          "text": "gak tau",
+          "start": 1268.94,
+          "duration": 2.84
+        },
+        {
+          "text": "[Musik]",
+          "start": 1323.66,
+          "duration": 3.139
+        },
+        {
+          "text": "gue udah tahan nafas nih dari tadi",
+          "start": 1332.62,
+          "duration": 4.14
+        },
+        {
+          "text": "coba ngomong bebas apa",
+          "start": 1354.799,
+          "duration": 8.401
+        },
+        {
+          "text": "tapi ditutupin sama selimut mukanya tuh",
+          "start": 1357.46,
+          "duration": 5.74
+        },
+        {
+          "text": "itu mah sama aja dengan tahan lama",
+          "start": 1367.159,
+          "duration": 3.981
+        },
+        {
+          "text": "sambil nyanyi kali ya",
+          "start": 1391.22,
+          "duration": 3.319
+        },
+        {
+          "text": "[Musik]",
+          "start": 1425.77,
+          "duration": 3.2
+        },
+        {
+          "text": "[Musik]",
+          "start": 1436.23,
+          "duration": 3.349
+        },
+        {
+          "text": "[Musik]",
+          "start": 1456.71,
+          "duration": 3.579
+        },
+        {
+          "text": "[Musik]",
+          "start": 1472.35,
+          "duration": 3.29
+        },
+        {
+          "text": "[Musik]",
+          "start": 1480.52,
+          "duration": 3.089
+        },
+        {
+          "text": "kita main game aja kali ya",
+          "start": 1493.659,
+          "duration": 3.841
+        },
+        {
+          "text": "main game apa aja yang enak ya",
+          "start": 1503.36,
+          "duration": 3.92
+        },
+        {
+          "text": "41k gua food mahal di ongkir",
+          "start": 1508.78,
+          "duration": 4.379
+        },
+        {
+          "text": "Ya udah masak mie aja ki terus mienya",
+          "start": 1513.74,
+          "duration": 5.78
+        },
+        {
+          "text": "dikasih pedes",
+          "start": 1516.799,
+          "duration": 2.721
+        },
+        {
+          "text": "biar keringat lu keluar",
+          "start": 1521.6,
+          "duration": 5.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 1523.78,
+          "duration": 6.34
+        },
+        {
+          "text": "kamu nanya kamu nanya kamu nanya kamu",
+          "start": 1526.779,
+          "duration": 6.041
+        },
+        {
+          "text": "nanya kamu nanya kamu nanya",
+          "start": 1530.12,
+          "duration": 4.679
+        },
+        {
+          "text": "kamu nanya kamu nanya kamu nanya kita",
+          "start": 1532.82,
+          "duration": 5.12
+        },
+        {
+          "text": "ngerap kamu nanya aja cuy",
+          "start": 1534.799,
+          "duration": 3.141
+        },
+        {
+          "text": "[Musik]",
+          "start": 1541.49,
+          "duration": 3.029
+        },
+        {
+          "text": "Ya udah Abang juga masak mie dikasih bon",
+          "start": 1567.98,
+          "duration": 4.199
+        },
+        {
+          "text": "cabe",
+          "start": 1570.74,
+          "duration": 4.62
+        },
+        {
+          "text": "gua habis makan guys",
+          "start": 1572.179,
+          "duration": 7.641
+        },
+        {
+          "text": "Nah mungkin bisa makan mie lagi",
+          "start": 1575.36,
+          "duration": 4.46
+        },
+        {
+          "text": "[Musik]",
+          "start": 1585.48,
+          "duration": 3.15
+        },
+        {
+          "text": "[Musik]",
+          "start": 1607.83,
+          "duration": 3.05
+        },
+        {
+          "text": "yang ku suka live cuman aku mau fokus",
+          "start": 1625.299,
+          "duration": 5.821
+        },
+        {
+          "text": "dengan masa depan",
+          "start": 1628.46,
+          "duration": 2.66
+        },
+        {
+          "text": "malam minggu Gua kelabutan Anjay",
+          "start": 1644.299,
+          "duration": 6.98
+        },
+        {
+          "text": "malah cegukan",
+          "start": 1648.02,
+          "duration": 3.259
+        },
+        {
+          "text": "welcome to",
+          "start": 1676.0,
+          "duration": 3.779
+        },
+        {
+          "text": "[Musik]",
+          "start": 1721.39,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 1728.43,
+          "duration": 5.839
+        },
+        {
+          "text": "kamu nanya",
+          "start": 1738.08,
+          "duration": 2.959
+        },
+        {
+          "text": "kamu nanya",
+          "start": 1749.36,
+          "duration": 2.96
+        },
+        {
+          "text": "kamu nanya",
+          "start": 1773.38,
+          "duration": 3.179
+        },
+        {
+          "text": "kamu masih mending Bang malam minggu Gua",
+          "start": 1780.7,
+          "duration": 7.56
+        },
+        {
+          "text": "waktu itu di rumah gue kecewa semua",
+          "start": 1783.74,
+          "duration": 4.52
+        },
+        {
+          "text": "malam minggu kelabu",
+          "start": 1793.899,
+          "duration": 4.02
+        },
+        {
+          "text": "[Musik]",
+          "start": 1800.4,
+          "duration": 5.939
+        },
+        {
+          "text": "[Musik]",
+          "start": 1809.7,
+          "duration": 9.23
+        },
+        {
+          "text": "[Musik]",
+          "start": 1827.17,
+          "duration": 4.23
+        },
+        {
+          "text": "S",
+          "start": 1829.88,
+          "duration": 4.609
+        },
+        {
+          "text": "[Musik]",
+          "start": 1831.4,
+          "duration": 3.089
+        },
+        {
+          "text": "[Musik]",
+          "start": 1836.66,
+          "duration": 3.069
+        },
+        {
+          "text": "Kenapa melon warnanya warnanya hijau",
+          "start": 1846.5,
+          "duration": 6.02
+        },
+        {
+          "text": "guys",
+          "start": 1850.1,
+          "duration": 2.42
+        },
+        {
+          "text": "[Musik]",
+          "start": 1857.84,
+          "duration": 3.23
+        },
+        {
+          "text": "[Musik]",
+          "start": 1864.32,
+          "duration": 7.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 1877.1,
+          "duration": 3.95
+        },
+        {
+          "text": "aku nggak boleh capek sama kamu karena",
+          "start": 1882.26,
+          "duration": 5.279
+        },
+        {
+          "text": "kalau aku capek capek kita pasti selesai",
+          "start": 1885.08,
+          "duration": 5.0
+        },
+        {
+          "text": "bodo amat",
+          "start": 1887.539,
+          "duration": 2.541
+        },
+        {
+          "text": "[Musik]",
+          "start": 1897.2,
+          "duration": 8.619
+        },
+        {
+          "text": "[Musik]",
+          "start": 1909.89,
+          "duration": 4.409
+        },
+        {
+          "text": "Bang Abang Aneh nggak sih Ada cewek yang",
+          "start": 1919.899,
+          "duration": 5.26
+        },
+        {
+          "text": "deketin gue tapi dia tuh malu sama gue",
+          "start": 1922.46,
+          "duration": 5.76
+        },
+        {
+          "text": "padahal sifat gue tuh kurang peka plus",
+          "start": 1925.159,
+          "duration": 4.26
+        },
+        {
+          "text": "cuek",
+          "start": 1928.22,
+          "duration": 4.079
+        },
+        {
+          "text": "nggak aneh sih cowok dingin tuh emang",
+          "start": 1929.419,
+          "duration": 6.74
+        },
+        {
+          "text": "banyak yang banyak disukai cewek",
+          "start": 1932.299,
+          "duration": 3.86
+        },
+        {
+          "text": "gue contohnya loh",
+          "start": 1938.26,
+          "duration": 3.539
+        },
+        {
+          "text": "game apa ya",
+          "start": 1962.86,
+          "duration": 3.419
+        },
+        {
+          "text": "[Musik]",
+          "start": 1967.04,
+          "duration": 8.72
+        },
+        {
+          "text": "istilah kaca istri aneh lebih manis",
+          "start": 1969.559,
+          "duration": 6.201
+        },
+        {
+          "text": "tombol guys aku udah hapus aku nggak mau",
+          "start": 1983.32,
+          "duration": 6.06
+        },
+        {
+          "text": "main sambal guys",
+          "start": 1986.539,
+          "duration": 2.841
+        },
+        {
+          "text": "ke kampus",
+          "start": 1999.5,
+          "duration": 3.019
+        },
+        {
+          "text": "[Musik]",
+          "start": 2007.81,
+          "duration": 3.17
+        },
+        {
+          "text": "main Most Wanted Oh iya main Most Wanted",
+          "start": 2016.6,
+          "duration": 4.76
+        },
+        {
+          "text": "Mari kita",
+          "start": 2021.58,
+          "duration": 2.959
+        },
+        {
+          "text": "[Musik]",
+          "start": 2049.639,
+          "duration": 10.941
+        },
+        {
+          "text": "dari zaman purba belum tamat",
+          "start": 2056.76,
+          "duration": 5.859
+        },
+        {
+          "text": "iya ya",
+          "start": 2060.58,
+          "duration": 5.059
+        },
+        {
+          "text": "belum tamat",
+          "start": 2062.619,
+          "duration": 3.02
+        },
+        {
+          "text": "[Musik]",
+          "start": 2082.75,
+          "duration": 7.3
+        },
+        {
+          "text": "13",
+          "start": 2092.26,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 2107.6,
+          "duration": 3.16
+        },
+        {
+          "text": "[Musik]",
+          "start": 2116.04,
+          "duration": 5.269
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2117.71,
+          "duration": 3.599
+        },
+        {
+          "text": "[Musik]",
+          "start": 2122.68,
+          "duration": 11.309
+        },
+        {
+          "text": "konsentrasi banyak",
+          "start": 2141.54,
+          "duration": 3.66
+        },
+        {
+          "text": "[Musik]",
+          "start": 2147.07,
+          "duration": 3.349
+        },
+        {
+          "text": "[Musik]",
+          "start": 2153.81,
+          "duration": 13.829
+        },
+        {
+          "text": "[Musik]",
+          "start": 2172.23,
+          "duration": 9.22
+        },
+        {
+          "text": "Alhamdulillah",
+          "start": 2184.119,
+          "duration": 5.471
+        },
+        {
+          "text": "[Musik]",
+          "start": 2185.16,
+          "duration": 4.43
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2199.05,
+          "duration": 5.85
+        },
+        {
+          "text": "[Musik]",
+          "start": 2207.06,
+          "duration": 5.99
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2229.26,
+          "duration": 3.149
+        },
+        {
+          "text": "[Musik]",
+          "start": 2233.95,
+          "duration": 19.669
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2250.44,
+          "duration": 3.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 2255.42,
+          "duration": 3.759
+        },
+        {
+          "text": "[Musik]",
+          "start": 2263.85,
+          "duration": 7.41
+        },
+        {
+          "text": "entah ngapain",
+          "start": 2268.3,
+          "duration": 2.96
+        },
+        {
+          "text": "kasihan Bang cewek yang deketin gue",
+          "start": 2272.2,
+          "duration": 3.919
+        },
+        {
+          "text": "[Musik]",
+          "start": 2279.17,
+          "duration": 5.38
+        },
+        {
+          "text": "yang jelek pacaran tuh cuma dua tapi",
+          "start": 2285.76,
+          "duration": 4.93
+        },
+        {
+          "text": "nggak boleh cuy",
+          "start": 2289.18,
+          "duration": 11.299
+        },
+        {
+          "text": "[Musik]",
+          "start": 2290.69,
+          "duration": 9.789
+        },
+        {
+          "text": "[Musik]",
+          "start": 2324.58,
+          "duration": 4.49
+        },
+        {
+          "text": "[Musik]",
+          "start": 2335.08,
+          "duration": 3.21
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2341.42,
+          "duration": 7.06
+        },
+        {
+          "text": "Anjir keren banget Anjay",
+          "start": 2344.079,
+          "duration": 4.401
+        },
+        {
+          "text": "[Musik]",
+          "start": 2350.58,
+          "duration": 3.36
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2394.17,
+          "duration": 3.099
+        },
+        {
+          "text": "[Musik]",
+          "start": 2400.08,
+          "duration": 6.479
+        },
+        {
+          "text": "Aduh ngapain sih itu yang Si Botak",
+          "start": 2408.339,
+          "duration": 6.74
+        },
+        {
+          "text": "mobilnya Viper ya kalau nggak salah",
+          "start": 2411.04,
+          "duration": 4.039
+        },
+        {
+          "text": "[Musik]",
+          "start": 2417.52,
+          "duration": 10.7
+        },
+        {
+          "text": "Lumayan tuh Ki cewek Ki Hajar remaja",
+          "start": 2422.92,
+          "duration": 5.3
+        },
+        {
+          "text": "Mumpung ada yang suka gas aja lah",
+          "start": 2429.7,
+          "duration": 6.56
+        },
+        {
+          "text": "[Musik]",
+          "start": 2433.14,
+          "duration": 3.12
+        },
+        {
+          "text": "[Musik]",
+          "start": 2439.48,
+          "duration": 8.509
+        },
+        {
+          "text": "bukan komplek Oh iya Komplek suka gue",
+          "start": 2450.52,
+          "duration": 5.96
+        },
+        {
+          "text": "[Musik]",
+          "start": 2493.85,
+          "duration": 4.82
+        },
+        {
+          "text": "Please jangan blunder apaan di X",
+          "start": 2503.38,
+          "duration": 6.94
+        },
+        {
+          "text": "[Musik]",
+          "start": 2505.65,
+          "duration": 4.67
+        },
+        {
+          "text": "pelan-pelan aja yang penting nyampe",
+          "start": 2512.2,
+          "duration": 6.18
+        },
+        {
+          "text": "[Musik]",
+          "start": 2515.31,
+          "duration": 3.07
+        },
+        {
+          "text": "kita kalau waktunya Please jangan rumit",
+          "start": 2524.5,
+          "duration": 4.94
+        },
+        {
+          "text": "yang bener please",
+          "start": 2526.66,
+          "duration": 2.78
+        },
+        {
+          "text": "[Musik]",
+          "start": 2536.58,
+          "duration": 11.98
+        },
+        {
+          "text": "[Musik]",
+          "start": 2553.96,
+          "duration": 4.939
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2555.63,
+          "duration": 3.269
+        },
+        {
+          "text": "[Musik]",
+          "start": 2575.91,
+          "duration": 5.73
+        },
+        {
+          "text": "oke",
+          "start": 2579.04,
+          "duration": 6.02
+        },
+        {
+          "text": "aku selesai",
+          "start": 2581.64,
+          "duration": 3.42
+        },
+        {
+          "text": "berapa lagi nih",
+          "start": 2589.54,
+          "duration": 3.02
+        },
+        {
+          "text": "satu dua lagi ya dua lagi ya",
+          "start": 2598.72,
+          "duration": 3.56
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2603.27,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 2608.04,
+          "duration": 3.8
+        },
+        {
+          "text": "[Musik]",
+          "start": 2619.31,
+          "duration": 7.209
+        },
+        {
+          "text": "[Musik]",
+          "start": 2629.46,
+          "duration": 6.829
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2641.54,
+          "duration": 3.179
+        },
+        {
+          "text": "harusnya tadi ngeselin ngisi Bounty dulu",
+          "start": 2650.5,
+          "duration": 4.579
+        },
+        {
+          "text": "sih",
+          "start": 2652.78,
+          "duration": 2.299
+        },
+        {
+          "text": "[Musik]",
+          "start": 2660.83,
+          "duration": 6.21
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2667.16,
+          "duration": 3.14
+        },
+        {
+          "text": "[Musik]",
+          "start": 2671.69,
+          "duration": 13.56
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2693.4,
+          "duration": 17.429
+        },
+        {
+          "text": "[Musik]",
+          "start": 2696.61,
+          "duration": 14.219
+        },
+        {
+          "text": "sekarang kalau gua Pacarin",
+          "start": 2712.599,
+          "duration": 5.181
+        },
+        {
+          "text": "nunggunya",
+          "start": 2715.619,
+          "duration": 3.781
+        },
+        {
+          "text": "sakit",
+          "start": 2717.78,
+          "duration": 5.28
+        },
+        {
+          "text": "daripadarin takut diambil orang",
+          "start": 2719.4,
+          "duration": 6.9
+        },
+        {
+          "text": "pacaran lah",
+          "start": 2723.06,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 2728.88,
+          "duration": 8.87
+        },
+        {
+          "text": "[Musik]",
+          "start": 2750.55,
+          "duration": 3.559
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2759.29,
+          "duration": 3.44
+        },
+        {
+          "text": "[Musik]",
+          "start": 2760.38,
+          "duration": 5.509
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2762.73,
+          "duration": 3.159
+        },
+        {
+          "text": "[Musik]",
+          "start": 2784.93,
+          "duration": 5.389
+        },
+        {
+          "text": "aduh gagal lagi",
+          "start": 2786.78,
+          "duration": 3.539
+        },
+        {
+          "text": "malah habis waktunya",
+          "start": 2795.099,
+          "duration": 3.321
+        },
+        {
+          "text": "[Musik]",
+          "start": 2805.69,
+          "duration": 7.97
+        },
+        {
+          "text": "semuanya pernah coy",
+          "start": 2809.98,
+          "duration": 3.68
+        },
+        {
+          "text": "[Musik]",
+          "start": 2813.67,
+          "duration": 3.239
+        },
+        {
+          "text": "serius dulu serius serius",
+          "start": 2817.48,
+          "duration": 3.44
+        },
+        {
+          "text": "[Musik]",
+          "start": 2821.5,
+          "duration": 4.309
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2829.06,
+          "duration": 6.92
+        },
+        {
+          "text": "bannya licin",
+          "start": 2832.74,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 2851.41,
+          "duration": 3.07
+        },
+        {
+          "text": "[Musik]",
+          "start": 2868.12,
+          "duration": 5.61
+        },
+        {
+          "text": "[Musik]",
+          "start": 2877.85,
+          "duration": 11.119
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2885.51,
+          "duration": 3.459
+        },
+        {
+          "text": "[Musik]",
+          "start": 2892.68,
+          "duration": 3.019
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2899.03,
+          "duration": 17.52
+        },
+        {
+          "text": "[Musik]",
+          "start": 2900.69,
+          "duration": 19.099
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2916.55,
+          "duration": 3.239
+        },
+        {
+          "text": "serius dulu serius serius dan blunder",
+          "start": 2919.96,
+          "duration": 4.76
+        },
+        {
+          "text": "please",
+          "start": 2922.3,
+          "duration": 2.42
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2927.02,
+          "duration": 5.649
+        },
+        {
+          "text": "[Musik]",
+          "start": 2940.9,
+          "duration": 3.099
+        },
+        {
+          "text": "anjir",
+          "start": 2948.819,
+          "duration": 5.181
+        },
+        {
+          "text": "Apa itu cok",
+          "start": 2950.5,
+          "duration": 3.5
+        },
+        {
+          "text": "[Musik]",
+          "start": 2954.97,
+          "duration": 3.13
+        },
+        {
+          "text": "ini pak",
+          "start": 2974.92,
+          "duration": 2.78
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2982.68,
+          "duration": 3.1
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2990.46,
+          "duration": 4.81
+        },
+        {
+          "text": "[Musik]",
+          "start": 2993.04,
+          "duration": 5.4
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 2995.27,
+          "duration": 3.17
+        },
+        {
+          "text": "sumpah polisinya brutal banget",
+          "start": 3002.22,
+          "duration": 4.28
+        },
+        {
+          "text": "kegirangan banget polisinya",
+          "start": 3007.28,
+          "duration": 3.6
+        },
+        {
+          "text": "[Musik]",
+          "start": 3013.31,
+          "duration": 3.22
+        },
+        {
+          "text": "kita salah jalan di sini",
+          "start": 3016.98,
+          "duration": 3.44
+        },
+        {
+          "text": "minyak Ki parah tulisnya berupa parah",
+          "start": 3023.579,
+          "duration": 4.76
+        },
+        {
+          "text": "anjir",
+          "start": 3026.04,
+          "duration": 2.299
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3032.93,
+          "duration": 6.75
+        },
+        {
+          "text": "mati gua blender",
+          "start": 3036.119,
+          "duration": 3.561
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3048.75,
+          "duration": 3.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 3054.64,
+          "duration": 3.2
+        },
+        {
+          "text": "[Musik]",
+          "start": 3063.99,
+          "duration": 3.06
+        },
+        {
+          "text": "Bang",
+          "start": 3070.22,
+          "duration": 5.619
+        },
+        {
+          "text": "Vina kenapa",
+          "start": 3071.839,
+          "duration": 4.0
+        },
+        {
+          "text": "tentu kalian bisa-bisanya nggak nyampe",
+          "start": 3083.119,
+          "duration": 5.401
+        },
+        {
+          "text": "finish",
+          "start": 3086.22,
+          "duration": 2.3
+        },
+        {
+          "text": "[Musik]",
+          "start": 3089.61,
+          "duration": 3.079
+        },
+        {
+          "text": "terus",
+          "start": 3094.5,
+          "duration": 2.72
+        },
+        {
+          "text": "[Musik]",
+          "start": 3111.79,
+          "duration": 3.78
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3126.15,
+          "duration": 3.119
+        },
+        {
+          "text": "[Musik]",
+          "start": 3138.63,
+          "duration": 5.969
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3141.3,
+          "duration": 3.299
+        },
+        {
+          "text": "[Musik]",
+          "start": 3167.62,
+          "duration": 4.84
+        },
+        {
+          "text": "udah kali aja kali ya",
+          "start": 3170.119,
+          "duration": 2.531
+        },
+        {
+          "text": "[Musik]",
+          "start": 3172.46,
+          "duration": 3.279
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3172.65,
+          "duration": 3.089
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3180.59,
+          "duration": 3.929
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3189.54,
+          "duration": 3.07
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3215.42,
+          "duration": 10.219
+        },
+        {
+          "text": "[Musik]",
+          "start": 3218.53,
+          "duration": 7.109
+        },
+        {
+          "text": "[Musik]",
+          "start": 3234.04,
+          "duration": 8.269
+        },
+        {
+          "text": "[Musik]",
+          "start": 3251.0,
+          "duration": 3.46
+        },
+        {
+          "text": "[Musik]",
+          "start": 3257.61,
+          "duration": 4.52
+        },
+        {
+          "text": "Anjay",
+          "start": 3262.98,
+          "duration": 3.0
+        },
+        {
+          "text": "cegukan gua nggak ilang",
+          "start": 3270.9,
+          "duration": 3.679
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3275.55,
+          "duration": 3.129
+        },
+        {
+          "text": "[Musik]",
+          "start": 3293.83,
+          "duration": 3.88
+        },
+        {
+          "text": "[Musik]",
+          "start": 3306.69,
+          "duration": 3.15
+        },
+        {
+          "text": "kampret kampret salah jalan lagi",
+          "start": 3311.48,
+          "duration": 18.699
+        },
+        {
+          "text": "[Musik]",
+          "start": 3313.9,
+          "duration": 16.279
+        },
+        {
+          "text": "[Musik]",
+          "start": 3335.9,
+          "duration": 6.89
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3351.71,
+          "duration": 3.46
+        },
+        {
+          "text": "[Musik]",
+          "start": 3352.08,
+          "duration": 6.26
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3355.17,
+          "duration": 3.17
+        },
+        {
+          "text": "[Musik]",
+          "start": 3358.63,
+          "duration": 15.6
+        },
+        {
+          "text": "ngapain sih",
+          "start": 3387.24,
+          "duration": 3.96
+        },
+        {
+          "text": "[Musik]",
+          "start": 3389.04,
+          "duration": 4.62
+        },
+        {
+          "text": "mengulang aja kali ya",
+          "start": 3391.2,
+          "duration": 5.419
+        },
+        {
+          "text": "astaga",
+          "start": 3393.66,
+          "duration": 2.959
+        },
+        {
+          "text": "jauh banget lagi",
+          "start": 3397.559,
+          "duration": 3.141
+        },
+        {
+          "text": "tinggalnya",
+          "start": 3400.98,
+          "duration": 2.839
+        },
+        {
+          "text": "di depan tuh",
+          "start": 3417.619,
+          "duration": 3.361
+        },
+        {
+          "text": "[Musik]",
+          "start": 3421.6,
+          "duration": 4.959
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3432.21,
+          "duration": 4.509
+        },
+        {
+          "text": "Sekali lagi sekali lagi",
+          "start": 3436.74,
+          "duration": 8.18
+        },
+        {
+          "text": "Tadi mah salah dia mah gua lagi baca",
+          "start": 3439.68,
+          "duration": 5.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 3452.8,
+          "duration": 4.299
+        },
+        {
+          "text": "[Musik]",
+          "start": 3466.67,
+          "duration": 3.119
+        },
+        {
+          "text": "[Musik]",
+          "start": 3476.0,
+          "duration": 10.12
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3482.39,
+          "duration": 3.73
+        },
+        {
+          "text": "[Musik]",
+          "start": 3488.98,
+          "duration": 10.469
+        },
+        {
+          "text": "dikejar lo Jordy Jordi pun",
+          "start": 3501.5,
+          "duration": 7.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 3505.55,
+          "duration": 3.129
+        },
+        {
+          "text": "[Musik]",
+          "start": 3524.8,
+          "duration": 4.519
+        },
+        {
+          "text": "[Musik]",
+          "start": 3544.61,
+          "duration": 3.279
+        },
+        {
+          "text": "[Musik]",
+          "start": 3556.78,
+          "duration": 3.149
+        },
+        {
+          "text": "[Musik]",
+          "start": 3564.18,
+          "duration": 10.269
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3571.14,
+          "duration": 3.309
+        },
+        {
+          "text": "[Musik]",
+          "start": 3576.55,
+          "duration": 3.119
+        },
+        {
+          "text": "[Musik]",
+          "start": 3585.06,
+          "duration": 6.9
+        },
+        {
+          "text": "Astaga kesalahan yang sama dua kali ya",
+          "start": 3588.74,
+          "duration": 6.22
+        },
+        {
+          "text": "aduh",
+          "start": 3591.96,
+          "duration": 3.0
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3597.75,
+          "duration": 3.21
+        },
+        {
+          "text": "coy",
+          "start": 3602.04,
+          "duration": 8.159
+        },
+        {
+          "text": "[Musik]",
+          "start": 3603.78,
+          "duration": 6.419
+        },
+        {
+          "text": "contohnya pacarnya cewek yang",
+          "start": 3612.14,
+          "duration": 6.6
+        },
+        {
+          "text": "ceweknya udah",
+          "start": 3615.559,
+          "duration": 3.181
+        },
+        {
+          "text": "hobi banget sih Farhan",
+          "start": 3631.4,
+          "duration": 5.5
+        },
+        {
+          "text": "selamanya sama",
+          "start": 3634.819,
+          "duration": 4.02
+        },
+        {
+          "text": "[Musik]",
+          "start": 3636.9,
+          "duration": 3.78
+        },
+        {
+          "text": "pertaruhan nyawa nih",
+          "start": 3638.839,
+          "duration": 3.361
+        },
+        {
+          "text": "[Musik]",
+          "start": 3640.68,
+          "duration": 4.58
+        },
+        {
+          "text": "pertarungan pertarungan",
+          "start": 3642.2,
+          "duration": 6.24
+        },
+        {
+          "text": "si Bambang",
+          "start": 3645.26,
+          "duration": 3.18
+        },
+        {
+          "text": "habisin waktu doang anjir",
+          "start": 3670.339,
+          "duration": 4.02
+        },
+        {
+          "text": "[Musik]",
+          "start": 3687.84,
+          "duration": 12.62
+        },
+        {
+          "text": "sumpah ini sih",
+          "start": 3699.119,
+          "duration": 4.54
+        },
+        {
+          "text": "[Musik]",
+          "start": 3700.46,
+          "duration": 3.199
+        },
+        {
+          "text": "[Musik]",
+          "start": 3713.35,
+          "duration": 3.17
+        },
+        {
+          "text": "Astaga bukan juga Islam",
+          "start": 3717.68,
+          "duration": 4.679
+        },
+        {
+          "text": "300 tuh mamam tuh",
+          "start": 3726.92,
+          "duration": 6.729
+        },
+        {
+          "text": "[Musik]",
+          "start": 3729.05,
+          "duration": 4.599
+        },
+        {
+          "text": "[Musik]",
+          "start": 3736.84,
+          "duration": 3.129
+        },
+        {
+          "text": "273 lumayan",
+          "start": 3743.96,
+          "duration": 3.48
+        },
+        {
+          "text": "[Musik]",
+          "start": 3751.77,
+          "duration": 3.24
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3755.72,
+          "duration": 3.08
+        },
+        {
+          "text": "[Musik]",
+          "start": 3764.39,
+          "duration": 8.839
+        },
+        {
+          "text": "hitung ke Babi bukan ke gua",
+          "start": 3774.66,
+          "duration": 6.019
+        },
+        {
+          "text": "[Musik]",
+          "start": 3777.55,
+          "duration": 3.129
+        },
+        {
+          "text": "[Musik]",
+          "start": 3783.36,
+          "duration": 7.539
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3791.89,
+          "duration": 3.15
+        },
+        {
+          "text": "[Musik]",
+          "start": 3796.59,
+          "duration": 8.08
+        },
+        {
+          "text": "bannya licin dulu Sumpah bucin banget",
+          "start": 3806.04,
+          "duration": 5.299
+        },
+        {
+          "text": "[Musik]",
+          "start": 3812.73,
+          "duration": 3.61
+        },
+        {
+          "text": "satu lagi satu lagi satu lagi",
+          "start": 3846.72,
+          "duration": 4.04
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3855.24,
+          "duration": 3.26
+        },
+        {
+          "text": "[Musik]",
+          "start": 3864.58,
+          "duration": 3.17
+        },
+        {
+          "text": "[Musik]",
+          "start": 3873.95,
+          "duration": 3.13
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3878.71,
+          "duration": 3.139
+        },
+        {
+          "text": "[Musik]",
+          "start": 3895.85,
+          "duration": 13.16
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3913.89,
+          "duration": 5.059
+        },
+        {
+          "text": "[Musik]",
+          "start": 3915.84,
+          "duration": 3.109
+        },
+        {
+          "text": "ini posisi 3 cok",
+          "start": 3925.98,
+          "duration": 3.8
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 3937.3,
+          "duration": 10.33
+        },
+        {
+          "text": "[Musik]",
+          "start": 3939.09,
+          "duration": 8.54
+        },
+        {
+          "text": "[Musik]",
+          "start": 3969.56,
+          "duration": 16.92
+        },
+        {
+          "text": "main kamera yang polisi Bang",
+          "start": 3981.66,
+          "duration": 4.82
+        },
+        {
+          "text": "[Musik]",
+          "start": 4004.45,
+          "duration": 8.82
+        },
+        {
+          "text": "[Musik]",
+          "start": 4024.39,
+          "duration": 9.769
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4029.06,
+          "duration": 5.099
+        },
+        {
+          "text": "[Musik]",
+          "start": 4036.23,
+          "duration": 8.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 4071.01,
+          "duration": 9.609
+        },
+        {
+          "text": "jangan yang ini sumpah susah",
+          "start": 4076.4,
+          "duration": 4.219
+        },
+        {
+          "text": "[Musik]",
+          "start": 4088.81,
+          "duration": 10.259
+        },
+        {
+          "text": "total Bounty kan",
+          "start": 4108.02,
+          "duration": 4.1
+        },
+        {
+          "text": "[Musik]",
+          "start": 4136.08,
+          "duration": 6.97
+        },
+        {
+          "text": "mampus lo juga",
+          "start": 4141.64,
+          "duration": 4.679
+        },
+        {
+          "text": "[Musik]",
+          "start": 4143.05,
+          "duration": 6.589
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4146.319,
+          "duration": 3.32
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4152.55,
+          "duration": 4.039
+        },
+        {
+          "text": "tapi butuh berapa sih",
+          "start": 4158.199,
+          "duration": 6.02
+        },
+        {
+          "text": "[Musik]",
+          "start": 4161.189,
+          "duration": 3.03
+        },
+        {
+          "text": "Oh 300",
+          "start": 4172.1,
+          "duration": 3.259
+        },
+        {
+          "text": "oke",
+          "start": 4175.94,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 4186.64,
+          "duration": 5.45
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4188.99,
+          "duration": 3.1
+        },
+        {
+          "text": "[Musik]",
+          "start": 4208.76,
+          "duration": 3.13
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4217.02,
+          "duration": 3.139
+        },
+        {
+          "text": "[Musik]",
+          "start": 4222.47,
+          "duration": 3.05
+        },
+        {
+          "text": "[Musik]",
+          "start": 4234.67,
+          "duration": 3.769
+        },
+        {
+          "text": "[Musik]",
+          "start": 4242.55,
+          "duration": 4.97
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4252.37,
+          "duration": 6.21
+        },
+        {
+          "text": "[Musik]",
+          "start": 4255.4,
+          "duration": 3.18
+        },
+        {
+          "text": "[Musik]",
+          "start": 4273.14,
+          "duration": 3.229
+        },
+        {
+          "text": "[Musik]",
+          "start": 4281.44,
+          "duration": 5.539
+        },
+        {
+          "text": "[Musik]",
+          "start": 4302.77,
+          "duration": 4.1
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4303.53,
+          "duration": 3.34
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4329.71,
+          "duration": 6.419
+        },
+        {
+          "text": "[Musik]",
+          "start": 4332.18,
+          "duration": 3.949
+        },
+        {
+          "text": "[Musik]",
+          "start": 4347.21,
+          "duration": 2.92
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4349.43,
+          "duration": 5.609
+        },
+        {
+          "text": "[Musik]",
+          "start": 4350.13,
+          "duration": 4.909
+        },
+        {
+          "text": "makan tuh",
+          "start": 4358.64,
+          "duration": 2.72
+        },
+        {
+          "text": "banyak banget lagi tulusnya",
+          "start": 4376.76,
+          "duration": 3.62
+        },
+        {
+          "text": "[Musik]",
+          "start": 4419.22,
+          "duration": 3.09
+        },
+        {
+          "text": "dengan Tiban dulu deh yang Tiban mana",
+          "start": 4430.54,
+          "duration": 6.279
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4433.29,
+          "duration": 3.529
+        },
+        {
+          "text": "[Musik]",
+          "start": 4437.93,
+          "duration": 3.279
+        },
+        {
+          "text": "salah pencet lagi",
+          "start": 4447.1,
+          "duration": 3.36
+        },
+        {
+          "text": "ban ban ban yang bagus apa ya",
+          "start": 4453.5,
+          "duration": 4.34
+        },
+        {
+          "text": "Udah paling bagus",
+          "start": 4467.78,
+          "duration": 2.959
+        },
+        {
+          "text": "ban yang bagus apa ya",
+          "start": 4480.699,
+          "duration": 3.661
+        },
+        {
+          "text": "anjir",
+          "start": 4503.84,
+          "duration": 2.96
+        },
+        {
+          "text": "kamu yakinin lah aku tuh sayang banget",
+          "start": 4511.46,
+          "duration": 5.18
+        },
+        {
+          "text": "sama kamu Sinta",
+          "start": 4513.56,
+          "duration": 6.619
+        },
+        {
+          "text": "ini nggak usah takut",
+          "start": 4516.64,
+          "duration": 3.539
+        },
+        {
+          "text": "ini kalau selesai yang ini bisa langsung",
+          "start": 4533.719,
+          "duration": 5.241
+        },
+        {
+          "text": "lawan bosnya nih",
+          "start": 4535.82,
+          "duration": 3.14
+        },
+        {
+          "text": "[Musik]",
+          "start": 4540.21,
+          "duration": 3.05
+        },
+        {
+          "text": "[Musik]",
+          "start": 4547.15,
+          "duration": 3.09
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4561.13,
+          "duration": 3.25
+        },
+        {
+          "text": "[Musik]",
+          "start": 4569.2,
+          "duration": 3.369
+        },
+        {
+          "text": "apa sih",
+          "start": 4575.54,
+          "duration": 2.72
+        },
+        {
+          "text": "200",
+          "start": 4595.76,
+          "duration": 4.51
+        },
+        {
+          "text": "taksi bambu",
+          "start": 4598.699,
+          "duration": 4.69
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4600.27,
+          "duration": 3.119
+        },
+        {
+          "text": "buat tidur Katanya udah ngantuk tapi",
+          "start": 4607.719,
+          "duration": 7.181
+        },
+        {
+          "text": "topik",
+          "start": 4611.9,
+          "duration": 3.0
+        },
+        {
+          "text": "apa sih",
+          "start": 4619.06,
+          "duration": 3.3
+        },
+        {
+          "text": "[Musik]",
+          "start": 4626.11,
+          "duration": 3.09
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4640.97,
+          "duration": 3.069
+        },
+        {
+          "text": "[Musik]",
+          "start": 4655.77,
+          "duration": 3.099
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4665.74,
+          "duration": 3.18
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4672.26,
+          "duration": 3.149
+        },
+        {
+          "text": "lalu aku harus apa",
+          "start": 4680.56,
+          "duration": 4.2
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4685.47,
+          "duration": 13.94
+        },
+        {
+          "text": "[Musik]",
+          "start": 4696.24,
+          "duration": 3.17
+        },
+        {
+          "text": "[Musik]",
+          "start": 4709.74,
+          "duration": 6.459
+        },
+        {
+          "text": "dasar polisi gagal",
+          "start": 4712.28,
+          "duration": 3.919
+        },
+        {
+          "text": "makan yang saya lakukan untuk rakyat",
+          "start": 4716.3,
+          "duration": 5.04
+        },
+        {
+          "text": "[Musik]",
+          "start": 4730.86,
+          "duration": 4.179
+        },
+        {
+          "text": "curang banget guys",
+          "start": 4749.08,
+          "duration": 3.48
+        },
+        {
+          "text": "Bang tadi kan gue main ke pasar malam",
+          "start": 4754.58,
+          "duration": 5.42
+        },
+        {
+          "text": "nyari Budi Malang",
+          "start": 4756.86,
+          "duration": 3.14
+        },
+        {
+          "text": "wow",
+          "start": 4760.52,
+          "duration": 2.84
+        },
+        {
+          "text": "By the way gue kalah kalah mulu nih dari",
+          "start": 4767.84,
+          "duration": 4.339
+        },
+        {
+          "text": "tadi",
+          "start": 4770.06,
+          "duration": 2.119
+        },
+        {
+          "text": "gua ngerokok",
+          "start": 4774.86,
+          "duration": 2.9
+        },
+        {
+          "text": "[Musik]",
+          "start": 4787.49,
+          "duration": 4.41
+        },
+        {
+          "text": "Kenapa nggak dimintain kontaknya",
+          "start": 4789.14,
+          "duration": 5.59
+        },
+        {
+          "text": "Aku sayang banget kucing jarang-jarang",
+          "start": 4791.9,
+          "duration": 5.64
+        },
+        {
+          "text": "[Musik]",
+          "start": 4794.73,
+          "duration": 8.29
+        },
+        {
+          "text": "2600 Adi kurang dikit lagi udah",
+          "start": 4797.54,
+          "duration": 5.48
+        },
+        {
+          "text": "makan nih",
+          "start": 4803.3,
+          "duration": 2.78
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4820.26,
+          "duration": 4.929
+        },
+        {
+          "text": "[Musik]",
+          "start": 4822.08,
+          "duration": 3.109
+        },
+        {
+          "text": "ya",
+          "start": 4828.679,
+          "duration": 2.601
+        },
+        {
+          "text": "[Musik]",
+          "start": 4833.66,
+          "duration": 5.93
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4841.27,
+          "duration": 3.089
+        },
+        {
+          "text": "mobil-mobilannya niat banget ngarahin",
+          "start": 4859.719,
+          "duration": 4.5
+        },
+        {
+          "text": "Please jangan ada polisi dulu please ini",
+          "start": 4869.199,
+          "duration": 7.261
+        },
+        {
+          "text": "sudah capek gua please please please",
+          "start": 4872.78,
+          "duration": 3.68
+        },
+        {
+          "text": "udah capek gue",
+          "start": 4891.26,
+          "duration": 3.2
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4900.76,
+          "duration": 3.42
+        },
+        {
+          "text": "kok kalian",
+          "start": 4905.239,
+          "duration": 4.681
+        },
+        {
+          "text": "memilih cewek gampang-gampang sih Wah",
+          "start": 4907.1,
+          "duration": 6.059
+        },
+        {
+          "text": "gua susahnya setengah mati coy udah",
+          "start": 4909.92,
+          "duration": 5.42
+        },
+        {
+          "text": "percaya",
+          "start": 4913.159,
+          "duration": 2.181
+        },
+        {
+          "text": "di sini polisi di sana aku di mana-mana",
+          "start": 4918.5,
+          "duration": 6.41
+        },
+        {
+          "text": "polisinya",
+          "start": 4922.34,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 4924.91,
+          "duration": 3.3
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4925.58,
+          "duration": 14.399
+        },
+        {
+          "text": "[Musik]",
+          "start": 4928.21,
+          "duration": 11.769
+        },
+        {
+          "text": "[Musik]",
+          "start": 4951.91,
+          "duration": 3.09
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4969.74,
+          "duration": 3.27
+        },
+        {
+          "text": "dimana-mana polisi Anjay",
+          "start": 4976.96,
+          "duration": 3.9
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 4995.46,
+          "duration": 3.119
+        },
+        {
+          "text": "ini jebakan banyak nih astaga jebakannya",
+          "start": 4999.44,
+          "duration": 5.48
+        },
+        {
+          "text": "kecocok",
+          "start": 5002.14,
+          "duration": 2.78
+        },
+        {
+          "text": "kamu nanya",
+          "start": 5026.699,
+          "duration": 5.701
+        },
+        {
+          "text": "aku kalah terus",
+          "start": 5028.96,
+          "duration": 3.44
+        },
+        {
+          "text": "kamu nanya",
+          "start": 5034.659,
+          "duration": 3.08
+        },
+        {
+          "text": "sekali lagi loh saya lawan bosnya",
+          "start": 5065.52,
+          "duration": 7.06
+        },
+        {
+          "text": "langsung Astaga Bang bahasa Indonesianya",
+          "start": 5068.86,
+          "duration": 6.72
+        },
+        {
+          "text": "jika",
+          "start": 5072.58,
+          "duration": 3.0
+        },
+        {
+          "text": "memang",
+          "start": 5083.34,
+          "duration": 2.61
+        },
+        {
+          "text": "diriku",
+          "start": 5084.9,
+          "duration": 2.759
+        },
+        {
+          "text": "[Musik]",
+          "start": 5085.95,
+          "duration": 5.01
+        },
+        {
+          "text": "bukanlah menjadi",
+          "start": 5087.659,
+          "duration": 7.301
+        },
+        {
+          "text": "Pilihan Hatimu",
+          "start": 5090.96,
+          "duration": 4.0
+        },
+        {
+          "text": "namun",
+          "start": 5096.1,
+          "duration": 3.0
+        },
+        {
+          "text": "selalu kau tahu",
+          "start": 5099.42,
+          "duration": 4.2
+        },
+        {
+          "text": "sumpah padahal dikit lagi loh",
+          "start": 5109.06,
+          "duration": 4.099
+        },
+        {
+          "text": "ku mencintaimu",
+          "start": 5126.36,
+          "duration": 3.839
+        },
+        {
+          "text": "sumpah guys ini berhasil please",
+          "start": 5131.62,
+          "duration": 4.039
+        },
+        {
+          "text": "[Musik]",
+          "start": 5141.12,
+          "duration": 3.18
+        },
+        {
+          "text": "Astagfirullah",
+          "start": 5145.06,
+          "duration": 3.0
+        },
+        {
+          "text": "susah banget jadi apa",
+          "start": 5154.42,
+          "duration": 3.799
+        },
+        {
+          "text": "susah ini ngambil cek foto yang ini",
+          "start": 5158.8,
+          "duration": 4.82
+        },
+        {
+          "text": "[Musik]",
+          "start": 5168.55,
+          "duration": 3.26
+        },
+        {
+          "text": "niat banget film ke arah gua",
+          "start": 5173.98,
+          "duration": 4.1
+        },
+        {
+          "text": "[Musik]",
+          "start": 5182.92,
+          "duration": 3.64
+        },
+        {
+          "text": "[Musik]",
+          "start": 5196.77,
+          "duration": 10.5
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5217.32,
+          "duration": 7.659
+        },
+        {
+          "text": "[Musik]",
+          "start": 5221.78,
+          "duration": 3.199
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5229.44,
+          "duration": 10.06
+        },
+        {
+          "text": "mobil-mobil bilahnya sengaja cok udah ke",
+          "start": 5235.92,
+          "duration": 5.7
+        },
+        {
+          "text": "rumah",
+          "start": 5239.5,
+          "duration": 2.12
+        },
+        {
+          "text": "[Musik]",
+          "start": 5243.7,
+          "duration": 4.499
+        },
+        {
+          "text": "mengambil foto sepi jalannya",
+          "start": 5253.02,
+          "duration": 4.32
+        },
+        {
+          "text": "Sumpah gak bakal gagal lagi gua",
+          "start": 5281.98,
+          "duration": 6.47
+        },
+        {
+          "text": "[Musik]",
+          "start": 5285.36,
+          "duration": 3.09
+        },
+        {
+          "text": "[Musik]",
+          "start": 5293.02,
+          "duration": 3.159
+        },
+        {
+          "text": "sudah",
+          "start": 5298.42,
+          "duration": 7.7
+        },
+        {
+          "text": "[Musik]",
+          "start": 5300.26,
+          "duration": 10.479
+        },
+        {
+          "text": "I semua bicara",
+          "start": 5306.12,
+          "duration": 4.619
+        },
+        {
+          "text": "langsung",
+          "start": 5317.08,
+          "duration": 5.579
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5319.58,
+          "duration": 3.079
+        },
+        {
+          "text": "pagi menjelang",
+          "start": 5324.42,
+          "duration": 4.0
+        },
+        {
+          "text": "melahirkan",
+          "start": 5328.739,
+          "duration": 4.44
+        },
+        {
+          "text": "mentari",
+          "start": 5331.56,
+          "duration": 5.4
+        },
+        {
+          "text": "pagi dan sudah",
+          "start": 5333.179,
+          "duration": 3.781
+        },
+        {
+          "text": "Sudahi malam yang bukan",
+          "start": 5339.48,
+          "duration": 5.02
+        },
+        {
+          "text": "sahabat langit",
+          "start": 5361.86,
+          "duration": 3.48
+        },
+        {
+          "text": "[Musik]",
+          "start": 5419.67,
+          "duration": 5.61
+        },
+        {
+          "text": "gue serius dulu ya serius ya ayo Rizky",
+          "start": 5421.6,
+          "duration": 7.7
+        },
+        {
+          "text": "Ayo Rizki yang pasti bisa",
+          "start": 5425.28,
+          "duration": 4.02
+        },
+        {
+          "text": "nah",
+          "start": 5434.32,
+          "duration": 2.66
+        },
+        {
+          "text": "[Musik]",
+          "start": 5437.44,
+          "duration": 5.18
+        },
+        {
+          "text": "akhirnya gue",
+          "start": 5439.239,
+          "duration": 3.381
+        },
+        {
+          "text": "mampus gak mati",
+          "start": 5461.86,
+          "duration": 3.379
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5467.51,
+          "duration": 3.239
+        },
+        {
+          "text": "[Musik]",
+          "start": 5471.54,
+          "duration": 5.71
+        },
+        {
+          "text": "Oh iya jangan lupa nabrak ya",
+          "start": 5485.44,
+          "duration": 4.219
+        },
+        {
+          "text": "sorry sorry sorry sorry sorry",
+          "start": 5491.94,
+          "duration": 3.84
+        },
+        {
+          "text": "[Musik]",
+          "start": 5496.82,
+          "duration": 4.3
+        },
+        {
+          "text": "dan sudah",
+          "start": 5497.94,
+          "duration": 3.18
+        },
+        {
+          "text": "Sudahi malam yang bukan",
+          "start": 5502.62,
+          "duration": 4.84
+        },
+        {
+          "text": "Ku ingin",
+          "start": 5510.4,
+          "duration": 5.759
+        },
+        {
+          "text": "segera berdua",
+          "start": 5512.159,
+          "duration": 4.0
+        },
+        {
+          "text": "Selamat pagi menjelang melahirkan",
+          "start": 5518.04,
+          "duration": 5.679
+        },
+        {
+          "text": "[Musik]",
+          "start": 5525.56,
+          "duration": 3.079
+        },
+        {
+          "text": "[Musik]",
+          "start": 5541.47,
+          "duration": 7.88
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5564.19,
+          "duration": 3.08
+        },
+        {
+          "text": "gila",
+          "start": 5575.38,
+          "duration": 2.72
+        },
+        {
+          "text": "tulisnya brutal banget brutal cintaku",
+          "start": 5583.36,
+          "duration": 4.14
+        },
+        {
+          "text": "padamu",
+          "start": 5586.54,
+          "duration": 4.289
+        },
+        {
+          "text": "[Musik]",
+          "start": 5587.5,
+          "duration": 3.329
+        },
+        {
+          "text": "Apa itu",
+          "start": 5593.76,
+          "duration": 3.36
+        },
+        {
+          "text": "[Musik]",
+          "start": 5598.87,
+          "duration": 7.949
+        },
+        {
+          "text": "[Musik]",
+          "start": 5615.25,
+          "duration": 3.1
+        },
+        {
+          "text": "[Musik]",
+          "start": 5632.28,
+          "duration": 3.93
+        },
+        {
+          "text": "udah trauma ditabrak SUV",
+          "start": 5638.8,
+          "duration": 4.04
+        },
+        {
+          "text": "mobil banteng mental ditabrak mobil",
+          "start": 5648.06,
+          "duration": 8.88
+        },
+        {
+          "text": "Kita kan punya guna-guna",
+          "start": 5652.42,
+          "duration": 4.52
+        },
+        {
+          "text": "[Musik]",
+          "start": 5658.29,
+          "duration": 3.35
+        },
+        {
+          "text": "[Musik]",
+          "start": 5676.96,
+          "duration": 3.06
+        },
+        {
+          "text": "ada polisinya nggak habis-habis Coy",
+          "start": 5684.1,
+          "duration": 4.039
+        },
+        {
+          "text": "pengisian komplit lagi tuh",
+          "start": 5697.679,
+          "duration": 3.781
+        },
+        {
+          "text": "[Musik]",
+          "start": 5701.92,
+          "duration": 5.439
+        },
+        {
+          "text": "[Musik]",
+          "start": 5711.76,
+          "duration": 3.42
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5744.4,
+          "duration": 3.25
+        },
+        {
+          "text": "[Musik]",
+          "start": 5762.47,
+          "duration": 3.05
+        },
+        {
+          "text": "[Musik]",
+          "start": 5777.29,
+          "duration": 3.18
+        },
+        {
+          "text": "[Musik]",
+          "start": 5783.38,
+          "duration": 4.369
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5784.63,
+          "duration": 3.119
+        },
+        {
+          "text": "[Musik]",
+          "start": 5788.07,
+          "duration": 3.14
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 5792.59,
+          "duration": 5.89
+        },
+        {
+          "text": "[Musik]",
+          "start": 5793.14,
+          "duration": 9.539
+        },
+        {
+          "text": "ini polisinya Open abisnya sih",
+          "start": 5798.48,
+          "duration": 4.199
+        },
+        {
+          "text": "[Musik]",
+          "start": 5811.59,
+          "duration": 4.51
+        },
+        {
+          "text": "anjing",
+          "start": 5813.1,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 5824.19,
+          "duration": 3.08
+        },
+        {
+          "text": "[Musik]",
+          "start": 5845.25,
+          "duration": 8.0
+        },
+        {
+          "text": "kenapa",
+          "start": 5855.46,
+          "duration": 2.84
+        },
+        {
+          "text": "mobil kita kena obatnya",
+          "start": 5865.6,
+          "duration": 3.44
+        },
+        {
+          "text": "gimana",
+          "start": 5869.44,
+          "duration": 2.66
+        },
+        {
+          "text": "udahlah",
+          "start": 5882.639,
+          "duration": 3.0
+        },
+        {
+          "text": "mobilnya kena kena dulu RI coy",
+          "start": 5885.94,
+          "duration": 5.239
+        },
+        {
+          "text": "belum bisa",
+          "start": 5926.38,
+          "duration": 2.96
+        },
+        {
+          "text": "agak gemukkan ya sekarang ya",
+          "start": 5942.719,
+          "duration": 4.321
+        },
+        {
+          "text": "[Musik]",
+          "start": 5951.03,
+          "duration": 3.09
+        },
+        {
+          "text": "aduh ini kalau rambut pendek kayak gini",
+          "start": 5958.54,
+          "duration": 5.84
+        },
+        {
+          "text": "sumpah susah diatur",
+          "start": 5961.179,
+          "duration": 3.201
+        },
+        {
+          "text": "lu bayangin",
+          "start": 5973.38,
+          "duration": 4.13
+        },
+        {
+          "text": "udah sejam",
+          "start": 5975.52,
+          "duration": 3.48
+        },
+        {
+          "text": "[Musik]",
+          "start": 5977.51,
+          "duration": 4.25
+        },
+        {
+          "text": "ya kan Gue Nggak bohong kan dari ini kan",
+          "start": 5979.0,
+          "duration": 4.56
+        },
+        {
+          "text": "dari kemarin magrib",
+          "start": 5981.76,
+          "duration": 5.24
+        },
+        {
+          "text": "belum ilang-ilang ini",
+          "start": 5983.56,
+          "duration": 3.44
+        },
+        {
+          "text": "makanya",
+          "start": 6006.12,
+          "duration": 6.2
+        },
+        {
+          "text": "dan iki udah dapet cewek",
+          "start": 6008.76,
+          "duration": 3.56
+        },
+        {
+          "text": "Siapa tahu gua main Umi ketemu cewek",
+          "start": 6014.159,
+          "duration": 5.661
+        },
+        {
+          "text": "cegukannya hilang gitu",
+          "start": 6016.679,
+          "duration": 3.141
+        },
+        {
+          "text": "Iya nggak sih",
+          "start": 6022.88,
+          "duration": 3.24
+        },
+        {
+          "text": "dia nggak sih oke nggak sih",
+          "start": 6027.179,
+          "duration": 4.46
+        },
+        {
+          "text": "pagi dan sudah",
+          "start": 6035.179,
+          "duration": 3.901
+        },
+        {
+          "text": "siapa tahu ada cewek",
+          "start": 6039.42,
+          "duration": 6.6
+        },
+        {
+          "text": "yang bisa ngilangin cegukan gua",
+          "start": 6042.3,
+          "duration": 7.62
+        },
+        {
+          "text": "terus terus habis itu ceweknya ngajak",
+          "start": 6046.02,
+          "duration": 7.34
+        },
+        {
+          "text": "gua udah pacaran",
+          "start": 6049.92,
+          "duration": 3.44
+        },
+        {
+          "text": "jadi malu",
+          "start": 6053.6,
+          "duration": 3.66
+        },
+        {
+          "text": "lu Yakin nih nggak mau",
+          "start": 6061.08,
+          "duration": 3.559
+        },
+        {
+          "text": "nggak mau lihat gua",
+          "start": 6066.48,
+          "duration": 7.4
+        },
+        {
+          "text": "ngedeketin cewek siapa tahu kan",
+          "start": 6069.56,
+          "duration": 4.32
+        },
+        {
+          "text": "jangan tinggi-tinggi sakitnya jatuh",
+          "start": 6085.1,
+          "duration": 4.92
+        },
+        {
+          "text": "ngelihat ya",
+          "start": 6097.02,
+          "duration": 4.099
+        },
+        {
+          "text": "skill",
+          "start": 6099.119,
+          "duration": 5.481
+        },
+        {
+          "text": "Terpendam gua",
+          "start": 6101.119,
+          "duration": 3.481
+        },
+        {
+          "text": "udah ganteng kan",
+          "start": 6107.1,
+          "duration": 3.139
+        },
+        {
+          "text": "Rusia Rusia Rusia mencari cewek dari",
+          "start": 6117.719,
+          "duration": 7.701
+        },
+        {
+          "text": "Rusia",
+          "start": 6122.639,
+          "duration": 2.781
+        },
+        {
+          "text": "[Musik]",
+          "start": 6128.2,
+          "duration": 3.13
+        },
+        {
+          "text": "main apa tuh",
+          "start": 6147.739,
+          "duration": 3.781
+        },
+        {
+          "text": "orang main game semua cuy",
+          "start": 6160.5,
+          "duration": 7.26
+        },
+        {
+          "text": "halo halo",
+          "start": 6164.119,
+          "duration": 7.6
+        },
+        {
+          "text": "dari mana Kak",
+          "start": 6167.76,
+          "duration": 3.959
+        },
+        {
+          "text": "Bang semoga menghembuskan apa terasi mau",
+          "start": 6182.88,
+          "duration": 5.12
+        },
+        {
+          "text": "ngajak berantem",
+          "start": 6202.619,
+          "duration": 3.321
+        },
+        {
+          "text": "halo",
+          "start": 6210.719,
+          "duration": 2.721
+        },
+        {
+          "text": "halo",
+          "start": 6214.139,
+          "duration": 2.0
+        },
+        {
+          "text": "salamin dong buat katanya",
+          "start": 6217.139,
+          "duration": 3.381
+        },
+        {
+          "text": "Salamin buat kakaknya",
+          "start": 6222.679,
+          "duration": 3.54
+        },
+        {
+          "text": "nama kakaknya siapa",
+          "start": 6229.199,
+          "duration": 3.321
+        },
+        {
+          "text": "suara kamu kekecilan",
+          "start": 6235.199,
+          "duration": 5.96
+        },
+        {
+          "text": "oke",
+          "start": 6238.56,
+          "duration": 2.599
+        },
+        {
+          "text": "aku ngajak ngobrol kakaknya",
+          "start": 6243.38,
+          "duration": 4.98
+        },
+        {
+          "text": "nggak boleh",
+          "start": 6253.139,
+          "duration": 2.781
+        },
+        {
+          "text": "nama-nama kamu siapa",
+          "start": 6261.239,
+          "duration": 3.261
+        },
+        {
+          "text": "itu mic hp-nya ketutupan loh",
+          "start": 6271.679,
+          "duration": 5.0
+        },
+        {
+          "text": "Aku boleh nggak kenalan sama kakaknya",
+          "start": 6290.699,
+          "duration": 4.04
+        },
+        {
+          "text": "dia bilang tunggu dia baca chat dulu",
+          "start": 6295.28,
+          "duration": 4.379
+        },
+        {
+          "text": "tiba-tiba muncul lanang",
+          "start": 6334.26,
+          "duration": 4.32
+        },
+        {
+          "text": "[Musik]",
+          "start": 6345.37,
+          "duration": 8.39
+        },
+        {
+          "text": "kenapa tuh",
+          "start": 6359.119,
+          "duration": 3.361
+        },
+        {
+          "text": "pokoknya Rinjani",
+          "start": 6382.76,
+          "duration": 3.479
+        },
+        {
+          "text": "saya orang Jawa Timur",
+          "start": 6386.719,
+          "duration": 3.841
+        },
+        {
+          "text": "halo",
+          "start": 6404.28,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 6407.7,
+          "duration": 6.08
+        },
+        {
+          "text": "dari mana Kak",
+          "start": 6410.34,
+          "duration": 3.44
+        },
+        {
+          "text": "Kalimantan",
+          "start": 6414.0,
+          "duration": 2.659
+        },
+        {
+          "text": "[Musik]",
+          "start": 6420.56,
+          "duration": 9.689
+        },
+        {
+          "text": "kamu mau nggak",
+          "start": 6430.94,
+          "duration": 3.299
+        },
+        {
+          "text": "Eh kamu tahu nggak cara ngilangin",
+          "start": 6434.82,
+          "duration": 4.58
+        },
+        {
+          "text": "cegukan",
+          "start": 6436.86,
+          "duration": 2.54
+        },
+        {
+          "text": "[Musik]",
+          "start": 6446.31,
+          "duration": 4.47
+        },
+        {
+          "text": "terus tahan nafas kalau kata Masha and",
+          "start": 6447.6,
+          "duration": 5.66
+        },
+        {
+          "text": "the Bear itu",
+          "start": 6450.78,
+          "duration": 2.48
+        },
+        {
+          "text": "karena",
+          "start": 6453.36,
+          "duration": 2.72
+        },
+        {
+          "text": "ini kegiatannya kuliah pekerjaan",
+          "start": 6459.44,
+          "duration": 4.32
+        },
+        {
+          "text": "[Musik]",
+          "start": 6464.01,
+          "duration": 6.39
+        },
+        {
+          "text": "semester 3",
+          "start": 6468.139,
+          "duration": 5.881
+        },
+        {
+          "text": "[Musik]",
+          "start": 6470.4,
+          "duration": 7.1
+        },
+        {
+          "text": "namanya siapa",
+          "start": 6474.02,
+          "duration": 3.48
+        },
+        {
+          "text": "Kenapa Nama kamu siapa",
+          "start": 6477.9,
+          "duration": 9.14
+        },
+        {
+          "text": "Namaku siapa ya Siapa ya",
+          "start": 6482.06,
+          "duration": 4.98
+        },
+        {
+          "text": "nyari apa kok nyari apa sering main Umi",
+          "start": 6498.98,
+          "duration": 5.88
+        },
+        {
+          "text": "ingat",
+          "start": 6502.679,
+          "duration": 2.181
+        },
+        {
+          "text": "baru pertama cuma",
+          "start": 6506.719,
+          "duration": 6.761
+        },
+        {
+          "text": "baru baru mulai gitu bukan baru pertama",
+          "start": 6509.42,
+          "duration": 6.299
+        },
+        {
+          "text": "kali",
+          "start": 6513.48,
+          "duration": 2.239
+        },
+        {
+          "text": "[Musik]",
+          "start": 6520.68,
+          "duration": 7.99
+        },
+        {
+          "text": "[Musik]",
+          "start": 6536.78,
+          "duration": 4.02
+        },
+        {
+          "text": "apaan tuh",
+          "start": 6538.1,
+          "duration": 5.94
+        },
+        {
+          "text": "apaan tuh",
+          "start": 6540.8,
+          "duration": 3.24
+        },
+        {
+          "text": "[Musik]",
+          "start": 6548.25,
+          "duration": 3.389
+        },
+        {
+          "text": "Ya udah ngapain",
+          "start": 6549.3,
+          "duration": 5.28
+        },
+        {
+          "text": "nanya nggak saya datanya kata kamu",
+          "start": 6551.639,
+          "duration": 6.361
+        },
+        {
+          "text": "goreng bledekan",
+          "start": 6554.58,
+          "duration": 3.42
+        },
+        {
+          "text": "[Musik]",
+          "start": 6561.13,
+          "duration": 3.149
+        },
+        {
+          "text": "lagi ngapain nih Lagi ngapain",
+          "start": 6579.719,
+          "duration": 4.161
+        },
+        {
+          "text": "nih",
+          "start": 6587.159,
+          "duration": 4.821
+        },
+        {
+          "text": "lagi ngapain tuh",
+          "start": 6588.84,
+          "duration": 3.14
+        },
+        {
+          "text": "Hei dua-dua perempuan dua-dua cewek",
+          "start": 6593.84,
+          "duration": 5.58
+        },
+        {
+          "text": "siapa tahu kan",
+          "start": 6599.94,
+          "duration": 3.08
+        },
+        {
+          "text": "[Musik]",
+          "start": 6603.74,
+          "duration": 3.039
+        },
+        {
+          "text": "artinya",
+          "start": 6608.699,
+          "duration": 2.42
+        },
+        {
+          "text": "[Tepuk tangan]",
+          "start": 6635.03,
+          "duration": 3.1
+        },
+        {
+          "text": "I don't have",
+          "start": 6638.58,
+          "duration": 3.32
+        },
+        {
+          "text": "nggak ada tipe-tipenya",
+          "start": 6642.199,
+          "duration": 4.02
+        },
+        {
+          "text": "dari sifat",
+          "start": 6646.46,
+          "duration": 5.669
+        },
+        {
+          "text": "[Musik]",
+          "start": 6649.05,
+          "duration": 3.079
+        },
+        {
+          "text": "[Musik]",
+          "start": 6654.42,
+          "duration": 10.16
+        },
+        {
+          "text": "I like",
+          "start": 6662.04,
+          "duration": 5.099
+        },
+        {
+          "text": "you everything",
+          "start": 6664.58,
+          "duration": 4.84
+        },
+        {
+          "text": "kita kenalan dulu aja deh nama saya",
+          "start": 6667.139,
+          "duration": 5.661
+        },
+        {
+          "text": "David Nama kamu siapa",
+          "start": 6669.42,
+          "duration": 3.38
+        },
+        {
+          "text": "yang di sebelah namanya siapa",
+          "start": 6689.4,
+          "duration": 5.06
+        },
+        {
+          "text": "Itulah namanya siapa",
+          "start": 6691.32,
+          "duration": 3.14
+        },
+        {
+          "text": "suhaini Suhaimi ini dari Malaysia",
+          "start": 6694.52,
+          "duration": 5.159
+        },
+        {
+          "text": "[Musik]",
+          "start": 6710.66,
+          "duration": 3.43
+        },
+        {
+          "text": "[Musik]",
+          "start": 6719.62,
+          "duration": 3.05
+        },
+        {
+          "text": "[Musik]",
+          "start": 6754.68,
+          "duration": 3.059
+        },
+        {
+          "text": "umurnya berapa umurnya",
+          "start": 6763.639,
+          "duration": 4.241
+        },
+        {
+          "text": "berapa",
+          "start": 6768.0,
+          "duration": 2.0
+        },
+        {
+          "text": "21",
+          "start": 6779.34,
+          "duration": 3.0
+        },
+        {
+          "text": "27 eh",
+          "start": 6785.78,
+          "duration": 3.899
+        },
+        {
+          "text": "Kita Nikah yang 27 tahun",
+          "start": 6822.98,
+          "duration": 4.02
+        },
+        {
+          "text": "di Indonesia dari mana Dari",
+          "start": 6898.52,
+          "duration": 4.659
+        },
+        {
+          "text": "Indonesia",
+          "start": 6905.159,
+          "duration": 4.5
+        },
+        {
+          "text": "tahu Indonesia di kota mana aja pasti",
+          "start": 6907.26,
+          "duration": 5.3
+        },
+        {
+          "text": "Jakarta Bali",
+          "start": 6909.659,
+          "duration": 2.901
+        },
+        {
+          "text": "[Musik]",
+          "start": 6919.25,
+          "duration": 3.27
+        },
+        {
+          "text": "NTT",
+          "start": 6928.86,
+          "duration": 2.96
+        },
+        {
+          "text": "Instagram",
+          "start": 6936.42,
+          "duration": 2.66
+        },
+        {
+          "text": "boleh tanya Instagramnya namanya",
+          "start": 6985.98,
+          "duration": 4.159
+        },
+        {
+          "text": "Instagramnya",
+          "start": 6995.04,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 7003.69,
+          "duration": 3.039
+        },
+        {
+          "text": "[Musik]",
+          "start": 7032.83,
+          "duration": 3.569
+        },
+        {
+          "text": "[Musik]",
+          "start": 7043.41,
+          "duration": 4.689
+        },
+        {
+          "text": "tulis tulis tulis",
+          "start": 7044.96,
+          "duration": 3.139
+        },
+        {
+          "text": "halo",
+          "start": 7060.44,
+          "duration": 5.159
+        },
+        {
+          "text": "tapi kamu mau jatuh tuh",
+          "start": 7063.04,
+          "duration": 5.28
+        },
+        {
+          "text": "model",
+          "start": 7065.599,
+          "duration": 2.721
+        },
+        {
+          "text": "aku pikir mau jatuh beneran mau jatuh",
+          "start": 7071.3,
+          "duration": 5.96
+        },
+        {
+          "text": "maunya aku ingetin tapinya",
+          "start": 7073.58,
+          "duration": 3.68
+        },
+        {
+          "text": "gitu ya baru tahu",
+          "start": 7078.46,
+          "duration": 4.62
+        },
+        {
+          "text": "bukan kan aku nanya katanya youtuber",
+          "start": 7087.46,
+          "duration": 5.82
+        },
+        {
+          "text": "nyari apa itu coba tebak Aku nyari apa",
+          "start": 7099.26,
+          "duration": 7.5
+        },
+        {
+          "text": "Nyari calon pacar kali atau udah punya",
+          "start": 7103.82,
+          "duration": 5.399
+        },
+        {
+          "text": "suami nih",
+          "start": 7106.76,
+          "duration": 6.56
+        },
+        {
+          "text": "Udah dong aku udah punya suami",
+          "start": 7109.219,
+          "duration": 4.101
+        },
+        {
+          "text": "Belum Atau udah",
+          "start": 7116.54,
+          "duration": 3.199
+        },
+        {
+          "text": "tapi nggak ada yang dingin",
+          "start": 7128.44,
+          "duration": 3.9
+        },
+        {
+          "text": "main gitar Ke belakang Nggak bisa nggak",
+          "start": 7144.92,
+          "duration": 8.66
+        },
+        {
+          "text": "bisa buat apa ada gitar coba",
+          "start": 7148.58,
+          "duration": 5.0
+        },
+        {
+          "text": "NTT NTT",
+          "start": 7156.88,
+          "duration": 6.9
+        },
+        {
+          "text": "kita adalah satu kali",
+          "start": 7160.239,
+          "duration": 3.541
+        },
+        {
+          "text": "satu kali",
+          "start": 7164.8,
+          "duration": 3.18
+        },
+        {
+          "text": "coba",
+          "start": 7168.619,
+          "duration": 2.6
+        },
+        {
+          "text": "main gitar tuh nggak bisa",
+          "start": 7177.34,
+          "duration": 7.64
+        },
+        {
+          "text": "Coba satu kali lah ya",
+          "start": 7181.4,
+          "duration": 6.69
+        },
+        {
+          "text": "[Musik]",
+          "start": 7184.98,
+          "duration": 3.11
+        },
+        {
+          "text": "waduh waduh waduh mulai muncul",
+          "start": 7194.98,
+          "duration": 6.84
+        },
+        {
+          "text": "orang-orang WC",
+          "start": 7198.28,
+          "duration": 3.54
+        },
+        {
+          "text": "sama anak raja Ali",
+          "start": 7206.239,
+          "duration": 3.561
+        },
+        {
+          "text": "[Tertawa]",
+          "start": 7210.6,
+          "duration": 7.58
+        },
+        {
+          "text": "nasib menjadi bujangan",
+          "start": 7227.8,
+          "duration": 4.859
+        },
+        {
+          "text": "nasib nggak punya istri",
+          "start": 7232.9,
+          "duration": 8.94
+        },
+        {
+          "text": "nasib malam minggu jomblo",
+          "start": 7237.219,
+          "duration": 4.621
+        },
+        {
+          "text": "nasib aku ada uang",
+          "start": 7245.26,
+          "duration": 4.74
+        },
+        {
+          "text": "nasib lu lagi jomblo",
+          "start": 7263.98,
+          "duration": 7.78
+        },
+        {
+          "text": "nasib yang penting punya uang untuk Open",
+          "start": 7267.699,
+          "duration": 6.42
+        },
+        {
+          "text": "bo",
+          "start": 7271.76,
+          "duration": 2.359
+        },
+        {
+          "text": "nasib gigi gua lengkap",
+          "start": 7275.8,
+          "duration": 4.62
+        },
+        {
+          "text": "nggak papa yang penting",
+          "start": 7280.46,
+          "duration": 3.8
+        },
+        {
+          "text": "[Musik]",
+          "start": 7310.88,
+          "duration": 3.05
+        },
+        {
+          "text": "Palembang",
+          "start": 7314.42,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 7321.48,
+          "duration": 5.06
+        },
+        {
+          "text": "minta pempeknya dong",
+          "start": 7324.199,
+          "duration": 5.4
+        },
+        {
+          "text": "aku jauh aku dari Mesuji bukan kota",
+          "start": 7326.54,
+          "duration": 6.059
+        },
+        {
+          "text": "Mesuji",
+          "start": 7329.599,
+          "duration": 3.0
+        },
+        {
+          "text": "halo",
+          "start": 7342.44,
+          "duration": 2.719
+        },
+        {
+          "text": "halo",
+          "start": 7348.26,
+          "duration": 3.0
+        },
+        {
+          "text": "[Musik]",
+          "start": 7364.44,
+          "duration": 3.03
+        },
+        {
+          "text": "terus",
+          "start": 7368.0,
+          "duration": 2.54
+        },
+        {
+          "text": "Akhirnya ketemu",
+          "start": 7393.38,
+          "duration": 3.739
+        },
+        {
+          "text": "cara ngilangin cegukan",
+          "start": 7403.719,
+          "duration": 3.721
+        },
+        {
+          "text": "Habis makan terus",
+          "start": 7424.06,
+          "duration": 3.48
+        },
+        {
+          "text": "caranya",
+          "start": 7433.34,
+          "duration": 3.0
+        },
+        {
+          "text": "mencintaiku",
+          "start": 7439.04,
+          "duration": 5.399
+        },
+        {
+          "text": "[Musik]",
+          "start": 7441.38,
+          "duration": 3.059
+        },
+        {
+          "text": "ini sambil ngemil nggak papa",
+          "start": 7456.56,
+          "duration": 3.619
+        },
+        {
+          "text": "dari manusia Malaysia",
+          "start": 7465.88,
+          "duration": 4.359
+        },
+        {
+          "text": "orang sapa sampah-sampah Negeri sawah",
+          "start": 7475.46,
+          "duration": 5.42
+        },
+        {
+          "text": "namanya",
+          "start": 7482.0,
+          "duration": 3.0
+        },
+        {
+          "text": "yang aku tahu itu cuma",
+          "start": 7510.34,
+          "duration": 6.819
+        },
+        {
+          "text": "mencintaimu",
+          "start": 7514.159,
+          "duration": 3.0
+        },
+        {
+          "text": "kenalin namanya ayam",
+          "start": 7526.639,
+          "duration": 3.98
+        },
+        {
+          "text": "[Musik]",
+          "start": 7534.54,
+          "duration": 7.92
+        },
+        {
+          "text": "istilah kerja istri anda lebih manja",
+          "start": 7547.42,
+          "duration": 5.759
+        },
+        {
+          "text": " gede",
+          "start": 7574.84,
+          "duration": 3.18
+        },
+        {
+          "text": "[Musik]",
+          "start": 7596.57,
+          "duration": 3.11
+        },
+        {
+          "text": "hai hai",
+          "start": 7603.82,
+          "duration": 4.0
+        },
+        {
+          "text": "dari mana",
+          "start": 7613.46,
+          "duration": 3.02
+        },
+        {
+          "text": "Coba tebak",
+          "start": 7620.78,
+          "duration": 2.959
+        },
+        {
+          "text": "Palembang",
+          "start": 7624.139,
+          "duration": 2.781
+        },
+        {
+          "text": "Kalimantan",
+          "start": 7628.58,
+          "duration": 2.659
+        },
+        {
+          "text": "Bogor",
+          "start": 7631.46,
+          "duration": 2.779
+        },
+        {
+          "text": "terus",
+          "start": 7635.119,
+          "duration": 2.661
+        },
+        {
+          "text": "coba tebak kan udah barusan",
+          "start": 7638.719,
+          "duration": 4.88
+        },
+        {
+          "text": "Sulawesi",
+          "start": 7647.78,
+          "duration": 3.0
+        },
+        {
+          "text": "Jaksel",
+          "start": 7651.26,
+          "duration": 4.68
+        },
+        {
+          "text": "Jakarta Utara",
+          "start": 7653.719,
+          "duration": 5.221
+        },
+        {
+          "text": "Batam",
+          "start": 7655.94,
+          "duration": 3.0
+        },
+        {
+          "text": "Aku mah orang Medan",
+          "start": 7659.06,
+          "duration": 3.139
+        },
+        {
+          "text": "namanya siapa",
+          "start": 7670.88,
+          "duration": 4.62
+        },
+        {
+          "text": "[Musik]",
+          "start": 7672.41,
+          "duration": 3.09
+        },
+        {
+          "text": "ngapain",
+          "start": 7680.179,
+          "duration": 2.721
+        },
+        {
+          "text": "gue tebak umurnya",
+          "start": 7683.84,
+          "duration": 3.2
+        },
+        {
+          "text": "umurnya gua tahu",
+          "start": 7688.28,
+          "duration": 3.26
+        },
+        {
+          "text": "20",
+          "start": 7692.0,
+          "duration": 2.84
+        },
+        {
+          "text": "apa sih",
+          "start": 7698.3,
+          "duration": 2.66
+        },
+        {
+          "text": "kalau gua bisa",
+          "start": 7706.099,
+          "duration": 3.741
+        },
+        {
+          "text": "221",
+          "start": 7713.3,
+          "duration": 2.839
+        },
+        {
+          "text": "19",
+          "start": 7717.86,
+          "duration": 2.96
+        },
+        {
+          "text": "benar",
+          "start": 7722.0,
+          "duration": 2.719
+        },
+        {
+          "text": "ya",
+          "start": 7726.86,
+          "duration": 2.839
+        },
+        {
+          "text": "kuliah semester",
+          "start": 7738.639,
+          "duration": 6.121
+        },
+        {
+          "text": "3 dong",
+          "start": 7741.92,
+          "duration": 2.84
+        },
+        {
+          "text": "aku Gebyar",
+          "start": 7745.699,
+          "duration": 3.601
+        },
+        {
+          "text": "Maksudnya gimana tuh",
+          "start": 7750.619,
+          "duration": 3.321
+        },
+        {
+          "text": "tulisan tahun 2021 terus nganggur habis",
+          "start": 7754.179,
+          "duration": 6.54
+        },
+        {
+          "text": "itu ini",
+          "start": 7757.4,
+          "duration": 3.319
+        },
+        {
+          "text": "kalau dia siapa dia halo",
+          "start": 7762.639,
+          "duration": 4.08
+        },
+        {
+          "text": "orangnya receh banget lagi",
+          "start": 7776.36,
+          "duration": 6.56
+        },
+        {
+          "text": "kenalin ini dia",
+          "start": 7779.78,
+          "duration": 3.14
+        },
+        {
+          "text": "namanya dia",
+          "start": 7784.4,
+          "duration": 3.02
+        },
+        {
+          "text": "main Umi malam minggu kenapa nggak",
+          "start": 7790.4,
+          "duration": 5.48
+        },
+        {
+          "text": "keluar aja sama cowoknya",
+          "start": 7792.619,
+          "duration": 3.261
+        },
+        {
+          "text": "jomblo jomblo",
+          "start": 7796.42,
+          "duration": 4.0
+        },
+        {
+          "text": "emang gak niat pacaran",
+          "start": 7802.34,
+          "duration": 3.62
+        },
+        {
+          "text": "kayak gini kan seru ya kan jomblo ya kan",
+          "start": 7807.139,
+          "duration": 5.221
+        },
+        {
+          "text": "main-main ya kan seru ya kan banyak kan",
+          "start": 7809.36,
+          "duration": 4.04
+        },
+        {
+          "text": "orang yang",
+          "start": 7812.36,
+          "duration": 4.379
+        },
+        {
+          "text": "pacarnya bukan buat yang aneh-aneh tapi",
+          "start": 7813.4,
+          "duration": 6.759
+        },
+        {
+          "text": "Buat jadiin rumah tempat curhat Kalau",
+          "start": 7816.739,
+          "duration": 7.041
+        },
+        {
+          "text": "ada masalah di tempat sharing",
+          "start": 7820.159,
+          "duration": 6.98
+        },
+        {
+          "text": "dulu sih kayak gitu",
+          "start": 7823.78,
+          "duration": 6.28
+        },
+        {
+          "text": "ada cuman ya",
+          "start": 7827.139,
+          "duration": 6.341
+        },
+        {
+          "text": "udah dikecewain ya sekarang juga kayak",
+          "start": 7830.06,
+          "duration": 7.579
+        },
+        {
+          "text": "mau cerita sama siapa ya udahlah",
+          "start": 7833.48,
+          "duration": 4.159
+        },
+        {
+          "text": "ngomong-ngomong main Umi Gabut doang",
+          "start": 7844.9,
+          "duration": 5.86
+        },
+        {
+          "text": "Iyalah mau ngapain lagi sekali-kali",
+          "start": 7848.36,
+          "duration": 5.359
+        },
+        {
+          "text": "Gabut ke hati aku lah",
+          "start": 7850.76,
+          "duration": 2.959
+        },
+        {
+          "text": "mumpung lagi jomblo kan",
+          "start": 7855.619,
+          "duration": 3.801
+        },
+        {
+          "text": "[Musik]",
+          "start": 7861.02,
+          "duration": 3.099
+        },
+        {
+          "text": "ini gua sambil ngemil",
+          "start": 7864.199,
+          "duration": 3.801
+        },
+        {
+          "text": "memiliki kamu maksudnya belum selesai",
+          "start": 7869.8,
+          "duration": 4.98
+        },
+        {
+          "text": "ngomongnya",
+          "start": 7872.239,
+          "duration": 2.541
+        },
+        {
+          "text": "grogi grogi ngobrol sama",
+          "start": 7898.82,
+          "duration": 6.5
+        },
+        {
+          "text": "calon bini",
+          "start": 7902.36,
+          "duration": 2.96
+        },
+        {
+          "text": "Kamu suka nggak cowok ngerokok atau",
+          "start": 7931.219,
+          "duration": 5.161
+        },
+        {
+          "text": "nggak suka nggak suka Ya udah nggak jadi",
+          "start": 7933.139,
+          "duration": 5.421
+        },
+        {
+          "text": "deh",
+          "start": 7936.38,
+          "duration": 2.18
+        },
+        {
+          "text": "ya kan nggak jadi",
+          "start": 7941.719,
+          "duration": 3.201
+        },
+        {
+          "text": "By the way aku nggak 19 tahun",
+          "start": 7952.82,
+          "duration": 3.68
+        },
+        {
+          "text": "19 tahun kamu berbohong akupun percaya",
+          "start": 7958.159,
+          "duration": 9.361
+        },
+        {
+          "text": "kamu dustai aku tak peduli",
+          "start": 7963.28,
+          "duration": 8.68
+        },
+        {
+          "text": "Coba kau pikir gimana ada cinta seperti",
+          "start": 7967.52,
+          "duration": 7.099
+        },
+        {
+          "text": "ini",
+          "start": 7971.96,
+          "duration": 2.659
+        },
+        {
+          "text": "bisa nyanyi nggak ada gitar Aku lihat",
+          "start": 7977.32,
+          "duration": 5.98
+        },
+        {
+          "text": "tuh namanya",
+          "start": 7980.119,
+          "duration": 3.181
+        },
+        {
+          "text": "[Musik]",
+          "start": 7987.3,
+          "duration": 5.21
+        },
+        {
+          "text": "kasihan banget",
+          "start": 7989.54,
+          "duration": 6.049
+        },
+        {
+          "text": "[Musik]",
+          "start": 7992.51,
+          "duration": 3.079
+        },
+        {
+          "text": "dipelajarin dong",
+          "start": 7996.88,
+          "duration": 3.18
+        },
+        {
+          "text": "[Musik]",
+          "start": 8001.82,
+          "duration": 3.06
+        },
+        {
+          "text": "lu tau nggak dari tadi itu ya",
+          "start": 8023.5,
+          "duration": 7.02
+        },
+        {
+          "text": "gua cegukan udah dari kemarin magrib",
+          "start": 8026.139,
+          "duration": 6.6
+        },
+        {
+          "text": "terus gua ketemu lu baru buka Umi",
+          "start": 8030.52,
+          "duration": 5.059
+        },
+        {
+          "text": "langsung ketemu lagi",
+          "start": 8032.739,
+          "duration": 2.84
+        },
+        {
+          "text": "udah dari kemarin maghrib serius",
+          "start": 8037.78,
+          "duration": 7.98
+        },
+        {
+          "text": "aku tak percaya aku percaya mau lihat",
+          "start": 8041.639,
+          "duration": 6.341
+        },
+        {
+          "text": "nggak",
+          "start": 8045.76,
+          "duration": 5.54
+        },
+        {
+          "text": "lu mau lihat buktinya",
+          "start": 8047.98,
+          "duration": 3.32
+        },
+        {
+          "text": "sebelum",
+          "start": 8056.98,
+          "duration": 2.659
+        },
+        {
+          "text": "[Musik]",
+          "start": 8063.17,
+          "duration": 3.18
+        },
+        {
+          "text": "itu ngapain",
+          "start": 8077.86,
+          "duration": 4.68
+        },
+        {
+          "text": "itu lagi ngerekam diri sendiri tadi pas",
+          "start": 8079.9,
+          "duration": 4.819
+        },
+        {
+          "text": "lagi",
+          "start": 8082.54,
+          "duration": 2.179
+        },
+        {
+          "text": "[Musik]",
+          "start": 8090.18,
+          "duration": 3.049
+        },
+        {
+          "text": "[Musik]",
+          "start": 8100.49,
+          "duration": 3.039
+        },
+        {
+          "text": "pengen banget ngerokok lebih",
+          "start": 8106.5,
+          "duration": 4.02
+        },
+        {
+          "text": "asem banget pengen ngerokok",
+          "start": 8112.139,
+          "duration": 3.781
+        },
+        {
+          "text": "tapi aku tetap jadi kriteria",
+          "start": 8116.44,
+          "duration": 4.1
+        },
+        {
+          "text": "tapi aku mau melawan takdir aku harus",
+          "start": 8127.06,
+          "duration": 5.7
+        },
+        {
+          "text": "kamu harus walaupun lu nggak lu ada",
+          "start": 8129.159,
+          "duration": 6.42
+        },
+        {
+          "text": "sesuatu yang gak disukai yang lu nggak",
+          "start": 8132.76,
+          "duration": 5.22
+        },
+        {
+          "text": "suka di gua gua masih bisa buat lo jatuh",
+          "start": 8135.579,
+          "duration": 4.58
+        },
+        {
+          "text": "cinta",
+          "start": 8137.98,
+          "duration": 2.179
+        },
+        {
+          "text": "Gimana caranya gimana",
+          "start": 8141.579,
+          "duration": 3.861
+        },
+        {
+          "text": "ya",
+          "start": 8146.199,
+          "duration": 3.98
+        },
+        {
+          "text": "[Musik]",
+          "start": 8147.81,
+          "duration": 6.15
+        },
+        {
+          "text": "percaya takdir Tuhan",
+          "start": 8150.179,
+          "duration": 3.781
+        },
+        {
+          "text": "lu kuliah jurusan apa",
+          "start": 8160.3,
+          "duration": 3.379
+        },
+        {
+          "text": "matematika",
+          "start": 8166.9,
+          "duration": 4.16
+        },
+        {
+          "text": "[Musik]",
+          "start": 8168.01,
+          "duration": 3.05
+        },
+        {
+          "text": "ya kerja",
+          "start": 8176.619,
+          "duration": 3.02
+        },
+        {
+          "text": "jadi apa",
+          "start": 8181.84,
+          "duration": 3.259
+        },
+        {
+          "text": "melapor melapor",
+          "start": 8185.199,
+          "duration": 2.96
+        },
+        {
+          "text": "ya kuli bangunan",
+          "start": 8190.48,
+          "duration": 3.32
+        },
+        {
+          "text": "sama petani",
+          "start": 8197.2,
+          "duration": 3.199
+        },
+        {
+          "text": "kuli bangunan sama petani",
+          "start": 8200.5,
+          "duration": 6.979
+        },
+        {
+          "text": "petani itu banyak duitnya",
+          "start": 8203.88,
+          "duration": 3.599
+        },
+        {
+          "text": "Bapak aku petani",
+          "start": 8208.179,
+          "duration": 3.38
+        },
+        {
+          "text": "ini Pakai laptop atau pakai HP ini",
+          "start": 8223.66,
+          "duration": 4.16
+        },
+        {
+          "text": "punya Instagram nggak",
+          "start": 8238.059,
+          "duration": 3.681
+        },
+        {
+          "text": "aku punyanya hati doang",
+          "start": 8244.179,
+          "duration": 3.68
+        },
+        {
+          "text": "itu gltm singkatan dari Gultom",
+          "start": 8272.559,
+          "duration": 5.12
+        },
+        {
+          "text": "singkatan dari Gultom Gultom",
+          "start": 8277.84,
+          "duration": 7.679
+        },
+        {
+          "text": "jangan-jangan selebgram 100 ribu",
+          "start": 8282.479,
+          "duration": 5.46
+        },
+        {
+          "text": "followers",
+          "start": 8285.519,
+          "duration": 2.42
+        },
+        {
+          "text": "sabar sabar sabar",
+          "start": 8292.38,
+          "duration": 3.66
+        },
+        {
+          "text": "Oh ini",
+          "start": 8304.059,
+          "duration": 2.84
+        },
+        {
+          "text": "[Musik]",
+          "start": 8310.879,
+          "duration": 3.07
+        },
+        {
+          "text": "Enggak ini udah di Puruk kok dari tadi",
+          "start": 8321.899,
+          "duration": 7.74
+        },
+        {
+          "text": "tuh follow doang yang lupa di follback",
+          "start": 8325.479,
+          "duration": 4.16
+        },
+        {
+          "text": "siapa",
+          "start": 8331.24,
+          "duration": 2.659
+        },
+        {
+          "text": "nggak ada ada",
+          "start": 8334.12,
+          "duration": 3.739
+        },
+        {
+          "text": "Serius nggak ada nggak ada",
+          "start": 8346.42,
+          "duration": 4.639
+        },
+        {
+          "text": "sih",
+          "start": 8352.019,
+          "duration": 4.861
+        },
+        {
+          "text": "tuh pulang",
+          "start": 8353.74,
+          "duration": 3.14
+        },
+        {
+          "text": "nggak ada ya udah nggak papa deh",
+          "start": 8361.96,
+          "duration": 5.219
+        },
+        {
+          "text": "Nanti kayaknya muncul deh sekarang nggak",
+          "start": 8364.899,
+          "duration": 4.58
+        },
+        {
+          "text": "muncul",
+          "start": 8367.179,
+          "duration": 2.3
+        },
+        {
+          "text": "nggak usah diperiksa hati aku udah buat",
+          "start": 8377.08,
+          "duration": 4.819
+        },
+        {
+          "text": "kamu kok",
+          "start": 8379.24,
+          "duration": 2.659
+        },
+        {
+          "text": "itu lu Habis mandi atau gimana",
+          "start": 8390.76,
+          "duration": 3.86
+        },
+        {
+          "text": "Oh ya",
+          "start": 8398.68,
+          "duration": 3.02
+        },
+        {
+          "text": "oke",
+          "start": 8402.1,
+          "duration": 4.74
+        },
+        {
+          "text": "beda ya Soalnya nggak ada kumis Makanya",
+          "start": 8404.439,
+          "duration": 4.701
+        },
+        {
+          "text": "beda",
+          "start": 8406.84,
+          "duration": 2.3
+        },
+        {
+          "text": "Eh bisa main",
+          "start": 8410.08,
+          "duration": 5.42
+        },
+        {
+          "text": "gitarnya itu",
+          "start": 8412.38,
+          "duration": 3.12
+        },
+        {
+          "text": "ya teman aku banyak orang NTT NTB",
+          "start": 8426.3,
+          "duration": 5.7
+        },
+        {
+          "text": "temannya banyak",
+          "start": 8432.24,
+          "duration": 3.239
+        },
+        {
+          "text": "tapi aku bukan dari Bima",
+          "start": 8438.64,
+          "duration": 7.32
+        },
+        {
+          "text": "dari rahim",
+          "start": 8442.3,
+          "duration": 3.66
+        },
+        {
+          "text": "orang Bima aja bisa temenan namanya",
+          "start": 8448.6,
+          "duration": 4.4
+        },
+        {
+          "text": "cara cek cewek yang baru dikenal",
+          "start": 8468.58,
+          "duration": 4.76
+        },
+        {
+          "text": "misalnya belum pernah chattingan",
+          "start": 8471.46,
+          "duration": 5.12
+        },
+        {
+          "text": "kira-kira gimana",
+          "start": 8473.34,
+          "duration": 3.24
+        },
+        {
+          "text": "dibahas kalau cewek ngapain",
+          "start": 8490.979,
+          "duration": 4.541
+        },
+        {
+          "text": "Aduh udah salah",
+          "start": 8506.2,
+          "duration": 4.34
+        },
+        {
+          "text": "ntar ditarik dulu",
+          "start": 8507.88,
+          "duration": 2.66
+        },
+        {
+          "text": "nggak bakal dibalas Apa dong Mbak Biar",
+          "start": 8513.359,
+          "duration": 5.04
+        },
+        {
+          "text": "bales",
+          "start": 8516.04,
+          "duration": 2.359
+        },
+        {
+          "text": "[Musik]",
+          "start": 8535.51,
+          "duration": 3.039
+        },
+        {
+          "text": "Ntar aja deh gua chatnya gimana ya",
+          "start": 8542.859,
+          "duration": 4.281
+        },
+        {
+          "text": "Sumpah gak tau cara cek cewek",
+          "start": 8548.92,
+          "duration": 4.1
+        },
+        {
+          "text": "Ya kira-kira gimana",
+          "start": 8555.939,
+          "duration": 6.241
+        },
+        {
+          "text": "cara memulai suatu obrolan biar asik",
+          "start": 8558.52,
+          "duration": 5.38
+        },
+        {
+          "text": "Ya nggak tahu",
+          "start": 8562.18,
+          "duration": 4.76
+        },
+        {
+          "text": "[Musik]",
+          "start": 8563.9,
+          "duration": 3.04
+        },
+        {
+          "text": "nggak tahu",
+          "start": 8569.319,
+          "duration": 2.66
+        },
+        {
+          "text": "soalnya Kemarin gua chat cewek",
+          "start": 8572.399,
+          "duration": 5.221
+        },
+        {
+          "text": "Bapak lu Bapak lu punya ayam gak gua",
+          "start": 8577.84,
+          "duration": 7.58
+        },
+        {
+          "text": "gituin gua dimarahin",
+          "start": 8581.5,
+          "duration": 3.92
+        },
+        {
+          "text": "serius",
+          "start": 8586.84,
+          "duration": 2.96
+        },
+        {
+          "text": "ngajar sih kenanya Bapak lu punya",
+          "start": 8590.62,
+          "duration": 5.9
+        },
+        {
+          "text": "ayamnya",
+          "start": 8594.1,
+          "duration": 2.42
+        },
+        {
+          "text": "ngantuk banget lagi",
+          "start": 8600.88,
+          "duration": 4.979
+        },
+        {
+          "text": "kalau punya ya adu mekanik lah sama ayam",
+          "start": 8602.92,
+          "duration": 5.36
+        },
+        {
+          "text": "bapak gua",
+          "start": 8605.859,
+          "duration": 2.421
+        },
+        {
+          "text": "malah War anjir",
+          "start": 8608.8,
+          "duration": 3.98
+        },
+        {
+          "text": "[Musik]",
+          "start": 8613.7,
+          "duration": 6.8
+        },
+        {
+          "text": "Ya udah Ya gua pamit ya nggak papa Ya",
+          "start": 8616.72,
+          "duration": 7.04
+        },
+        {
+          "text": "ntar gua ntar kita lanjut ya",
+          "start": 8620.5,
+          "duration": 3.26
+        },
+        {
+          "text": "dibales lah jangan nggak dibales itu",
+          "start": 8624.64,
+          "duration": 4.04
+        },
+        {
+          "text": "lu mau jadi sekedar teman chattingan",
+          "start": 8630.12,
+          "duration": 6.72
+        },
+        {
+          "text": "Atau Teman Hidup",
+          "start": 8633.64,
+          "duration": 3.2
+        },
+        {
+          "text": "Ya udah ya makasih ya nih pak",
+          "start": 8644.2,
+          "duration": 4.82
+        },
+        {
+          "text": "Ya udah ya thank you ya yang udah nonton",
+          "start": 8655.439,
+          "duration": 4.321
+        },
+        {
+          "text": "brother",
+          "start": 8657.76,
+          "duration": 6.62
+        },
+        {
+          "text": "dulu ya di sini udah jam 12.30",
+          "start": 8659.76,
+          "duration": 4.62
+        },
+        {
+          "text": "istirahat sebentar",
+          "start": 8665.26,
+          "duration": 3.02
+        },
+        {
+          "text": "bye Bye Dadah semua bye",
+          "start": 8670.96,
+          "duration": 4.1
+        },
+        {
+          "text": "Anjir streaming gua sepi banget ya Allah",
+          "start": 8692.979,
+          "duration": 4.941
+        }
+      ],
+      "engines": {
+        "e": {
+          "video_id": "gAQIEyzUHYc",
+          "channel": "fixtures",
+          "status": "analyzed",
+          "status_label": "🔥 VALID HIGH — 2 SESI KAMBUHAN | 2 cluster, 16 hit",
+          "hits": [
+            {
+              "sec": 272,
+              "time": "00:04:32",
+              "text": "24 jam cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=272"
+            },
+            {
+              "sec": 378,
+              "time": "00:06:18",
+              "text": "virus cegukan Kayaknya sih gitu",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=378"
+            },
+            {
+              "sec": 448,
+              "time": "00:07:28",
+              "text": "bukan smr Ki 24 jam cegukan udah dari",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=448"
+            },
+            {
+              "sec": 685,
+              "time": "00:11:25",
+              "text": "malam minggu cegukan coy",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=685"
+            },
+            {
+              "sec": 713,
+              "time": "00:11:53",
+              "text": "sekarang belum selesai cegukannya dari",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=713"
+            },
+            {
+              "sec": 921,
+              "time": "00:15:21",
+              "text": "cegukannya hilang gitu loh",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=921"
+            },
+            {
+              "sec": 1011,
+              "time": "00:16:51",
+              "text": "yang bisa sembuhin cegukannya Bang Affan",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1011"
+            },
+            {
+              "sec": 1256,
+              "time": "00:20:56",
+              "text": "cegukannya hilang Tapi sumpah sekali",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1256"
+            },
+            {
+              "sec": 1260,
+              "time": "00:21:00",
+              "text": "yang penting cegukan gue ilang",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1260"
+            },
+            {
+              "sec": 1648,
+              "time": "00:27:28",
+              "text": "malah cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1648"
+            },
+            {
+              "sec": 3270,
+              "time": "00:54:30",
+              "text": "cegukan gua nggak ilang",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=3270"
+            },
+            {
+              "sec": 6016,
+              "time": "01:40:16",
+              "text": "cegukannya hilang gitu",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6016"
+            },
+            {
+              "sec": 6042,
+              "time": "01:40:42",
+              "text": "yang bisa ngilangin cegukan gua",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6042"
+            },
+            {
+              "sec": 6436,
+              "time": "01:47:16",
+              "text": "cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6436"
+            },
+            {
+              "sec": 7403,
+              "time": "02:03:23",
+              "text": "cara ngilangin cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=7403"
+            },
+            {
+              "sec": 8026,
+              "time": "02:13:46",
+              "text": "gua cegukan udah dari kemarin magrib",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=8026"
+            }
+          ],
+          "score": 100,
+          "persentase": 100,
+          "tier_counts": {
+            "CORE": 16,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 2,
+          "maraton_mins": 49,
+          "is_valid": true,
+          "kasta": "VALID_HIGH",
+          "kasta_label": "🔥 VALID HIGH — 2 SESI KAMBUHAN | 2 cluster, 16 hit",
+          "html_rows": "<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=272' target='_blank' class='t-link'>[00:04:32]</a></td><td><span class='tc core'>CORE</span> 24 jam <span class='hl core'>cegukan</span></td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=378' target='_blank' class='t-link'>[00:06:18]</a></td><td><span class='tc core'>CORE</span> virus <span class='hl core'>cegukan</span> Kayaknya sih gitu</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=448' target='_blank' class='t-link'>[00:07:28]</a></td><td><span class='tc core'>CORE</span> bukan smr Ki 24 jam <span class='hl core'>cegukan</span> udah dari</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=685' target='_blank' class='t-link'>[00:11:25]</a></td><td><span class='tc core'>CORE</span> malam minggu <span class='hl core'>cegukan</span> coy</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=713' target='_blank' class='t-link'>[00:11:53]</a></td><td><span class='tc core'>CORE</span> sekarang belum selesai <span class='hl core'>cegukann</span>ya dari</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=921' target='_blank' class='t-link'>[00:15:21]</a></td><td><span class='tc core'>CORE</span> <span class='hl core'>cegukann</span>ya hilang gitu loh</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1011' target='_blank' class='t-link'>[00:16:51]</a></td><td><span class='tc core'>CORE</span> yang bisa sembuhin <span class='hl core'>cegukann</span>ya Bang Affan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1256' target='_blank' class='t-link'>[00:20:56]</a></td><td><span class='tc core'>CORE</span> <span class='hl core'>cegukann</span>ya hilang Tapi sumpah sekali</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1260' target='_blank' class='t-link'>[00:21:00]</a></td><td><span class='tc core'>CORE</span> yang penting <span class='hl core'>cegukan</span> gue ilang</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1648' target='_blank' class='t-link'>[00:27:28]</a></td><td><span class='tc core'>CORE</span> malah <span class='hl core'>cegukan</span></td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=3270' target='_blank' class='t-link'>[00:54:30]</a></td><td><span class='tc core'>CORE</span> <span class='hl core'>cegukan</span> gua nggak ilang</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6016' target='_blank' class='t-link'>[01:40:16]</a></td><td><span class='tc core'>CORE</span> <span class='hl core'>cegukann</span>ya hilang gitu</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6042' target='_blank' class='t-link'>[01:40:42]</a></td><td><span class='tc core'>CORE</span> yang bisa ngilangin <span class='hl core'>cegukan</span> gua</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6436' target='_blank' class='t-link'>[01:47:16]</a></td><td><span class='tc core'>CORE</span> <span class='hl core'>cegukan</span></td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=7403' target='_blank' class='t-link'>[02:03:23]</a></td><td><span class='tc core'>CORE</span> cara ngilangin <span class='hl core'>cegukan</span></td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=8026' target='_blank' class='t-link'>[02:13:46]</a></td><td><span class='tc core'>CORE</span> gua <span class='hl core'>cegukan</span> udah dari kemarin magrib</td></tr>\n"
+        },
+        "ie": {
+          "video_id": "gAQIEyzUHYc",
+          "channel": "fixtures",
+          "status": "analyzed",
+          "status_label": "🔥 VALID HIGH — 2 SESI KAMBUHAN | 2 cluster, 16 hit",
+          "hits": [
+            {
+              "sec": 272,
+              "time": "00:04:32",
+              "text": "24 jam cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=272"
+            },
+            {
+              "sec": 378,
+              "time": "00:06:18",
+              "text": "virus cegukan Kayaknya sih gitu",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=378"
+            },
+            {
+              "sec": 448,
+              "time": "00:07:28",
+              "text": "bukan smr Ki 24 jam cegukan udah dari",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=448"
+            },
+            {
+              "sec": 685,
+              "time": "00:11:25",
+              "text": "malam minggu cegukan coy",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=685"
+            },
+            {
+              "sec": 713,
+              "time": "00:11:53",
+              "text": "sekarang belum selesai cegukannya dari",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=713"
+            },
+            {
+              "sec": 921,
+              "time": "00:15:21",
+              "text": "cegukannya hilang gitu loh",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=921"
+            },
+            {
+              "sec": 1011,
+              "time": "00:16:51",
+              "text": "yang bisa sembuhin cegukannya Bang Affan",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1011"
+            },
+            {
+              "sec": 1256,
+              "time": "00:20:56",
+              "text": "cegukannya hilang Tapi sumpah sekali",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1256"
+            },
+            {
+              "sec": 1260,
+              "time": "00:21:00",
+              "text": "yang penting cegukan gue ilang",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1260"
+            },
+            {
+              "sec": 1648,
+              "time": "00:27:28",
+              "text": "malah cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1648"
+            },
+            {
+              "sec": 3270,
+              "time": "00:54:30",
+              "text": "cegukan gua nggak ilang",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=3270"
+            },
+            {
+              "sec": 6016,
+              "time": "01:40:16",
+              "text": "cegukannya hilang gitu",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6016"
+            },
+            {
+              "sec": 6042,
+              "time": "01:40:42",
+              "text": "yang bisa ngilangin cegukan gua",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6042"
+            },
+            {
+              "sec": 6436,
+              "time": "01:47:16",
+              "text": "cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6436"
+            },
+            {
+              "sec": 7403,
+              "time": "02:03:23",
+              "text": "cara ngilangin cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=7403"
+            },
+            {
+              "sec": 8026,
+              "time": "02:13:46",
+              "text": "gua cegukan udah dari kemarin magrib",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=8026"
+            }
+          ],
+          "score": 100,
+          "persentase": 100,
+          "tier_counts": {
+            "CORE": 16,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 2,
+          "maraton_mins": 49,
+          "is_valid": true,
+          "kasta": "VALID_HIGH",
+          "kasta_label": "🔥 VALID HIGH — 2 SESI KAMBUHAN | 2 cluster, 16 hit",
+          "html_rows": "<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=272' target='_blank' class='t-link'>[00:04:32]</a></td><td><span class='tc core'>CORE</span> 24 jam cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=378' target='_blank' class='t-link'>[00:06:18]</a></td><td><span class='tc core'>CORE</span> virus cegukan Kayaknya sih gitu</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=448' target='_blank' class='t-link'>[00:07:28]</a></td><td><span class='tc core'>CORE</span> bukan smr Ki 24 jam cegukan udah dari</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=685' target='_blank' class='t-link'>[00:11:25]</a></td><td><span class='tc core'>CORE</span> malam minggu cegukan coy</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=713' target='_blank' class='t-link'>[00:11:53]</a></td><td><span class='tc core'>CORE</span> sekarang belum selesai cegukannya dari</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=921' target='_blank' class='t-link'>[00:15:21]</a></td><td><span class='tc core'>CORE</span> cegukannya hilang gitu loh</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1011' target='_blank' class='t-link'>[00:16:51]</a></td><td><span class='tc core'>CORE</span> yang bisa sembuhin cegukannya Bang Affan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1256' target='_blank' class='t-link'>[00:20:56]</a></td><td><span class='tc core'>CORE</span> cegukannya hilang Tapi sumpah sekali</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1260' target='_blank' class='t-link'>[00:21:00]</a></td><td><span class='tc core'>CORE</span> yang penting cegukan gue ilang</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1648' target='_blank' class='t-link'>[00:27:28]</a></td><td><span class='tc core'>CORE</span> malah cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=3270' target='_blank' class='t-link'>[00:54:30]</a></td><td><span class='tc core'>CORE</span> cegukan gua nggak ilang</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6016' target='_blank' class='t-link'>[01:40:16]</a></td><td><span class='tc core'>CORE</span> cegukannya hilang gitu</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6042' target='_blank' class='t-link'>[01:40:42]</a></td><td><span class='tc core'>CORE</span> yang bisa ngilangin cegukan gua</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6436' target='_blank' class='t-link'>[01:47:16]</a></td><td><span class='tc core'>CORE</span> cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=7403' target='_blank' class='t-link'>[02:03:23]</a></td><td><span class='tc core'>CORE</span> cara ngilangin cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=8026' target='_blank' class='t-link'>[02:13:46]</a></td><td><span class='tc core'>CORE</span> gua cegukan udah dari kemarin magrib</td></tr>\n"
+        },
+        "ae": {
+          "video_id": "gAQIEyzUHYc",
+          "channel": "fixtures",
+          "status": "analyzed",
+          "status_label": "🔥 VALID HIGH — 2 SESI | 2 cluster, 16 hit",
+          "hits": [
+            {
+              "sec": 272,
+              "time": "00:04:32",
+              "text": "24 jam cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=272"
+            },
+            {
+              "sec": 378,
+              "time": "00:06:18",
+              "text": "virus cegukan Kayaknya sih gitu",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=378"
+            },
+            {
+              "sec": 448,
+              "time": "00:07:28",
+              "text": "bukan smr Ki 24 jam cegukan udah dari",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=448"
+            },
+            {
+              "sec": 685,
+              "time": "00:11:25",
+              "text": "malam minggu cegukan coy",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=685"
+            },
+            {
+              "sec": 713,
+              "time": "00:11:53",
+              "text": "sekarang belum selesai cegukannya dari",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=713"
+            },
+            {
+              "sec": 921,
+              "time": "00:15:21",
+              "text": "cegukannya hilang gitu loh",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=921"
+            },
+            {
+              "sec": 1011,
+              "time": "00:16:51",
+              "text": "yang bisa sembuhin cegukannya Bang Affan",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1011"
+            },
+            {
+              "sec": 1256,
+              "time": "00:20:56",
+              "text": "cegukannya hilang Tapi sumpah sekali",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1256"
+            },
+            {
+              "sec": 1260,
+              "time": "00:21:00",
+              "text": "yang penting cegukan gue ilang",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1260"
+            },
+            {
+              "sec": 1648,
+              "time": "00:27:28",
+              "text": "malah cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=1648"
+            },
+            {
+              "sec": 3270,
+              "time": "00:54:30",
+              "text": "cegukan gua nggak ilang",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=3270"
+            },
+            {
+              "sec": 6016,
+              "time": "01:40:16",
+              "text": "cegukannya hilang gitu",
+              "tiers": {
+                "CORE": 2,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6016"
+            },
+            {
+              "sec": 6042,
+              "time": "01:40:42",
+              "text": "yang bisa ngilangin cegukan gua",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6042"
+            },
+            {
+              "sec": 6436,
+              "time": "01:47:16",
+              "text": "cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=6436"
+            },
+            {
+              "sec": 7403,
+              "time": "02:03:23",
+              "text": "cara ngilangin cegukan",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=7403"
+            },
+            {
+              "sec": 8026,
+              "time": "02:13:46",
+              "text": "gua cegukan udah dari kemarin magrib",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/gAQIEyzUHYc?t=8026"
+            }
+          ],
+          "score": 100,
+          "persentase": 100,
+          "tier_counts": {
+            "CORE": 16,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 2,
+          "maraton_mins": 49,
+          "is_valid": true,
+          "kasta": "VALID_HIGH",
+          "kasta_label": "🔥 VALID HIGH — 2 SESI | 2 cluster, 16 hit",
+          "html_rows": "<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=272' target='_blank' class='t-link'>[00:04:32]</a></td><td><span class='tc core'>CORE</span> 24 jam cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=378' target='_blank' class='t-link'>[00:06:18]</a></td><td><span class='tc core'>CORE</span> virus cegukan Kayaknya sih gitu</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=448' target='_blank' class='t-link'>[00:07:28]</a></td><td><span class='tc core'>CORE</span> bukan smr Ki 24 jam cegukan udah dari</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=685' target='_blank' class='t-link'>[00:11:25]</a></td><td><span class='tc core'>CORE</span> malam minggu cegukan coy</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=713' target='_blank' class='t-link'>[00:11:53]</a></td><td><span class='tc core'>CORE</span> sekarang belum selesai cegukannya dari</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=921' target='_blank' class='t-link'>[00:15:21]</a></td><td><span class='tc core'>CORE</span> cegukannya hilang gitu loh</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1011' target='_blank' class='t-link'>[00:16:51]</a></td><td><span class='tc core'>CORE</span> yang bisa sembuhin cegukannya Bang Affan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1256' target='_blank' class='t-link'>[00:20:56]</a></td><td><span class='tc core'>CORE</span> cegukannya hilang Tapi sumpah sekali</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1260' target='_blank' class='t-link'>[00:21:00]</a></td><td><span class='tc core'>CORE</span> yang penting cegukan gue ilang</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=1648' target='_blank' class='t-link'>[00:27:28]</a></td><td><span class='tc core'>CORE</span> malah cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=3270' target='_blank' class='t-link'>[00:54:30]</a></td><td><span class='tc core'>CORE</span> cegukan gua nggak ilang</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6016' target='_blank' class='t-link'>[01:40:16]</a></td><td><span class='tc core'>CORE</span> cegukannya hilang gitu</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6042' target='_blank' class='t-link'>[01:40:42]</a></td><td><span class='tc core'>CORE</span> yang bisa ngilangin cegukan gua</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=6436' target='_blank' class='t-link'>[01:47:16]</a></td><td><span class='tc core'>CORE</span> cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=7403' target='_blank' class='t-link'>[02:03:23]</a></td><td><span class='tc core'>CORE</span> cara ngilangin cegukan</td></tr>\n<tr><td><a href='https://youtu.be/gAQIEyzUHYc?t=8026' target='_blank' class='t-link'>[02:13:46]</a></td><td><span class='tc core'>CORE</span> gua cegukan udah dari kemarin magrib</td></tr>\n"
+        }
+      }
+    },
+    {
+      "video_id": "MGOPfyVrd0c",
+      "source": "yt-api",
+      "segments_raw": [
+        {
+          "text": "Ya, aku lagi cegukan jadi mohon maaf",
+          "start": 0.12,
+          "duration": 3.72
+        },
+        {
+          "text": "kalau ada suara aneh-aneh ya. Mohon",
+          "start": 1.68,
+          "duration": 5.16
+        },
+        {
+          "text": "dimaklumin.",
+          "start": 3.84,
+          "duration": 3.0
+        },
+        {
+          "text": "20 year eh 23 year saf 23 tahun telah",
+          "start": 7.759,
+          "duration": 7.12
+        },
+        {
+          "text": "berlalu. Eh, sorry.",
+          "start": 11.679,
+          "duration": 7.081
+        },
+        {
+          "text": "Obly was longer.",
+          "start": 14.879,
+          "duration": 9.64
+        },
+        {
+          "text": "Oh, pas banget dia foto pas anu ya.",
+          "start": 18.76,
+          "duration": 9.48
+        },
+        {
+          "text": "Aduh, sorry. Twin tower jatuh ya.",
+          "start": 24.519,
+          "duration": 8.281
+        },
+        {
+          "text": "Oh, emang udah 23 tahun ya sejak twin",
+          "start": 28.24,
+          "duration": 8.76
+        },
+        {
+          "text": "tower jatuh ya?",
+          "start": 32.8,
+          "duration": 4.2
+        },
+        {
+          "text": "Anjing mentara kek semangat semangat",
+          "start": 39.079,
+          "duration": 8.401
+        },
+        {
+          "text": "ngci menjaga slime sorry jagukan",
+          "start": 41.64,
+          "duration": 5.84
+        },
+        {
+          "text": "mengor",
+          "start": 49.92,
+          "duration": 3.0
+        },
+        {
+          "text": "lucu banget naiknya",
+          "start": 57.44,
+          "duration": 5.72
+        },
+        {
+          "text": "dulu minum dulu bentar ya udah kita",
+          "start": 60.92,
+          "duration": 4.239
+        },
+        {
+          "text": "minum dulu tapi sebenarnya aku malah",
+          "start": 63.16,
+          "duration": 4.999
+        },
+        {
+          "text": "udah Kenyang kenyang air ini. Makanya",
+          "start": 65.159,
+          "duration": 7.441
+        },
+        {
+          "text": "waktu malah cegukan.",
+          "start": 68.159,
+          "duration": 4.441
+        },
+        {
+          "text": "Aku udah kenyang air makanya cegukan.",
+          "start": 76.0,
+          "duration": 6.72
+        },
+        {
+          "text": "Aduh",
+          "start": 79.72,
+          "duration": 3.0
+        },
+        {
+          "text": "makanya cigukan minum dulu deana. Udah",
+          "start": 84.32,
+          "duration": 7.4
+        },
+        {
+          "text": "aku udah kenyang air putih kenyang. Udah",
+          "start": 87.72,
+          "duration": 5.8
+        },
+        {
+          "text": "penuh perutku gara-gara air putih.",
+          "start": 91.72,
+          "duration": 4.079
+        },
+        {
+          "text": "Makanya cegukan.",
+          "start": 93.52,
+          "duration": 5.279
+        },
+        {
+          "text": "Aduh",
+          "start": 95.799,
+          "duration": 3.0
+        },
+        {
+          "text": "ya. Satu duait.",
+          "start": 99.92,
+          "duration": 7.239
+        },
+        {
+          "text": "Aw.",
+          "start": 104.159,
+          "duration": 3.0
+        },
+        {
+          "text": "Hah.",
+          "start": 108.68,
+          "duration": 3.0
+        },
+        {
+          "text": "Aduh. Sorry sorry guys.",
+          "start": 111.759,
+          "duration": 7.28
+        },
+        {
+          "text": "Nah jelek banget tadi ya. Kenapa",
+          "start": 115.96,
+          "duration": 7.0
+        },
+        {
+          "text": "sambil buka mulu lagi.",
+          "start": 119.039,
+          "duration": 3.921
+        },
+        {
+          "text": "Sorryit.",
+          "start": 125.36,
+          "duration": 3.0
+        },
+        {
+          "text": "Kenapa ya? Agak aneh ya ini tahan",
+          "start": 135.319,
+          "duration": 4.721
+        },
+        {
+          "text": "beberapa",
+          "start": 137.599,
+          "duration": 2.441
+        }
+      ],
+      "engines": {
+        "e": {
+          "video_id": "MGOPfyVrd0c",
+          "channel": "fixtures",
+          "status": "analyzed",
+          "status_label": "✅ VALID | 1 cluster, 5 hit",
+          "hits": [
+            {
+              "sec": 0,
+              "time": "00:00:00",
+              "text": "Ya, aku lagi cegukan jadi mohon maaf",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=0"
+            },
+            {
+              "sec": 41,
+              "time": "00:00:41",
+              "text": "ngci menjaga slime sorry jagukan",
+              "tiers": {
+                "CORE": 0,
+                "TYPO": 1,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=41"
+            },
+            {
+              "sec": 68,
+              "time": "00:01:08",
+              "text": "waktu malah cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=68"
+            },
+            {
+              "sec": 76,
+              "time": "00:01:16",
+              "text": "Aku udah kenyang air makanya cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=76"
+            },
+            {
+              "sec": 93,
+              "time": "00:01:33",
+              "text": "Makanya cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=93"
+            }
+          ],
+          "score": 34,
+          "persentase": 56,
+          "tier_counts": {
+            "CORE": 4,
+            "TYPO": 1,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 1,
+          "maraton_mins": 1,
+          "is_valid": true,
+          "kasta": "VALID",
+          "kasta_label": "✅ VALID | 1 cluster, 5 hit",
+          "html_rows": "<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=0' target='_blank' class='t-link'>[00:00:00]</a></td><td><span class='tc core'>CORE</span> Ya, aku lagi <span class='hl core'>cegukan</span> jadi mohon maaf</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=41' target='_blank' class='t-link'>[00:00:41]</a></td><td><span class='tc typo'>TYPO</span> ngci menjaga slime sorry <span class='hl typo'>jagukan</span></td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=68' target='_blank' class='t-link'>[00:01:08]</a></td><td><span class='tc core'>CORE</span> waktu malah <span class='hl core'>cegukan</span>.</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=76' target='_blank' class='t-link'>[00:01:16]</a></td><td><span class='tc core'>CORE</span> Aku udah kenyang air makanya <span class='hl core'>cegukan</span>.</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=93' target='_blank' class='t-link'>[00:01:33]</a></td><td><span class='tc core'>CORE</span> Makanya <span class='hl core'>cegukan</span>.</td></tr>\n"
+        },
+        "ie": {
+          "video_id": "MGOPfyVrd0c",
+          "channel": "fixtures",
+          "status": "analyzed",
+          "status_label": "✅ VALID | 1 cluster, 5 hit",
+          "hits": [
+            {
+              "sec": 0,
+              "time": "00:00:00",
+              "text": "Ya, aku lagi cegukan jadi mohon maaf",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=0"
+            },
+            {
+              "sec": 41,
+              "time": "00:00:41",
+              "text": "ngci menjaga slime sorry jagukan",
+              "tiers": {
+                "CORE": 0,
+                "TYPO": 1,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=41"
+            },
+            {
+              "sec": 68,
+              "time": "00:01:08",
+              "text": "waktu malah cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=68"
+            },
+            {
+              "sec": 76,
+              "time": "00:01:16",
+              "text": "Aku udah kenyang air makanya cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=76"
+            },
+            {
+              "sec": 93,
+              "time": "00:01:33",
+              "text": "Makanya cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=93"
+            }
+          ],
+          "score": 34,
+          "persentase": 56,
+          "tier_counts": {
+            "CORE": 4,
+            "TYPO": 1,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 1,
+          "maraton_mins": 1,
+          "is_valid": true,
+          "kasta": "VALID",
+          "kasta_label": "✅ VALID | 1 cluster, 5 hit",
+          "html_rows": "<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=0' target='_blank' class='t-link'>[00:00:00]</a></td><td><span class='tc core'>CORE</span> Ya, aku lagi cegukan jadi mohon maaf</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=41' target='_blank' class='t-link'>[00:00:41]</a></td><td><span class='tc typo'>TYPO</span> ngci menjaga slime sorry jagukan</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=68' target='_blank' class='t-link'>[00:01:08]</a></td><td><span class='tc core'>CORE</span> waktu malah cegukan.</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=76' target='_blank' class='t-link'>[00:01:16]</a></td><td><span class='tc core'>CORE</span> Aku udah kenyang air makanya cegukan.</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=93' target='_blank' class='t-link'>[00:01:33]</a></td><td><span class='tc core'>CORE</span> Makanya cegukan.</td></tr>\n"
+        },
+        "ae": {
+          "video_id": "MGOPfyVrd0c",
+          "channel": "fixtures",
+          "status": "analyzed",
+          "status_label": "✅ VALID | 1 cluster, 5 hit",
+          "hits": [
+            {
+              "sec": 0,
+              "time": "00:00:00",
+              "text": "Ya, aku lagi cegukan jadi mohon maaf",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=0"
+            },
+            {
+              "sec": 41,
+              "time": "00:00:41",
+              "text": "ngci menjaga slime sorry jagukan",
+              "tiers": {
+                "CORE": 0,
+                "TYPO": 1,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=41"
+            },
+            {
+              "sec": 68,
+              "time": "00:01:08",
+              "text": "waktu malah cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=68"
+            },
+            {
+              "sec": 76,
+              "time": "00:01:16",
+              "text": "Aku udah kenyang air makanya cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=76"
+            },
+            {
+              "sec": 93,
+              "time": "00:01:33",
+              "text": "Makanya cegukan.",
+              "tiers": {
+                "CORE": 1,
+                "TYPO": 0,
+                "SILENT": 0,
+                "CONTEXT": 0,
+                "FP": 0
+              },
+              "url": "https://youtu.be/MGOPfyVrd0c?t=93"
+            }
+          ],
+          "score": 34,
+          "persentase": 56,
+          "tier_counts": {
+            "CORE": 4,
+            "TYPO": 1,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 1,
+          "maraton_mins": 1,
+          "is_valid": true,
+          "kasta": "VALID",
+          "kasta_label": "✅ VALID | 1 cluster, 5 hit",
+          "html_rows": "<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=0' target='_blank' class='t-link'>[00:00:00]</a></td><td><span class='tc core'>CORE</span> Ya, aku lagi cegukan jadi mohon maaf</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=41' target='_blank' class='t-link'>[00:00:41]</a></td><td><span class='tc typo'>TYPO</span> ngci menjaga slime sorry jagukan</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=68' target='_blank' class='t-link'>[00:01:08]</a></td><td><span class='tc core'>CORE</span> waktu malah cegukan.</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=76' target='_blank' class='t-link'>[00:01:16]</a></td><td><span class='tc core'>CORE</span> Aku udah kenyang air makanya cegukan.</td></tr>\n<tr><td><a href='https://youtu.be/MGOPfyVrd0c?t=93' target='_blank' class='t-link'>[00:01:33]</a></td><td><span class='tc core'>CORE</span> Makanya cegukan.</td></tr>\n"
+        }
+      }
+    },
+    {
+      "video_id": "zTYQOZah84M",
+      "source": "yt-api",
+      "segments_raw": [
+        {
+          "text": "hai hai",
+          "start": 0.0,
+          "duration": 2.659
+        },
+        {
+          "text": "hai hai",
+          "start": 3.31,
+          "duration": 4.78
+        },
+        {
+          "text": "Aa Iya mbok mbok mbok wes opo Mbok opo",
+          "start": 4.779,
+          "duration": 5.801
+        },
+        {
+          "text": "Mbok nyari kacamata Iya Iya siap Bos",
+          "start": 8.09,
+          "duration": 3.83
+        },
+        {
+          "text": "siap",
+          "start": 10.58,
+          "duration": 5.179
+        },
+        {
+          "text": "ledak sabar",
+          "start": 11.92,
+          "duration": 6.839
+        },
+        {
+          "text": "biasa",
+          "start": 15.759,
+          "duration": 3.0
+        },
+        {
+          "text": "tadi ada Si Mbok kita",
+          "start": 19.06,
+          "duration": 6.24
+        },
+        {
+          "text": "next berarti Elisa",
+          "start": 21.669,
+          "duration": 3.631
+        },
+        {
+          "text": "usah ngapain tuh kata kepala atau tidak",
+          "start": 25.82,
+          "duration": 5.39
+        },
+        {
+          "text": "akan melihat Apa yang kamu cari ya",
+          "start": 28.88,
+          "duration": 4.949
+        },
+        {
+          "text": "pemain bola",
+          "start": 31.21,
+          "duration": 6.579
+        },
+        {
+          "text": "Hai apa yang beratnya 3 kilo Anjir yang",
+          "start": 33.829,
+          "duration": 9.711
+        },
+        {
+          "text": "menyumpah juga dong bau mulut lo bau",
+          "start": 37.789,
+          "duration": 7.671
+        },
+        {
+          "text": "Hai pemain ini mah sangat mudah",
+          "start": 43.54,
+          "duration": 3.38
+        },
+        {
+          "text": "jawabannya coy",
+          "start": 45.46,
+          "duration": 4.17
+        },
+        {
+          "text": "pemain bola yang berarti hanya tiga kilo",
+          "start": 46.92,
+          "duration": 6.09
+        },
+        {
+          "text": "Abang tabung gas",
+          "start": 49.63,
+          "duration": 6.049
+        },
+        {
+          "text": "Ndak tau lah kamu udah lihat ya bukannya",
+          "start": 53.01,
+          "duration": 5.279
+        },
+        {
+          "text": "udah lihat lalu kan Caranya beda gimana",
+          "start": 55.679,
+          "duration": 4.531
+        },
+        {
+          "text": "sih Nur itu udah banyak banget",
+          "start": 58.289,
+          "duration": 4.11
+        },
+        {
+          "text": "dimana-mana terlalu red cari yang agak",
+          "start": 60.21,
+          "duration": 3.799
+        },
+        {
+          "text": "susah makanya",
+          "start": 62.399,
+          "duration": 4.981
+        },
+        {
+          "text": "Norse banget sih lu udah tahu bapak kata",
+          "start": 64.009,
+          "duration": 7.451
+        },
+        {
+          "text": "bungkus kau nginep kok bohongin kamu",
+          "start": 67.38,
+          "duration": 7.23
+        },
+        {
+          "text": "yang nyari gimana sih Nur gue juga nyari",
+          "start": 71.46,
+          "duration": 6.299
+        },
+        {
+          "text": "kita saja tahu gimana kutahu dan tapi",
+          "start": 74.61,
+          "duration": 4.86
+        },
+        {
+          "text": "aku udah tahu gimana Ya udah berarti aku",
+          "start": 77.759,
+          "duration": 4.731
+        },
+        {
+          "text": "menang tanya apa",
+          "start": 79.47,
+          "duration": 3.02
+        },
+        {
+          "text": "Hai kami cuma pinjem",
+          "start": 85.59,
+          "duration": 6.26
+        },
+        {
+          "text": "Hai sahabat-sahabat semua",
+          "start": 88.02,
+          "duration": 3.83
+        },
+        {
+          "text": "hahaha hihihi cuma harusnya jangan",
+          "start": 91.94,
+          "duration": 4.92
+        },
+        {
+          "text": "dijawab sih Ketemu gitu ih soalnya suka",
+          "start": 94.64,
+          "duration": 6.93
+        },
+        {
+          "text": "gitu demen ini Uh Iya Yaudah kalah sama",
+          "start": 96.86,
+          "duration": 9.03
+        },
+        {
+          "text": "gue gila Berarti ilmu lutcher ekspansi",
+          "start": 101.57,
+          "duration": 8.55
+        },
+        {
+          "text": "Anggi enggak jelas deh udah",
+          "start": 105.89,
+          "duration": 4.23
+        },
+        {
+          "text": "yo yo",
+          "start": 111.03,
+          "duration": 3.96
+        },
+        {
+          "text": "hai hai",
+          "start": 112.7,
+          "duration": 5.67
+        },
+        {
+          "text": "Hai aku harus mencium dulu dong ya",
+          "start": 114.99,
+          "duration": 6.38
+        },
+        {
+          "text": "akhir-akhir",
+          "start": 118.37,
+          "duration": 3.0
+        },
+        {
+          "text": "Hai",
+          "start": 123.31,
+          "duration": 2.03
+        },
+        {
+          "text": "srikaya",
+          "start": 126.63,
+          "duration": 5.07
+        },
+        {
+          "text": "paling kaya Ya",
+          "start": 128.22,
+          "duration": 3.48
+        },
+        {
+          "text": "udah gini aja ya udah Ya udah",
+          "start": 133.02,
+          "duration": 6.939
+        },
+        {
+          "text": "ini channel ulo anjing ini channel",
+          "start": 136.98,
+          "duration": 5.13
+        },
+        {
+          "text": "banget bukan channel gua",
+          "start": 139.959,
+          "duration": 5.121
+        },
+        {
+          "text": "masa iya gue ngoceh",
+          "start": 142.11,
+          "duration": 4.56
+        },
+        {
+          "text": "Oke",
+          "start": 145.08,
+          "duration": 5.17
+        },
+        {
+          "text": "tadi yang sangat tidak jelaskan sangat",
+          "start": 146.67,
+          "duration": 7.179
+        },
+        {
+          "text": "tidak lucu pastinya akan dan Sepertinya",
+          "start": 150.25,
+          "duration": 5.58
+        },
+        {
+          "text": "kalian kalau misalnya memang suka",
+          "start": 153.849,
+          "duration": 6.591
+        },
+        {
+          "text": "berarti kalian bercandanya masalah",
+          "start": 155.83,
+          "duration": 7.939
+        },
+        {
+          "text": "tapi kalau",
+          "start": 160.44,
+          "duration": 3.329
+        },
+        {
+          "text": "kalian Klik tombol like nya jangan lupa",
+          "start": 163.799,
+          "duration": 5.141
+        },
+        {
+          "text": "share ke teman-teman kalian semua jangan",
+          "start": 166.9,
+          "duration": 4.79
+        },
+        {
+          "text": "lupa di subscribe",
+          "start": 168.94,
+          "duration": 2.75
+        },
+        {
+          "text": "Ya sudah kalau nggak suka ya udah biasa",
+          "start": 173.28,
+          "duration": 5.89
+        },
+        {
+          "text": "aja mau ngatain kita juga bodo amat deh",
+          "start": 176.62,
+          "duration": 4.679
+        },
+        {
+          "text": "nih guys tahukah kalian kalau mau",
+          "start": 179.17,
+          "duration": 4.649
+        },
+        {
+          "text": "ngatain kita berdua terserah Hai",
+          "start": 181.299,
+          "duration": 6.371
+        },
+        {
+          "text": "bebaskan membuka goyang penting jangan",
+          "start": 183.819,
+          "duration": 6.7
+        },
+        {
+          "text": "membawa-bawa agama ini orang begini",
+          "start": 187.67,
+          "duration": 5.37
+        },
+        {
+          "text": "Walaupun dia kerudungan dia bejat gua",
+          "start": 190.519,
+          "duration": 5.94
+        },
+        {
+          "text": "kasih tahu kita mau tidak ditutupin Iya",
+          "start": 193.04,
+          "duration": 7.099
+        },
+        {
+          "text": "anti munafik nanti",
+          "start": 196.459,
+          "duration": 3.68
+        },
+        {
+          "text": "jadi buat kalian jangan lupa di channel",
+          "start": 200.859,
+          "duration": 5.701
+        },
+        {
+          "text": "mereka juga",
+          "start": 204.23,
+          "duration": 6.08
+        },
+        {
+          "text": "eh follow instagram",
+          "start": 206.56,
+          "duration": 3.75
+        },
+        {
+          "text": "disini ini namanya Erika lagi di namanya",
+          "start": 210.43,
+          "duration": 6.729
+        },
+        {
+          "text": "Pras dongo jangan lupa subscribe channel",
+          "start": 214.76,
+          "duration": 4.19
+        },
+        {
+          "text": "yang",
+          "start": 217.159,
+          "duration": 6.47
+        },
+        {
+          "text": "PR ras.com gold apinya",
+          "start": 218.95,
+          "duration": 7.48
+        },
+        {
+          "text": "buat kalian thank you so much Sudah klik",
+          "start": 223.629,
+          "duration": 6.301
+        },
+        {
+          "text": "video ini Makasih banyak ya",
+          "start": 226.43,
+          "duration": 5.88
+        },
+        {
+          "text": "jatuhnya kayak mau perpisahan kayaknya",
+          "start": 229.93,
+          "duration": 4.509
+        },
+        {
+          "text": "pecitraan sih jatuhnya kalau begitu Elok",
+          "start": 232.31,
+          "duration": 4.5
+        },
+        {
+          "text": "kalau misalnya suka udah naik suka Lex",
+          "start": 234.439,
+          "duration": 4.44
+        },
+        {
+          "text": "enggak suka dislike gampang gitu aja",
+          "start": 236.81,
+          "duration": 4.319
+        },
+        {
+          "text": "komen-komen sepuas rupanya lama banget",
+          "start": 238.879,
+          "duration": 7.081
+        },
+        {
+          "text": "Ya udah bye bye ketemu",
+          "start": 241.129,
+          "duration": 4.831
+        }
+      ],
+      "engines": {
+        "e": {
+          "video_id": "zTYQOZah84M",
+          "channel": "fixtures",
+          "status": "no_match",
+          "status_label": "⬜ Tidak Ada Indikasi",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ie": {
+          "video_id": "zTYQOZah84M",
+          "channel": "fixtures",
+          "status": "no_match",
+          "status_label": "⬜ Tidak Ada Indikasi",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        },
+        "ae": {
+          "video_id": "zTYQOZah84M",
+          "channel": "fixtures",
+          "status": "no_match",
+          "status_label": "⬜ Tidak Ada Indikasi",
+          "hits": [],
+          "score": 0,
+          "persentase": 0,
+          "tier_counts": {
+            "CORE": 0,
+            "TYPO": 0,
+            "SILENT": 0,
+            "CONTEXT": 0,
+            "FP": 0
+          },
+          "cluster_count": 0,
+          "maraton_mins": 0,
+          "is_valid": false,
+          "kasta": "ZONK",
+          "kasta_label": "💀 ZONK",
+          "html_rows": ""
+        }
+      }
+    }
+  ]
+}

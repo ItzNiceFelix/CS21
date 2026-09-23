@@ -35,14 +35,19 @@ class TestIdAntiTypo(unittest.TestCase):
         cls.spec = load("id")
 
     def test_id_tiers(self):
+        # Nilai = tier WAJIB hadir. Diperiksa terhadap baseline nyata
+        # (cs20_engine._ALL_KEYWORD_TIERS), bukan asumsi:
+        #   `jegukan`/`cekukan` match regex CORE id (`je+g+...`/`ce+k+...`) -> CORE
+        #   `segukan`/`cukukan` hanya match TYPO -> TYPO
+        #   `aduh cegukan` mengandung kata `cegukan` (CORE)
         cases = {
             "cegukan": "CORE",
             "jegukan": "CORE",
-            "segukan": "CORE",
-            "cekukan": "TYPO",
+            "segukan": "TYPO",
+            "cekukan": "CORE",
             "cukukan": "TYPO",
             "kecegukan": "CORE",
-            "aduh cegukan": "TYPO",
+            "aduh cegukan": "CORE",
             "cegukan terus": "SILENT",
             "tersedak": "CONTEXT",
             "nyendawa": "FP",

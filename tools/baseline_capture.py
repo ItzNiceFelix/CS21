@@ -16,6 +16,7 @@ import argparse
 import datetime as _dt
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -73,7 +74,11 @@ def fetch_video_ids(channel: str, limit: int) -> list[str]:
     unlimited = limit <= 0
     base = channel.strip()
     if not (base.startswith("http://") or base.startswith("https://")):
-        base = f"https://www.youtube.com/@{base.lstrip('@')}"
+        # channel_id mentah (UCxxxx...) BUKAN format @handle — pakai /channel/.
+        if re.fullmatch(r"UC[A-Za-z0-9_-]{22}", base):
+            base = f"https://www.youtube.com/channel/{base}"
+        else:
+            base = f"https://www.youtube.com/@{base.removeprefix('@')}"
     base = base.rstrip("/")
     if "/videos" not in base and "/streams" not in base:
         base = f"{base}/videos"

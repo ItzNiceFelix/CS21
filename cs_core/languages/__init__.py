@@ -12,6 +12,8 @@
 
 from __future__ import annotations
 
+import re
+
 from . import forms as _forms
 from .base import (
     DEFAULT_FUZZY_THRESHOLD,
@@ -56,21 +58,38 @@ def _merge_in_te(raw: dict) -> dict:
     return out
 
 
-def _expand_forms(data: dict, script: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """Kembalikan (core_forms, patterns) untuk satu tier dari deklarasi."""
-    core_forms = list(data.get("core_forms", []))
+def _expand_forms(
+    data: dict,
+    script: str,
+    exclude: frozenset = frozenset(),
+    exclude_regexes: tuple = (),
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Kembalikan (core_forms, patterns) untuk satu tier dari deklarasi.
 
-    literal_forms = list(core_forms)
+    `exclude` = form yang sudah jadi milik tier lain (biasanya CORE). Form yang
+    dikecualikan dibuang dari `core_forms` dan varian generated tier ini, supaya
+    mis. `auto_typo("cekukan")` yang menghasilkan `cegukan` (kata CORE) TIDAK
+    bocor jadi pattern TYPO. Tanpa ini, satu segmen "cegukan" ikut dihitung TYPO
+    dan menaikkan skor (regresi nyata vs baseline).
+    """
+    def _blocked(form: str) -> bool:
+        if form.lower() in exclude:
+            return True
+        return any(r.search(form) for r in exclude_regexes)
+
+    raw_core_forms = list(data.get("core_forms", []))
+    core_forms = [f for f in raw_core_forms if not _blocked(f)]
+
     gen_variants: set[str] = set()
     if "auto_typo" in data.get("variants", []):
         cap = int(data.get("max_variants", 24))
-        for form in literal_forms:
+        for form in core_forms:
             if form.isascii() and form.isalpha():
                 gen_variants |= auto_typo(form, cap)
     if "phonetic_id" in data.get("variants", []):
         # fonetik ID = lookup L3 (arch §3.1), bukan pattern regex — hanya
         # menyumbang ke pattern bila ekuivalennya berupa kata Latin.
-        for form in literal_forms:
+        for form in core_forms:
             if form.isascii() and form.isalpha():
                 key = phonetic_id(form)
                 if key and key != form.lower():
@@ -78,7 +97,11 @@ def _expand_forms(data: dict, script: str) -> tuple[tuple[str, ...], tuple[str, 
 
     romanized = [romanize(f, script) for f in data.get("romanized", [])]
     latin_forms = sorted(
-        {f for f in (list(gen_variants) + romanized) if f and f.isascii()}
+        {
+            f
+            for f in (list(gen_variants) + romanized)
+            if f and f.isascii() and not _blocked(f)
+        }
     )
 
     patterns: list[str] = []
@@ -100,12 +123,34 @@ def load(lang: str) -> LanguageSpec:
     script = raw.get("script", _SCRIPTS.get(key, "latin"))
     tiers = raw.get("tiers", {})
 
+    # Form milik CORE (kata inti + varian generated) — dipakai sebagai exclusion
+    # untuk tier lain supaya varian typo (mis. auto_typo("cekukan")->"cegukan")
+    # tidak bocor jadi pattern tier lain dan menaikkan skor.
+    core_tier_data = tiers.get("CORE", {})
+    core_exclude: set[str] = {f.lower() for f in core_tier_data.get("core_forms", [])}
+    for f in list(core_tier_data.get("core_forms", [])):
+        if f.isascii() and f.isalpha():
+            core_exclude |= {v.lower() for v in auto_typo(f, int(core_tier_data.get("max_variants", 24)))}
+    # Regex CORE struktural juga "mengklaim" kata: mis. CORE id punya
+    # `je+g+[uo]+k+[ae]+n+` yang match "jegukan". Form TYPO "jegukan" karenanya
+    # beririsan dengan CORE -> buang dari TYPO (kalau tidak, satu kata dihitung
+    # CORE + TYPO dan menaikkan skor di luar baseline).
+    core_regexes = []
+    for pat in core_tier_data.get("regex", []):
+        try:
+            core_regexes.append(re.compile(pat, re.IGNORECASE))
+        except re.error:
+            pass
+    core_exclude = frozenset(core_exclude)
+
     cores: list[KeywordCore] = []
     fuzzy_skip: set[str] = set()
     thresholds: dict[str, float] = {}
     for name in TIER_ORDER:
         data = tiers.get(name, {})
-        _core_forms, patterns = _expand_forms(data, script)
+        exclude = frozenset() if name == "CORE" else core_exclude
+        exclude_re = () if name == "CORE" else core_regexes
+        _core_forms, patterns = _expand_forms(data, script, exclude, exclude_re)
         weight = int(data.get("weight", TierWeights().as_dict().get(name, 0)))
         cores.append(
             KeywordCore(
