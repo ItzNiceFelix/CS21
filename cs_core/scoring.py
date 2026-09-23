@@ -5,10 +5,12 @@ Satu implementasi menggantikan 3 salinan E/IE/AE. Tidak menyentuh fetch/HTML.
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 
 from . import config as _config
 from .languages.base import LanguageSpec
+from .matching import match_segment as _match_segment
 from .text import normalize as _normalize
 
 __all__ = [
@@ -139,12 +141,22 @@ def score_segments(
     video_duration_sec=None,
     video_id: str = "",
     lang: str = "",
+    enable_fuzzy: bool | None = None,
 ) -> AnalysisResult:
-    """Analisis segmen -> AnalysisResult. Rumus persis baseline spec §3-§5."""
+    """Analisis segmen -> AnalysisResult. Rumus persis baseline spec §3-§5.
+
+    `enable_fuzzy`:
+    - `None` (default): baca `config.enable_fuzzy()` (env `CS_ENABLE_FUZZY`).
+    - `False`: jalur Fase 1 murni (L1 exact) — hasil byte-for-byte sama.
+    - `True`: L1→L2→L3 via `matching.match_segment`, dengan cap fuzzy per
+      video (`fuzzy_hits_cap` per tier).
+    """
     cluster_mode = cluster_mode or _config.cluster_mode()
     if dedup_mode is None:
         # P8: float bila sumber punya duration, else int0.
         dedup_mode = "float" if _any_duration(segments) else "int0"
+    if enable_fuzzy is None:
+        enable_fuzzy = _config.enable_fuzzy()
 
     lang = lang or spec.lang
     base = _no_match(video_id, lang, spec)
@@ -154,7 +166,11 @@ def score_segments(
     full_text = " ".join(
         _normalize(s) for s in seg_list
     )
-    if not spec.combined_prefilter or not spec.combined_prefilter.search(full_text):
+    # Prefilter exact hanya bermakna di jalur non-fuzzy; fuzzy butuh kandidat
+    # yang justru TIDAK match exact (mis. `jeguakan`), jadi jangan gating.
+    if not enable_fuzzy and (
+        not spec.combined_prefilter or not spec.combined_prefilter.search(full_text)
+    ):
         return base
 
     # ── ANALISIS PER SEGMEN (E797-838) ──────────────────────────────
@@ -162,21 +178,40 @@ def score_segments(
     tier_counts = {t: 0 for t in spec.tier_names()}
     last_text = ""
     last_sec = -1
+    # Cap kontribusi fuzzy per tier per VIDEO (lintas segmen, arch §3.3 #6).
+    fuzzy_used = {t: 0 for t in spec.tier_names()}
 
     for seg in seg_list:
         text = _normalize(seg)
         if not text or text == last_text:
             continue
-        if not spec.combined_prefilter.search(text):
+        # Jalur non-fuzzy: prefilter exact per segmen (perilaku Fase 1).
+        # Jalur fuzzy: lewati (token kandidat justru bukan match exact).
+        if not enable_fuzzy and not spec.combined_prefilter.search(text):
             continue
         if dedup_key(seg, last_sec, dedup_mode):
             continue
 
-        hit_tiers = {t: 0 for t in spec.tier_names()}
-        for core in spec.cores:
-            for pat in core.regexes or ():
-                if pat.search(text):
-                    hit_tiers[core.tier] += 1
+        if enable_fuzzy:
+            hit_tiers = _match_segment(text, spec, enable_fuzzy=True)
+            # exact L1 (1 pattern match) tetap dihitung utk scoring exact;
+            # match_segment sudah menandai tier via 0/1.
+            exact = _exact_tier_counts(text, spec)
+            for tier in hit_tiers:
+                if hit_tiers[tier] <= 0:
+                    continue
+                if exact.get(tier, 0) > 0:
+                    hit_tiers[tier] = exact[tier]
+                else:
+                    # kontribusi fuzzy baru: hormati cap per video.
+                    cap = _fuzzy_cap(spec, tier)
+                    if fuzzy_used[tier] >= cap:
+                        hit_tiers[tier] = 0
+                        continue
+                    fuzzy_used[tier] += 1
+        else:
+            hit_tiers = _exact_tier_counts(text, spec)
+
         if not any(v > 0 for v in hit_tiers.values()):
             continue
 
@@ -308,6 +343,31 @@ def score_segments(
         cluster_mode=cluster_mode,
         score_cap=SCORE_CAP,
     )
+
+
+def _exact_tier_counts(text: str, spec: LanguageSpec) -> dict[str, int]:
+    """L1 exact: jumlah pattern match per tier (perilaku Fase 1)."""
+    out = {t: 0 for t in spec.tier_names()}
+    for core in spec.cores:
+        for pat in core.regexes or ():
+            if pat.search(text):
+                out[core.tier] += 1
+    return out
+
+
+def _fuzzy_cap(spec: LanguageSpec, tier: str) -> int:
+    """Cap kontribusi fuzzy per tier per video; `FP` tak di-cap (bukan fuzzy).
+
+    `fuzzy_hits_cap <= 0` = tanpa cap. `FP` selalu tanpa cap.
+    """
+    if tier == "FP":
+        return sys.maxsize
+    cap = getattr(spec, "fuzzy_hits_cap", 8)
+    try:
+        cap = int(cap)
+    except (TypeError, ValueError):
+        return 8
+    return cap if cap > 0 else sys.maxsize
 
 
 def _any_duration(segments) -> bool:

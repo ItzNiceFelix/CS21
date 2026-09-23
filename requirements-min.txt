@@ -1,0 +1,4 @@
+# Minimal / stdlib-only: cs_core TIDAK butuh dependency pihak ketiga.
+# Fuzzy L2 jatuh ke difflib.SequenceMatcher + length gate otomatis
+# (cs_core/diagnostics.py: HAVE_RAPIDFUZZ=False).
+# File ini sengaja kosong (tanpa rapidfuzz) sebagai kontrak jalur pure-Python.

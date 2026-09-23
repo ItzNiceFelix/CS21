@@ -1,0 +1,5 @@
+# Termux / Android ARM64 (musllinux aarch64 wheels where available).
+# Install: pip install -r requirements-termux.txt --break-system-packages
+# cs_core tetap jalan TANPA rapidfuzz (fallback difflib, lihat
+# cs_core/diagnostics.py). rapidfuzz = akselerasi opsional L2 fuzzy.
+rapidfuzz>=3.5,<4
