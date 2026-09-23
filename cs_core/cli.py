@@ -275,9 +275,12 @@ def _human_size(num_bytes: int) -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m cs_core",
-        description="Cegukan Seeker core CLI (cs_core).",
+        description="Cegukan Seeker core CLI (cs_core). "
+                    "Tanpa argumen = menu interaktif (ramah HP).",
     )
     parser.add_argument("--version", action="version", version=f"cs_core {__version__}")
+    parser.add_argument("--config-dir", default=".cs20", dest="config_dir",
+                        help="direktori config/checkpoint (default .cs20)")
     sub = parser.add_subparsers(dest="command")
 
     p_analyze = sub.add_parser("analyze", help="fetch transcript + scoring satu video")
@@ -362,8 +365,13 @@ def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
-        parser.print_help()
-        return 0
+        # Tanpa subcommand -> menu interaktif (ramah HP/Android).
+        from .menu import run_menu
+        try:
+            return run_menu(config_dir=args.__dict__.get("config_dir", ".cs20"))
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 130
     return args.func(args)
 
 
