@@ -2618,10 +2618,16 @@ def process_channel(args):
     }
 
     # ── Jalankan sesuai mode ──────────────────────────────────────
-    # ── V21: Mode Tidur & Semi Pantau dihapus. Fast Search (pantau) satu-satunya alur. ──
-    results, consecutive_errors = run_display_pantau(
-        channel, video_ids_to_process, worker, cp_info, webhook_url
-    )
+    # `plain` (non-interaktif/cron): log per baris via run_display_tidur,
+    # tanpa dashboard Live — aman untuk stdout non-TTY (cron, pipe, systemd).
+    if mode == "plain":
+        results, consecutive_errors = run_display_tidur(
+            channel, video_ids_to_process, worker, cp_info, webhook_url
+        )
+    else:
+        results, consecutive_errors = run_display_pantau(
+            channel, video_ids_to_process, worker, cp_info, webhook_url
+        )
 
     # ── SUMMARY TERMINAL ────────────────────────────────────────────
     elapsed = time.time() - _stats["start_time"]

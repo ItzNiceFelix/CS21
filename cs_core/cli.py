@@ -1,6 +1,8 @@
 """CLI baru `python -m cs_core` (Fase 7 / T7.1).
 
 Subcommand:
+- `scan     --channel NAME [--limit N] [--lang id] [--ui]`
+  scan channel non-interaktif (engine utama; plain default untuk cron).
 - `analyze  --video ID [--lang id] [--cache-dir PATH] [--json]`
   fetch transcript (cs_core.transcript) -> scoring (cs_core.scoring) -> ringkas.
 - `search   --query "..." [--index-dir PATH] [--channel NAME]`
@@ -167,6 +169,41 @@ def _default_index_dir() -> str:
 
 
 # ---------------------------------------------------------------------------
+# scan (non-interaktif, engine utama sebagai subprocess)
+# ---------------------------------------------------------------------------
+def _cmd_scan(args) -> int:
+    """Scan channel via cs20_engine.py TANPA prompt.
+
+    Semua opsi dari flag; default non-UI (plain) supaya aman untuk cron, pipe,
+    atau stdout non-TTY. Pakai --ui untuk dashboard Live.
+    """
+    channel = (args.channel or "").strip()
+    if not channel:
+        print("error: --channel wajib diisi", file=sys.stderr)
+        return 2
+
+    mode = "pantau" if args.ui else "plain"
+    passthrough = [
+        "--channel", channel,
+        "--limit", str(args.limit),
+        "--jobs", str(args.jobs),
+        "--content-type", args.content_type,
+        "--executor", args.executor,
+        "--mode", mode,
+        "--start-from", str(args.start_from),
+        "--checkpoint-dir", args.checkpoint_dir,
+        "--config-dir", args.config_dir,
+        "--lang", args.lang,
+        "--webhook-url", args.webhook_url,
+    ]
+    if args.display_name:
+        passthrough += ["--display-name", args.display_name]
+    if args.retry_blocked_log:
+        passthrough += ["--retry-blocked-log", args.retry_blocked_log]
+    return _run_engine("cs20_engine.py", passthrough)
+
+
+# ---------------------------------------------------------------------------
 # index / age (subprocess passthrough)
 # ---------------------------------------------------------------------------
 def _run_engine(script_name: str, passthrough: list) -> int:
@@ -257,6 +294,29 @@ def build_parser() -> argparse.ArgumentParser:
     p_search.add_argument("--channel", default="", help="label channel (opsional)")
     p_search.add_argument("--json", action="store_true", help="output JSON")
     p_search.set_defaults(func=_cmd_search)
+
+    p_scan = sub.add_parser(
+        "scan",
+        help="scan channel non-interaktif (engine utama, plain default)",
+    )
+    p_scan.add_argument("--channel", required=True, help="handle / channel_id / URL")
+    p_scan.add_argument("--lang", default="id", help="kode bahasa (id/en/jp/kr/in/th)")
+    p_scan.add_argument("--limit", type=int, default=50, help="jumlah video (<=0 = semua)")
+    p_scan.add_argument("--jobs", type=int, default=4, help="worker paralel")
+    p_scan.add_argument("--content-type", default="all", help="live | video | all",
+                        dest="content_type")
+    p_scan.add_argument("--executor", default="cli", help="nama operator di laporan")
+    p_scan.add_argument("--start-from", type=int, default=0, dest="start_from")
+    p_scan.add_argument("--checkpoint-dir", default=".cs20/checkpoints",
+                        dest="checkpoint_dir")
+    p_scan.add_argument("--config-dir", default=".cs20", dest="config_dir")
+    p_scan.add_argument("--webhook-url", default="", dest="webhook_url",
+                        help="URL Discord; kosong = tanpa kirim laporan")
+    p_scan.add_argument("--display-name", default="", dest="display_name")
+    p_scan.add_argument("--retry-blocked-log", default="", dest="retry_blocked_log")
+    p_scan.add_argument("--ui", action="store_true",
+                        help="pakai dashboard Live (default: plain/cron-friendly)")
+    p_scan.set_defaults(func=_cmd_scan)
 
     p_index = sub.add_parser("index", help="delegasi ke cs20_index_engine.py")
     p_index.add_argument("passthrough", nargs=argparse.REMAINDER)

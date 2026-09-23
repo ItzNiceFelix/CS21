@@ -37,11 +37,11 @@ class TestCliHelp(unittest.TestCase):
     def test_help_exit_zero_no_heavy_deps(self):
         r = _run_module("--help")
         self.assertEqual(r.returncode, 0, r.stderr)
-        for cmd in ("analyze", "search", "index", "age", "cache"):
+        for cmd in ("scan", "analyze", "search", "index", "age", "cache"):
             self.assertIn(cmd, r.stdout)
 
     def test_subcommand_help(self):
-        for cmd in ("analyze", "search", "cache"):
+        for cmd in ("scan", "analyze", "search", "cache"):
             with self.subTest(cmd=cmd):
                 r = _run_module(cmd, "--help")
                 self.assertEqual(r.returncode, 0, r.stderr)
@@ -92,6 +92,45 @@ class TestCliAnalyze(unittest.TestCase):
         self.assertEqual(payload["video_id"], "abc")
         self.assertGreater(payload["tier_counts"]["CORE"], 0)
         self.assertEqual(payload["source"], "mock")
+
+
+class TestCliScan(unittest.TestCase):
+    def test_scan_requires_channel(self):
+        out = io.StringIO()
+        err = io.StringIO()
+        from contextlib import redirect_stderr
+        with redirect_stdout(out), redirect_stderr(err):
+            rc = cli.main(["scan", "--channel", "  "])
+        self.assertEqual(rc, 2)
+        self.assertIn("--channel wajib", err.getvalue())
+
+    def test_scan_builds_plain_passthrough(self):
+        """scan tanpa --ui harus memanggil engine dengan --mode plain."""
+        captured = {}
+        orig = cli._run_engine
+        cli._run_engine = lambda script, args: captured.update(script=script, args=args) or 0
+        try:
+            rc = cli.main(["scan", "--channel", "UCabc", "--limit", "3",
+                           "--config-dir", "cfg", "--checkpoint-dir", "cp"])
+        finally:
+            cli._run_engine = orig
+        self.assertEqual(rc, 0)
+        self.assertEqual(captured["script"], "cs20_engine.py")
+        args = captured["args"]
+        self.assertIn("--mode", args)
+        self.assertEqual(args[args.index("--mode") + 1], "plain")
+        self.assertIn("UCabc", args)
+
+    def test_scan_ui_uses_pantau(self):
+        captured = {}
+        orig = cli._run_engine
+        cli._run_engine = lambda script, args: captured.update(args=args) or 0
+        try:
+            cli.main(["scan", "--channel", "UCabc", "--ui"])
+        finally:
+            cli._run_engine = orig
+        args = captured["args"]
+        self.assertEqual(args[args.index("--mode") + 1], "pantau")
 
 
 if __name__ == "__main__":
