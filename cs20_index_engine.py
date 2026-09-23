@@ -592,6 +592,17 @@ def build_html_index(
     search_query: str = "",
 ) -> str:
     """Build HTML report untuk Index Mode. Identik dengan engine lama + badge batch."""
+    # Fase 6: satu implementasi di cs_core.report (batch/search sbg executor tag).
+    try:
+        from cs_core.report import build_html as _cs_build_html
+
+        executor_tagged = f"{executor} [INDEX Batch {batch_no:02d}]"
+        if search_query:
+            executor_tagged += f" [SEARCH: {search_query[:30]}]"
+        return _cs_build_html(channel, executor_tagged, results, lang)
+    except Exception:
+        pass
+
     try:
         from cs20_engine import build_html as _bh
         # Inject batch info ke executor string
@@ -638,11 +649,20 @@ def send_discord_index(
     search_query: str = "",
 ):
     """Kirim laporan Index Mode ke Discord."""
+    executor_tagged = f"{executor} [INDEX Batch {batch_no:02d}]"
+    if search_query:
+        executor_tagged += f" [SEARCH: {search_query[:30]}]"
+
+    # Fase 6: satu implementasi di cs_core.report.
+    try:
+        from cs_core.report import send_discord as _cs_send_discord
+
+        return _cs_send_discord(webhook_url, channel, executor_tagged, results, html_path)
+    except Exception:
+        pass
+
     try:
         from cs20_engine import send_discord as _sd
-        executor_tagged = f"{executor} [INDEX Batch {batch_no:02d}]"
-        if search_query:
-            executor_tagged += f" [SEARCH: {search_query[:30]}]"
         _sd(webhook_url, channel, executor_tagged, results, html_path)
         return
     except ImportError:

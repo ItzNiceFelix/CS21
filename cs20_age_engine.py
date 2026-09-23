@@ -911,9 +911,18 @@ def run_analysis_phase(
 # ==============================================================================
 def _build_html(channel: str, executor: str, results: list, lang: str,
                 session_label: str) -> str:
+    # Fase 6: satu implementasi di cs_core.report (session sbg executor tag).
+    tag = f"{executor} [AGE-BYPASS {session_label}]"
+    try:
+        from cs_core.report import build_html as _cs_build_html
+
+        return _cs_build_html(channel, tag, results, lang)
+    except Exception:
+        pass
+
     try:
         from cs20_engine import build_html as _bh
-        return _bh(channel, f"{executor} [AGE-BYPASS {session_label}]", results, lang)
+        return _bh(channel, tag, results, lang)
     except ImportError:
         pass
 
@@ -947,10 +956,20 @@ def _build_html(channel: str, executor: str, results: list, lang: str,
 # ==============================================================================
 def _send_discord(webhook_url: str, channel: str, executor: str,
                   results: list, html_path: str, session_label: str):
+    tag = f"{executor} [AGE-BYPASS {session_label}]"
+
+    # Fase 6: satu implementasi di cs_core.report.
+    try:
+        from cs_core.report import send_discord as _cs_send_discord
+
+        _cs_send_discord(webhook_url, channel, tag, results, html_path)
+        return
+    except Exception:
+        pass
+
     try:
         from cs20_engine import send_discord as _sd
-        _sd(webhook_url, channel,
-            f"{executor} [AGE-BYPASS {session_label}]", results, html_path)
+        _sd(webhook_url, channel, tag, results, html_path)
         return
     except ImportError:
         pass

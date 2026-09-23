@@ -1720,6 +1720,18 @@ def run_display_pantau(channel, video_ids, worker_fn, checkpoint_info: dict, web
 # BUILD HTML REPORT
 # ==============================================================================
 def build_html(channel: str, executor: str, results: list, lang: str = "id") -> str:
+    # Fase 6/T6.2: satu implementasi di `cs_core.report`. Fallback ke versi
+    # lama di bawah bila cs_core bermasalah.
+    try:
+        from cs_core.report import build_html as _cs_build_html
+
+        return _cs_build_html(
+            channel, executor, results, lang,
+            meta={"display_name": _display_name_override or ""},
+        )
+    except Exception:
+        pass
+
     valid_results   = [r for r in results if r.get("is_valid")]
     no_trans        = [r for r in results if r["status"] in ("no_transcript","disabled","unavailable")]
     no_match        = [r for r in results if r["status"] == "no_match"]
@@ -2151,6 +2163,14 @@ def send_discord(webhook_url: str, channel: str, executor: str,
     Return True bila ringkasan (dan file bila ada) berhasil terkirim; False
     bila dilewati/gagal. Dipakai pemanggil untuk memutuskan hapus HTML lokal.
     """
+    # Fase 6/T6.1: delegasi ke `cs_core.report`; fallback ke versi lama.
+    try:
+        from cs_core.report import send_discord as _cs_send_discord
+
+        return _cs_send_discord(webhook_url, channel, executor, results, html_path)
+    except Exception:
+        pass
+
     if not webhook_url:
         safe_print(f"[yellow][⚠️] Webhook URL tidak ditemukan. Skip Discord.[/yellow]")
         return False
