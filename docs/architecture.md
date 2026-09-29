@@ -49,12 +49,8 @@ cs_core/
   languages/
     __init__.py      # registry bahasa, load deklaratif
     base.py          # dataclass LanguageSpec, KeywordCore, TierWeights
-    id.yaml          # (atau .py dict) deklarasi kata inti Indonesia
-    en.yaml
-    jp.yaml
-    kr.yaml
-    in.yaml
-    th.yaml
+    forms.py         # deklarasi kata inti per bahasa (menggantikan *.yaml)
+    spec_data.py     # data baseline referensi (transcript langs, tier lama)
     variants.py      # generator varian (regex/romanisasi/fonetik)
   matching.py        # matcher berlapis: exact -> fuzzy -> phonetic, kandidat & skor
   scoring.py         # SATU implementasi scoring + clustering + kasta
@@ -62,7 +58,14 @@ cs_core/
   cache.py           # gzip JSONL store, key, TTL, invalidation
   report.py          # HTML + Discord tunggal (konsumen struktur hasil)
   compat.py          # shim: hasil baru -> skema dict lama (hits/tiers/tier_counts/...)
-  cli.py             # entry baru opsional: cs20 search/analyze/index/age
+  cli.py             # entry `cs21`: menu/analyze/scan/search/index/age/cache/doctor
+  menu.py            # menu interaktif (semua aksi + picker channel tersimpan)
+  tui.py             # prompt_toolkit / readline / plain, lebar adaptif, unicode guard
+  errors.py          # ExitCode + CsError + pemetaan pesan error -> bahasa Indonesia
+  doctor.py          # preflight Termux (deps/storage/cookies/webhook) + --fix
+  termux.py          # wake-lock, notifikasi, open-url, clipboard (semua opsional)
+  settings.py        # preferensi persisten (.cs20/settings.json) + lokasi config
+  engine_compat.py   # normalisasi channel/bahasa untuk engine lama
   diagnostics.py     # log ringan, timing, fallback-probe, no rich
 ```
 
@@ -79,7 +82,11 @@ cs_core/
 | `cs_core.report` | `build_html(result, meta)`, `send_discord(...)` | Tidak menghitung skor |
 | `cs_core.compat` | Konversi `AnalysisResult` → dict skema lama + label kasta lama bila diminta | Tidak logika baru |
 | `cs_core.languages` | Deklarasi bahasa + generator varian | Tidak tahu channel/IO |
-| `cs_core.cli` | Orkestrasi: parse argumen, pilih sumber, panggil core, cetak | Tidak implementasi matching |
+| `cs_core.cli` | Orkestrasi: parse argumen, pilih sumber, panggil core, cetak, exit code | Tidak implementasi matching |
+| `cs_core.menu` | Menu interaktif: pilih aksi/channel, delegasi ke engine lama sebagai subprocess | Tidak implementasi scoring |
+| `cs_core.tui` | Input/pemilih (prompt_toolkit → readline → plain), lebar adaptif | Tidak tahu domain cegukan |
+| `cs_core.doctor` | Preflight + perbaikan otomatis (`--fix`) | Tidak menyentuh data user |
+| `cs_core.termux` | Integrasi Android (wake-lock, notifikasi, open-url) | Semua opsional, tidak pernah fatal |
 
 ### Engine lama → peran baru
 

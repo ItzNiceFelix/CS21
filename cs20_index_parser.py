@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import threading
 import time
 import glob
@@ -29,11 +30,14 @@ except ImportError:
     raise SystemExit(1)
 
 _console     = Console()
+_err_console = Console(stderr=True)
 _print_lock  = threading.Lock()
 
 def safe_print(*args, **kwargs):
+    """Cetak lewat rich; `file=sys.stderr` didukung (stdout harus tetap bersih)."""
     with _print_lock:
-        _console.print(*args, **kwargs)
+        target = _err_console if kwargs.pop("file", None) is sys.stderr else _console
+        target.print(*args, **kwargs)
 
 # ── Hook age-restricted log ──────────────────────────────────────
 try:
@@ -56,13 +60,16 @@ def detect_cache_root() -> str:
         path = os.path.join(shared, "CS20_Index")
     else:
         path = os.path.expanduser("~/.cs20/index_cache")
+        # Peringatan ke STDERR: stdout harus tetap bersih untuk `--json`.
         safe_print(
             "[yellow][⚠️] Storage permission belum disetup. "
-            "Cache disimpan di Termux home.[/yellow]"
+            "Cache disimpan di Termux home.[/yellow]",
+            file=sys.stderr,
         )
         safe_print(
             "[dim]     Jalankan: termux-setup-storage "
-            "untuk akses storage internal[/dim]"
+            "untuk akses storage internal[/dim]",
+            file=sys.stderr,
         )
     os.makedirs(path, exist_ok=True)
     return path

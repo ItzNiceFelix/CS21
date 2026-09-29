@@ -1,0 +1,12 @@
+#!/bin/sh
+# Shim: jalankan cs21 dari folder mana pun (aman dipanggil via symlink).
+#
+#   cs21                 -> menu interaktif
+#   cs21 doctor --fix    -> perbaiki dependensi
+#
+# Dipakai juga oleh symlink `$PREFIX/bin/cs21` (mis. `ln -s <repo>/bin/cs21 $PREFIX/bin/cs21`).
+SELF="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SELF")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT" || exit 1
+exec python3 -m cs_core "$@"

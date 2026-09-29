@@ -1137,6 +1137,13 @@ def process_age_mode(args):
     limit        = args.limit
     jobs         = min(max(1, args.jobs), 4)  # 1–4 workers, default 2
 
+    # `--no-prompt`: caller (menu/CLI) sudah mengumpulkan semua parameter.
+    # Tanpa ini, engine akan meminta ulang channel/tipe konten/limit/jobs.
+    # Non-TTY (cron/pipe/redirect) juga dipaksa non-interaktif: prompt di sana
+    # hanya menghasilkan EOFError + traceback.
+    no_prompt    = bool(getattr(args, "no_prompt", False)) or not sys.stdin.isatty()
+    assume_yes   = bool(getattr(args, "yes", False))
+
     # ── SIGINT handler ───────────────────────────────────────────────
     def _on_sigint(sig, frame):
         safe_print("\n[yellow][⚠️] Ctrl+C — menyimpan log dan keluar...[/yellow]")
@@ -1224,7 +1231,7 @@ def process_age_mode(args):
             video_ids = []
 
     # Jika belum ada video_ids (sesi baru atau tidak pilih log)
-    if not video_ids:
+    if not video_ids and not no_prompt:
         safe_print("")
         safe_print(Rule("[bold red]🔞 SESI BARU — AGE BYPASS[/bold red]", style="red"))
         safe_print("")
@@ -1281,12 +1288,25 @@ def process_age_mode(args):
         test_video_id = video_ids[0]
         source_label  = f"@{channel} ({len(video_ids)} video)"
 
+    # `--no-prompt` dengan channel: ambil daftar video langsung (tanpa tanya).
+    if no_prompt and not video_ids:
+        if not channel:
+            safe_print("[red][❌] --no-prompt butuh --channel.[/red]")
+            sys.exit(2)
+        safe_print(f"[dim]  Mengambil video dari @{channel} (limit {limit})...[/dim]")
+        video_ids = _get_video_ids_from_channel(channel, content_type, limit)
+        if not video_ids:
+            safe_print(f"[red][❌] Tidak ada video ditemukan untuk @{channel}.[/red]")
+            sys.exit(1)
+        test_video_id = video_ids[0]
+        source_label  = f"@{channel} ({len(video_ids)} video)"
+
     # ──────────────────────────────────────────────────────────────────
     # 2. VALIDASI COOKIES
     # ──────────────────────────────────────────────────────────────────
     cookies_ok = phase_check_cookies(cookies_path, test_video_id)
     if not cookies_ok:
-        return
+        sys.exit(1)
 
     # ──────────────────────────────────────────────────────────────────
     # 3. RINGKASAN & KONFIRMASI
@@ -1304,7 +1324,7 @@ def process_age_mode(args):
         width=min(_TERM_WIDTH - 2, 60),
     ))
 
-    konfirm = _console.input(
+    konfirm = "y" if (no_prompt or assume_yes) else _console.input(
         "\n  [bold]➤ Mulai bypass? (y/n):[/bold] "
     ).strip().lower()
     if konfirm not in ("y", "ya", "yes"):
@@ -1429,6 +1449,16 @@ if __name__ == "__main__":
     parser.add_argument("--content-type",  default="all")
     parser.add_argument("--limit",         type=int, default=50)
     parser.add_argument("--jobs",          type=int, default=2)
+    parser.add_argument("--no-prompt",     action="store_true", dest="no_prompt",
+                        help="jangan tanya apa pun; semua dari argumen (dipakai menu/CLI)")
+    parser.add_argument("--yes",           action="store_true",
+                        help="lewati konfirmasi mulai")
 
     args = parser.parse_args()
+    try:
+        from cs_core.engine_compat import normalize_channel, resolve_lang_arg
+        args.channel = normalize_channel(args.channel)
+        args.lang = resolve_lang_arg(args.lang)
+    except ImportError:
+        pass
     process_age_mode(args)

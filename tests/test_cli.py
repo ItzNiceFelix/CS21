@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Fase 7 — smoke test CLI `python -m cs_core` (tanpa network).
+"""Smoke test CLI `cs21` — jalur yang tidak butuh jaringan.
 
-- `--help` exit 0 tanpa deps berat.
-- `cache stats` jalan di cache-dir sementara.
-- `analyze` dengan transcript di-mock (tanpa network) -> kasta + JSON valid.
+Kontrak exit code & pesan error ada di `tests/test_errors.py`; menu di
+`tests/test_menu.py`; delegasi engine di `tests/test_menu_delegation.py`.
 """
 
 from __future__ import annotations
@@ -23,7 +22,6 @@ if str(REPO_ROOT) not in sys.path:
 
 from cs_core import cli  # noqa: E402
 
-
 def _run_module(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "cs_core", *args],
@@ -32,23 +30,37 @@ def _run_module(*args: str) -> subprocess.CompletedProcess:
         cwd=str(REPO_ROOT),
     )
 
+class TestStartupIsLight(unittest.TestCase):
+    """`--help`/`--version` tidak boleh menarik yt-dlp/rich/requests."""
 
-class TestCliHelp(unittest.TestCase):
-    def test_help_exit_zero_no_heavy_deps(self):
+    def test_help_exit_zero(self):
         r = _run_module("--help")
         self.assertEqual(r.returncode, 0, r.stderr)
-        for cmd in ("scan", "analyze", "search", "index", "age", "cache"):
+        for cmd in ("menu", "scan", "analyze", "search", "index", "age", "cache", "doctor"):
             self.assertIn(cmd, r.stdout)
 
-    def test_subcommand_help(self):
-        for cmd in ("scan", "analyze", "search", "cache"):
-            with self.subTest(cmd=cmd):
-                r = _run_module(cmd, "--help")
-                self.assertEqual(r.returncode, 0, r.stderr)
+    def test_help_does_not_import_heavy_deps(self):
+        probe = (
+            "import sys, io, contextlib;"
+            "buf=io.StringIO();"
+            "from cs_core import cli;"
+            "code=0\n"
+            "with contextlib.redirect_stdout(buf):\n"
+            "    try:\n"
+            "        code = cli.main(['--help'])\n"
+            "    except SystemExit as e:\n"
+            "        code = e.code or 0\n"
+            "heavy=[m for m in ('yt_dlp','rich','requests','youtube_transcript_api')\n"
+            "       if m in sys.modules]\n"
+            "print('HEAVY', heavy, 'CODE', code)\n"
+        )
+        r = subprocess.run([sys.executable, "-c", probe], capture_output=True,
+                           text=True, cwd=str(REPO_ROOT))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("HEAVY []", r.stdout)
 
-
-class TestCliCache(unittest.TestCase):
-    def test_cache_stats_empty_dir(self):
+class TestCacheCommands(unittest.TestCase):
+    def test_stats_empty_dir(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = io.StringIO()
             with redirect_stdout(out):
@@ -56,7 +68,7 @@ class TestCliCache(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertIn("files     : 0", out.getvalue())
 
-    def test_cache_purge_all(self):
+    def test_purge_all_removes_files(self):
         from cs_core import cache
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -66,11 +78,21 @@ class TestCliCache(unittest.TestCase):
                 rc = cli.main(["cache", "--cache-dir", tmp, "purge", "--all"])
             self.assertEqual(rc, 0)
             self.assertIn("purge: 1 file", out.getvalue())
+            self.assertEqual(list(Path(tmp).rglob("*.jsonl.gz")), [])
 
+    def test_gc_keeps_fresh_files(self):
+        from cs_core import cache
 
-class TestCliAnalyze(unittest.TestCase):
-    def test_analyze_json_mock(self):
-        """Mock transcript.get_segments -> tak butuh network/deps."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cache.write("abc", "id", [{"sec": 0, "text": "cegukan"}], source="t", root=tmp)
+            out = io.StringIO()
+            with redirect_stdout(out):
+                rc = cli.main(["cache", "--cache-dir", tmp, "gc"])
+            self.assertEqual(rc, 0)
+            self.assertEqual(len(list(Path(tmp).rglob("*.jsonl.gz"))), 1)
+
+class TestAnalyzeWithoutNetwork(unittest.TestCase):
+    def test_analyze_json_with_mocked_transcript(self):
         import cs_core.transcript as transcript
 
         segments = [
@@ -93,45 +115,23 @@ class TestCliAnalyze(unittest.TestCase):
         self.assertGreater(payload["tier_counts"]["CORE"], 0)
         self.assertEqual(payload["source"], "mock")
 
+    def test_analyze_summary_is_human_readable(self):
+        import cs_core.transcript as transcript
 
-class TestCliScan(unittest.TestCase):
-    def test_scan_requires_channel(self):
-        out = io.StringIO()
-        err = io.StringIO()
-        from contextlib import redirect_stderr
-        with redirect_stdout(out), redirect_stderr(err):
-            rc = cli.main(["scan", "--channel", "  "])
-        self.assertEqual(rc, 2)
-        self.assertIn("--channel wajib", err.getvalue())
-
-    def test_scan_builds_plain_passthrough(self):
-        """scan tanpa --ui harus memanggil engine dengan --mode plain."""
-        captured = {}
-        orig = cli._run_engine
-        cli._run_engine = lambda script, args: captured.update(script=script, args=args) or 0
+        segments = [{"sec": 0, "text": "cegukan"}]
+        orig = transcript.get_segments
+        transcript.get_segments = lambda *a, **k: (segments, "mock", "hit")
         try:
-            rc = cli.main(["scan", "--channel", "UCabc", "--limit", "3",
-                           "--config-dir", "cfg", "--checkpoint-dir", "cp"])
+            out = io.StringIO()
+            with redirect_stdout(out):
+                rc = cli.main(["analyze", "--video", "abc", "--lang", "id"])
         finally:
-            cli._run_engine = orig
+            transcript.get_segments = orig
+
         self.assertEqual(rc, 0)
-        self.assertEqual(captured["script"], "cs20_engine.py")
-        args = captured["args"]
-        self.assertIn("--mode", args)
-        self.assertEqual(args[args.index("--mode") + 1], "plain")
-        self.assertIn("UCabc", args)
-
-    def test_scan_ui_uses_pantau(self):
-        captured = {}
-        orig = cli._run_engine
-        cli._run_engine = lambda script, args: captured.update(args=args) or 0
-        try:
-            cli.main(["scan", "--channel", "UCabc", "--ui"])
-        finally:
-            cli._run_engine = orig
-        args = captured["args"]
-        self.assertEqual(args[args.index("--mode") + 1], "pantau")
-
+        text = out.getvalue()
+        self.assertIn("video      : abc", text)
+        self.assertIn("kasta      :", text)
 
 if __name__ == "__main__":
     unittest.main()

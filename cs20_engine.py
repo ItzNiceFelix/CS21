@@ -2475,8 +2475,35 @@ def _kirim_laporan_darurat(alasan: str = "henti paksa"):
 # ==============================================================================
 # MAIN PROCESSING
 # ==============================================================================
+def _normalize_channel(raw: str) -> str:
+    """Bersihkan input channel: URL, '@', spasi, prefix 'channel/'/'c/'.
+
+    Delegasi ke `cs_core.engine_compat` bila tersedia (satu implementasi);
+    fallback lokal supaya engine tetap jalan tanpa paket cs_core.
+    """
+    try:
+        from cs_core.engine_compat import normalize_channel as _norm
+
+        return _norm(raw)
+    except ImportError:
+        pass
+    text = (raw or "").strip().replace(" ", "")
+    for prefix in ("https://www.youtube.com/", "http://www.youtube.com/",
+                   "https://youtube.com/", "http://youtube.com/",
+                   "youtube.com/", "www.youtube.com/"):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    text = text.split("?", 1)[0].split("#", 1)[0]
+    if text.startswith("channel/"):
+        text = text[len("channel/"):]
+    elif text.startswith("c/"):
+        text = text[2:]
+    text = text.split("/", 1)[0]
+    return text.lstrip("@").rstrip("/")
+
 def process_channel(args):
-    channel      = args.channel
+    channel      = _normalize_channel(args.channel)
     limit        = args.limit
     jobs         = args.jobs
     content_type = args.content_type
@@ -2485,6 +2512,24 @@ def process_channel(args):
     start_from   = args.start_from
     checkpoint_dir = args.checkpoint_dir
     config_dir   = args.config_dir
+
+    if not channel:
+        safe_print("[red][❌] --channel kosong setelah dinormalisasi.[/red]")
+        sys.exit(2)
+
+    # Bahasa tak dikenal -> pakai 'id' seperti perilaku lama, tapi beri tahu
+    # (sebelumnya diam-diam jatuh ke 'id' dan tetap menulis cache `xx`).
+    try:
+        from cs_core.errors import resolve_lang as _resolve_lang
+        normalized_lang = _resolve_lang(args.lang)
+        if normalized_lang != args.lang:
+            safe_print(f"[yellow][⚠️] Bahasa '{args.lang}' tidak dikenal — memakai '{normalized_lang}'.[/yellow]")
+        args.lang = normalized_lang
+    except ImportError:
+        pass
+    except Exception:
+        safe_print(f"[red][❌] Bahasa '{args.lang}' tidak dikenal (id/en/jp/kr/in/th).[/red]")
+        sys.exit(2)
 
     os.makedirs(config_dir, exist_ok=True)  # engine standalone tanpa cs20.sh
 
@@ -2556,8 +2601,11 @@ def process_channel(args):
 
     if not video_ids:
         safe_print(f"[red][❌] Tidak ada video ditemukan untuk {_channel_label(channel)}.[/red]")
+        safe_print(f"[yellow]   Periksa nama channel, atau coba: yt-dlp --flat-playlist --print id "
+                   f"{_channel_base_url(channel)}/videos[/yellow]")
         send_discord(webhook_url, channel, executor, [], "")
-        return
+        cleanup_all(channel, checkpoint_dir)
+        sys.exit(1)
 
     # Apply checkpoint
     if start_from > 0 and start_from < len(video_ids):

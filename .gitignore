@@ -1,8 +1,11 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
+
+# Runtime & rahasia lokal (JANGAN pernah di-commit)
 .cs20*
 .cs_tmp_*/
 .cs_checkpoints/
 .chatseeker_log.json
 *.live_chat.json
+inject_webhook.sh
 docs/*.local.md

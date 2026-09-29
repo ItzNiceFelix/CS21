@@ -1,4 +1,9 @@
-# Minimal / stdlib-only: cs_core TIDAK butuh dependency pihak ketiga.
-# Fuzzy L2 jatuh ke difflib.SequenceMatcher + length gate otomatis
-# (cs_core/diagnostics.py: HAVE_RAPIDFUZZ=False).
-# File ini sengaja kosong (tanpa rapidfuzz) sebagai kontrak jalur pure-Python.
+# Jalur pure-stdlib: `cs_core` TIDAK butuh dependency pihak ketiga.
+#
+# - Fuzzy L2 memakai `difflib.SequenceMatcher` (selalu ada di stdlib).
+# - Menu interaktif otomatis memakai mode angka + tab-completion (readline)
+#   bila `prompt_toolkit` tidak terpasang.
+#
+# File ini sengaja kosong sebagai kontrak: `pip install -r requirements-min.txt`
+# tidak memasang apa pun, dan `python -m cs_core` tetap berfungsi penuh
+# kecuali `prompt_toolkit` (opsional, lihat requirements-termux.txt).

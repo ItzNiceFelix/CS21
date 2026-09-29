@@ -664,6 +664,12 @@ def main():
                               "SESI INI SAJA, tidak ditulis ke SEED_QUERIES.")
     args = parser.parse_args()
 
+    try:
+        from cs_core.engine_compat import resolve_lang_arg
+        args.lang = resolve_lang_arg(args.lang)
+    except ImportError:
+        pass
+
     if args.clear_history:
         cleared = clear_history(args.config_dir, args.lang)
         safe_print(f"[green]History {'dihapus' if cleared else 'sudah kosong'}.[/green]")

@@ -828,6 +828,11 @@ def process_index_mode(args):
     batches_per_run = args.batches_per_run
     start_batch    = args.start_batch    # 1-based
 
+    # `--no-prompt`: semua parameter sudah dari caller (menu/CLI).
+    # Non-TTY (cron/pipe) dipaksa non-interaktif supaya tidak EOFError.
+    no_prompt      = bool(getattr(args, "no_prompt", False)) or not sys.stdin.isatty()
+    assume_yes     = bool(getattr(args, "yes", False))
+
     os.makedirs(config_dir, exist_ok=True)  # engine standalone tanpa cs20.sh
 
     cache_root   = detect_cache_root()
@@ -847,10 +852,14 @@ def process_index_mode(args):
             total_videos = get_playlist_count(channel, content_type)
             if total_videos <= 0:
                 safe_print(
-                    "[yellow][⚠️] Tidak bisa menghitung otomatis. "
-                    "Gunakan --total-videos.[/yellow]"
+                    "[red][❌] Tidak bisa menghitung jumlah video "
+                    f"@{channel} — channel mungkin salah/private.[/red]"
                 )
-                return
+                safe_print(
+                    "[yellow]   Periksa nama channel, atau isi --total-videos N "
+                    "kalau tahu jumlahnya.[/yellow]"
+                )
+                sys.exit(1)
 
         videos_per_batch = (total_videos + total_batches - 1) // total_batches
 
@@ -902,6 +911,17 @@ def process_index_mode(args):
     ][:batches_per_run]
 
     if not pending_batches:
+        errored = [b for b in meta["batches"] if b.get("status") == "error"]
+        if errored:
+            safe_print(
+                f"[red][❌] Tidak ada batch pending — "
+                f"{len(errored)} batch sebelumnya GAGAL "
+                f"({', '.join(str(b['batch_no']) for b in errored[:5])}).[/red]"
+            )
+            safe_print(
+                "[yellow]   Periksa nama channel / --total-videos, lalu jalankan ulang.[/yellow]"
+            )
+            sys.exit(1)
         safe_print(
             "[green][✅] Semua batch sudah selesai untuk sesi ini![/green]"
         )
@@ -1003,7 +1023,7 @@ def process_index_mode(args):
 
         # ── SEARCH MANUAL ────────────────────────────────────────────
         safe_print("")
-        do_search = _console.input(
+        do_search = "n" if no_prompt else _console.input(
             "[bold]  Mau search manual di index batch ini?[/bold] (y/n): "
         ).strip().lower()
 
@@ -1015,7 +1035,7 @@ def process_index_mode(args):
 
         # ── TRANSISI BATCH ───────────────────────────────────────────
         safe_print("")
-        lanjut = _console.input(
+        lanjut = "y" if (no_prompt or assume_yes) else _console.input(
             "[bold]  Hapus cache batch ini dan lanjut ke batch berikutnya?[/bold] (y/n): "
         ).strip().lower()
 
@@ -1042,14 +1062,36 @@ def process_index_mode(args):
         meta["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         save_meta(session_dir, meta)
 
+    # Hitung hasil: batch error = exit 1 (skrip/cron harus tahu ini gagal),
+    # bukan "selesai" palsu seperti sebelumnya.
+    errored = [b for b in meta["batches"] if b.get("status") == "error"]
+    done    = [b for b in meta["batches"] if b.get("status") == "done"]
+    pending = [b for b in meta["batches"] if b.get("status") == "pending"]
+
+    if errored:
+        safe_print(
+            f"[red][❌] {len(errored)} batch gagal (tidak ada video ID): "
+            f"{', '.join(str(b['batch_no']) for b in errored[:5])}"
+            f"{' …' if len(errored) > 5 else ''}[/red]"
+        )
+        safe_print(
+            "[yellow]   Periksa nama channel / --total-videos, lalu jalankan ulang.[/yellow]"
+        )
+
     safe_print(
         Panel(
             f"[white]Sesi Index Mode untuk @{channel} selesai.[/white]\n"
+            f"[white]Batch: {len(done)} selesai · {len(errored)} gagal · "
+            f"{len(pending)} pending[/white]\n"
             f"[dim]Session data: {session_dir}[/dim]",
-            title="[bold green]🏁 INDEX MODE SELESAI[/bold green]",
-            border_style="green",
+            title=("[bold red]🏁 INDEX MODE BERHENTI[/bold red]" if errored
+                   else "[bold green]🏁 INDEX MODE SELESAI[/bold green]"),
+            border_style=("red" if errored else "green"),
         )
     )
+
+    if errored and not done:
+        sys.exit(1)
 
 
 # ==============================================================================
@@ -1068,6 +1110,16 @@ if __name__ == "__main__":
     parser.add_argument("--total-batches",    type=int, default=10)
     parser.add_argument("--batches-per-run",  type=int, default=2)
     parser.add_argument("--start-batch",      type=int, default=1)
+    parser.add_argument("--no-prompt",        action="store_true", dest="no_prompt",
+                        help="jangan tanya apa pun; semua dari argumen (dipakai menu/CLI)")
+    parser.add_argument("--yes",              action="store_true",
+                        help="lewati konfirmasi lanjut batch")
 
     args = parser.parse_args()
+    try:
+        from cs_core.engine_compat import normalize_channel, resolve_lang_arg
+        args.channel = normalize_channel(args.channel)
+        args.lang = resolve_lang_arg(args.lang)
+    except ImportError:
+        pass
     process_index_mode(args)

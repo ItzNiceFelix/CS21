@@ -45,15 +45,47 @@ except ImportError:
 # ==============================================================================
 # KONFIGURASI — edit di sini
 # ==============================================================================
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1517591900637364375/y-DH3wJ5yonUeCX1Wmwq_luox9AlodaFqyMrpwfQWmJAI1pYDpqySkEZyJ_MFpO9hkKQ"
+# Webhook TIDAK ditulis di source (repo ini publik). Diambil dari file inject
+# `.cs20/.webhook_injected` yang dibuat `inject_webhook.sh`, atau env
+# `CS_WEBHOOK` / `CHATSEEKER_WEBHOOK`. Kosong = laporan Discord dilewati.
 LOG_FILE        = Path(".chatseeker_log.json")
 CHECKPOINT_DIR  = Path(".cs_checkpoints")
 # Cookies opsional — pakai file yang sama dengan cs20_age_engine.py (folder .cs20/cookies.txt)
 COOKIES_PATH    = Path(__file__).resolve().parent / ".cs20" / "cookies.txt"
+WEBHOOK_FILE    = Path(__file__).resolve().parent / ".cs20" / ".webhook_injected"
 WORKERS         = 4          # paralel download
 DL_SLEEP_BASE   = 0.8        # detik jeda antar request (lebih rendah dari v2)
 SOCK_TIMEOUT    = 15
 EXTRACTOR_RETRY = 3
+
+def _load_webhook() -> str:
+    """Ambil webhook ChatSeeker: env dulu, lalu file inject (`WEBHOOK_GLOBAL`).
+
+    ChatSeeker = engine live-chat global (bukan khusus Indonesia), jadi pakai
+    webhook Global bila ada. Semua jalur gagal -> string kosong (laporan
+    Discord dilewati, bukan error).
+    """
+    for key in ("CHATSEEKER_WEBHOOK", "CS_WEBHOOK"):
+        value = (os.environ.get(key) or "").strip()
+        if value:
+            return value
+    try:
+        for line in WEBHOOK_FILE.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            name, _, value = line.partition("=")
+            if name.strip() == "WEBHOOK_GLOBAL":
+                value = value.strip().strip('"').strip("'")
+                if value:
+                    return value
+    except OSError:
+        pass
+    return ""
+
+# Webhook diambil saat dipakai (`_load_webhook()` di `_send_discord`), bukan
+# disimpan di variabel global: kalau file inject baru dibuat setelah proses
+# jalan, laporan berikutnya tetap terkirim.
 
 # ==============================================================================
 # TERMINAL SIZING — aman untuk Termux sempit
@@ -747,7 +779,8 @@ def _send_discord(
     html_path: Path | None = None,
     partial: bool = False,
 ):
-    if not DISCORD_WEBHOOK:
+    webhook = _load_webhook()
+    if not webhook:
         return
 
     total_hits = t4 + t3 + t2 + t1
@@ -781,7 +814,7 @@ def _send_discord(
             *cmd_base,
             "-F", f"payload_json={payload_str}",
             "-F", f"file=@{html_path}",
-            DISCORD_WEBHOOK,
+            webhook,
         ]
     else:
         cmd = [
@@ -789,7 +822,7 @@ def _send_discord(
             "-H", "Content-Type: application/json",
             "-X", "POST",
             "-d", payload_str,
-            DISCORD_WEBHOOK,
+            webhook,
         ]
 
     try:
@@ -1494,6 +1527,14 @@ def input_filter(channel: str) -> tuple[str, int | str]:
 def main():
     global _operator_name
 
+    # ChatSeeker sepenuhnya interaktif (nama operator, mode, channel). Kalau
+    # stdin bukan terminal (cron/pipe/`< /dev/null`), prompt rich akan berujung
+    # EOFError + traceback. Berhenti dengan pesan jelas.
+    if not sys.stdin.isatty():
+        print("ChatSeeker butuh terminal interaktif (stdin bukan TTY).")
+        print("Jalankan langsung: bash cs20.sh  -> menu 7, atau: python3 chatseeker.py")
+        return 2
+
     _console.clear()
 
     # Banner
@@ -1640,4 +1681,4 @@ def main():
 
 # ==============================================================================
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

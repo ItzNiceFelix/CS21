@@ -198,8 +198,12 @@ Gate F6 -> F7: test_report hijau + user setujui visual.
 ### FASE 7 — CLI baru, cleanup dependency, dokumentasi Termux (M)
 Tujuan: entry tunggal; instalasi bersih.
 
-- **T7.1** `cs_core/cli.py` — `search/analyze/index/age/cache`.
-- **T7.2** `cs20.sh` update: `check_and_install_deps` cek `cs_core` importable; tetap panggil engine lama (kompatibel) atau CLI baru (opsional).
+- **T7.1** `cs_core/cli.py` — `menu/analyze/scan/search/index/age/cache/doctor`,
+  exit code kontrak (`errors.ExitCode`), stdout bersih untuk `--json`.
+  Menu interaktif: `cs_core/menu.py` + `cs_core/tui.py` (+ `doctor.py`,
+  `settings.py`, `termux.py`).
+- **T7.2** `cs20.sh` = **shim tipis** -> `python3 -m cs_core` (semua logika menu
+  pindah ke `cs_core/menu.py`); engine lama tetap dipanggil sebagai subprocess.
 - **T7.3** `requirements-*.txt` final; README Termux (`pip install --break-system-packages`).
 - **T7.4** Hapus dead code (`_analyze_fallback` IE, `(?!)`, dead import).
 
@@ -248,7 +252,7 @@ DoD global:
 - [ ] `pytest tests/` full hijau.
 - [ ] `baseline_compare.py` mode BASELINE = 0 diff pada semua fixture.
 - [ ] Instalasi bersih Termux ARM64 (`requirements-min.txt` dan `requirements-termux.txt`).
-- [ ] `cs20.sh` semua mode (1,4,5,6,7,8) jalan tanpa error.
+- [ ] `cs21` (atau `bash cs20.sh`) semua menu (1,4,5,6,7,8) jalan tanpa error.
 - [ ] User validasi 1 channel nyata di Termux.
 
 Gate per fase:

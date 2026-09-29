@@ -1,5 +1,14 @@
-# Termux / Android ARM64 (musllinux aarch64 wheels where available).
+# Termux / Android ARM64 — paket opsional untuk pengalaman terbaik.
 # Install: pip install -r requirements-termux.txt --break-system-packages
-# cs_core tetap jalan TANPA rapidfuzz (fallback difflib, lihat
-# cs_core/diagnostics.py). rapidfuzz = akselerasi opsional L2 fuzzy.
-rapidfuzz>=3.5,<4
+#
+# WAJIB (bukan lewat pip):
+#   pkg install python yt-dlp curl
+#   pip install youtube-transcript-api requests rich --break-system-packages
+#
+# OPSIONAL:
+#   - prompt_toolkit : menu panah + filter + multi-pilih (tanpa ini menu
+#                      otomatis pakai mode angka + tab-completion readline).
+#   - rapidfuzz      : TIDAK dipakai. Di Termux, pip hanya memasang wheel
+#                      murni Python (tanpa ekstensi native), jadi tidak
+#                      mempercepat apa pun. Fuzzy L2 memakai difflib stdlib.
+prompt_toolkit>=3.0,<4
