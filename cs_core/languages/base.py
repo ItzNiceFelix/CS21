@@ -73,6 +73,8 @@ class LanguageSpec:
     fuzzy_skip: frozenset[str] = frozenset()
     fuzzy_threshold: dict[str, float] = None  # tier -> ambang overrides
     fuzzy_hits_cap: int = 8
+    # Kata nyata yang tidak boleh jadi kandidat fuzzy/fonetik (forms.VARIANT_BLOCKLIST).
+    variant_blocklist: frozenset[str] = frozenset()
 
     def __post_init__(self):
         # dataclass frozen: normalisasi default mutable -> default immutable.
@@ -82,6 +84,8 @@ class LanguageSpec:
             object.__setattr__(self, "neg_context", tuple(self.neg_context))
         if not isinstance(self.fuzzy_skip, frozenset):
             object.__setattr__(self, "fuzzy_skip", frozenset(self.fuzzy_skip))
+        if not isinstance(self.variant_blocklist, frozenset):
+            object.__setattr__(self, "variant_blocklist", frozenset(self.variant_blocklist))
 
     # --- lookup cepat -------------------------------------------------
     def core_for(self, tier: str) -> KeywordCore | None:

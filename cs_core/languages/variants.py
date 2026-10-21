@@ -30,13 +30,43 @@ __all__ = [
     "build_regex",
     "build_phonetic_set",
     "CJK_SCRIPTS",
+    "SCRIPT_RANGES",
+    "MIN_AUTO_TYPO_LEN",
 ]
 
 # max varian per form sebelum clamp (auto_typo). Cukup untuk typo ASR umum.
 _DEFAULT_MAX_VARIANTS = 24
 
+# Panjang minimum form agar `auto_typo` boleh jalan.
+#
+# Pada kata 3 huruf, satu substitusi sudah mengubah 33% kata: `hic` -> `his`,
+# `hec`, `hik`, `hci`, `ihc`. Hanya `his` yang kebetulan kata nyata, tapi
+# seluruh kelasnya berisiko (kemiripan 66.7%, jauh di bawah ambang 0.88 yang
+# dideklarasikan). Untuk form pendek, deteksi cukup lewat regex CORE
+# (`\bhic+\b`) + fuzzy L2 yang tetap menghormati ambang.
+MIN_AUTO_TYPO_LEN = 4
+
 # Script tanpa `\b` word-boundary yang berarti (arch §4.3).
+# Thai/JP/KR: partikel & kata menempel tanpa spasi, jadi substring memang benar.
 CJK_SCRIPTS = frozenset({"japanese", "korean", "devanagari", "telugu", "thai"})
+
+# Aksara yang MEMAKAI spasi antar kata tapi `\b` Python gagal: huruf terakhirnya
+# berkategori Mark (matra), sehingga `\b` tidak pernah cocok. Untuk ini dipakai
+# lookaround berbasis rentang aksara.
+#
+#   re.search(r"\bहिचकी\b", "मुझे हिचकी आई")  -> None   (salah)
+#   boundary eksplisit                          -> match  (benar)
+SCRIPT_RANGES: dict[str, str] = {
+    "devanagari": r"\u0900-\u097F",
+    "telugu": r"\u0C00-\u0C7F",
+}
+
+# `in` menggabungkan Hindi + Telugu: boundary harus menutup keduanya.
+_MERGED_RANGES: dict[str, str] = {
+    "devanagari": r"\u0900-\u097F\u0C00-\u0C7F",
+    "telugu": r"\u0900-\u097F\u0C00-\u0C7F",
+}
+
 
 # ---------------------------------------------------------------------------
 # auto_typo
@@ -115,8 +145,13 @@ def _auto_typo_cached(form: str, max_variants: int) -> tuple[str, ...]:
 
 
 def auto_typo(form: str, max_variants: int = _DEFAULT_MAX_VARIANTS) -> set[str]:
-    """Varian typo ASR untuk satu kata Latin (tanpa form asal)."""
-    if not form:
+    """Varian typo ASR untuk satu kata Latin (tanpa form asal).
+
+    Form lebih pendek dari `MIN_AUTO_TYPO_LEN` mengembalikan set kosong: pada
+    kata 3 huruf satu edit sudah mengubah sepertiga kata, sehingga variannya
+    menyimpang jauh di bawah ambang fuzzy yang dideklarasikan.
+    """
+    if not form or len(form) < MIN_AUTO_TYPO_LEN:
         return set()
     return set(_auto_typo_cached(form, int(max_variants)))
 
@@ -252,21 +287,32 @@ def romanize(form: str, script: str) -> str:
 # ---------------------------------------------------------------------------
 # build_regex / build_phonetic_set
 # ---------------------------------------------------------------------------
-def build_regex(forms, script: str = "latin") -> str:
+def build_regex(forms, script: str = "latin", *, merged: bool = False) -> str:
     """Alternasi `(?:f1|f2|...)` dengan boundary tepat per script.
 
-    - Latin    : `\\b(?:...)\\b`
-    - non-Latin: `(?:...)` tanpa `\\b` (CJK/Devanagari/Telugu/Thai tak punya
-      batas kata yang berguna).
-    - Bila form mengandung marker literal `*` (mis. `*hic*`) → TANPA `\\b`
+    - Latin      : `\\b(?:...)\\b`
+    - Devanagari/Telugu : lookaround rentang aksara, karena `\\b` Python tidak
+      pernah cocok bila form berakhir dengan matra (`ी`, `ు`). Tanpa ini pattern
+      jatuh ke substring polos dan menangkap form di tengah kata lain.
+    - JP/KR/Thai : `(?:...)` tanpa boundary — partikel menempel pada kata, jadi
+      substring adalah perilaku yang benar (mis. `しゃっくりが`).
+    - Bila form mengandung marker literal `*` (mis. `*hic*`) → TANPA boundary
       (baseline memakai `\\*hic\\*`, bukan `\\b\\*hic\\*\\b`).
+
+    `merged=True` untuk bahasa gabungan aksara (`in` = Hindi + Telugu): boundary
+    menutup kedua rentang supaya bentuk Telugu tidak terpotong.
     """
     pats = [p for p in dict.fromkeys(forms) if p]
     if not pats:
         return r"(?!)"
     body = "(?:" + "|".join(pats) + ")"
-    if script in CJK_SCRIPTS or any("*" in p for p in pats):
+    if script in CJK_SCRIPTS and script not in SCRIPT_RANGES:
         return body
+    if any("*" in p for p in pats):
+        return body
+    ranges = (_MERGED_RANGES if merged else SCRIPT_RANGES).get(script)
+    if ranges:
+        return rf"(?<![{ranges}])" + body + rf"(?![{ranges}])"
     return r"\b" + body + r"\b"
 
 

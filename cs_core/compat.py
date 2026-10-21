@@ -86,6 +86,9 @@ def _hit_to_dict(hit) -> dict:
         "text": hit.text,
         "tiers": dict(hit.tiers),
         "url": hit.url,
+        # tier -> rasio kemiripan (1.0 = exact, <1.0 = fuzzy). `{}` bila
+        # pemanggil lama tidak mengisinya.
+        "similarity": dict(getattr(hit, "similarity", {}) or {}),
     }
 
 
@@ -123,4 +126,5 @@ def to_legacy(result, *, mode=None, engine: str = "E") -> dict:
         "kasta": result.kasta,
         "kasta_label": kasta_label,
         "html_rows": build_html_rows(result, mode, engine=engine),
+        "mean_similarity": result.mean_similarity,
     }

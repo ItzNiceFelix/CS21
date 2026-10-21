@@ -6,7 +6,7 @@ Satu implementasi menggantikan 3 salinan E/IE/AE. Tidak menyentuh fetch/HTML.
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from . import config as _config
 from .languages.base import LanguageSpec
@@ -35,6 +35,9 @@ class Hit:
     text: str
     tiers: dict
     url: str
+    # tier -> rasio kemiripan yang membuktikan hit itu (1.0 = exact, <1.0 =
+    # fuzzy). Kosong untuk pemanggil lama yang tidak memintanya.
+    similarity: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,9 @@ class AnalysisResult:
     degraded: bool = False
     cluster_mode: str = "video_duration"
     score_cap: int = 60
+    # Rata-rata similarity CORE tertinggi per hit (0..1). `None` bila tak ada
+    # hit CORE. Ini angka "seberapa tepat" yang dulu dibuang setelah lolos ambang.
+    mean_similarity: float | None = None
 
 
 def sec_to_hms(sec) -> str:
@@ -193,7 +199,9 @@ def score_segments(
             continue
 
         if enable_fuzzy:
-            hit_tiers = _match_segment(text, spec, enable_fuzzy=True)
+            hit_tiers, tier_sim = _match_segment(
+                text, spec, enable_fuzzy=True, with_similarity=True
+            )
             # exact L1 (1 pattern match) tetap dihitung utk scoring exact;
             # match_segment sudah menandai tier via 0/1.
             exact = _exact_tier_counts(text, spec)
@@ -202,15 +210,18 @@ def score_segments(
                     continue
                 if exact.get(tier, 0) > 0:
                     hit_tiers[tier] = exact[tier]
+                    tier_sim[tier] = 1.0
                 else:
                     # kontribusi fuzzy baru: hormati cap per video.
                     cap = _fuzzy_cap(spec, tier)
                     if fuzzy_used[tier] >= cap:
                         hit_tiers[tier] = 0
+                        tier_sim[tier] = 0.0
                         continue
                     fuzzy_used[tier] += 1
         else:
             hit_tiers = _exact_tier_counts(text, spec)
+            tier_sim = {t: (1.0 if v > 0 else 0.0) for t, v in hit_tiers.items()}
 
         if not any(v > 0 for v in hit_tiers.values()):
             continue
@@ -227,6 +238,7 @@ def score_segments(
                 text=text,
                 tiers=hit_tiers,
                 url=f"https://youtu.be/{video_id}?t={int(sec_raw)}",
+                similarity=dict(tier_sim),
             )
         )
         last_text = text
@@ -319,6 +331,13 @@ def score_segments(
 
     kasta_label += f" | {len(clusters)} cluster, {len(hits)} hit"
 
+    # Seberapa tepat hit CORE-nya: rata-rata similarity tier CORE per hit.
+    core_sims = [
+        h.similarity.get("CORE", 1.0)
+        for h in hits if h.tiers.get("CORE", 0) > 0
+    ]
+    mean_similarity = (sum(core_sims) / len(core_sims)) if core_sims else None
+
     return AnalysisResult(
         video_id=video_id,
         lang=lang,
@@ -342,6 +361,7 @@ def score_segments(
         degraded=False,
         cluster_mode=cluster_mode,
         score_cap=SCORE_CAP,
+        mean_similarity=mean_similarity,
     )
 
 

@@ -9,6 +9,7 @@ Kasus yang tidak boleh menjadi VALID (arch §3.3, spec §2):
 import unittest
 
 from cs_core.languages import load
+from cs_core.matching import match_segment
 from cs_core.scoring import score_segments
 
 
@@ -67,6 +68,53 @@ class TestLongTextNoHiccup(unittest.TestCase):
         res = _score(segs, "en")
         self.assertFalse(res.is_valid)
         self.assertEqual(res.core_hits, 0)
+
+
+class TestEnCommonWordNotHiccup(unittest.TestCase):
+    """Kata Inggris umum tidak boleh jadi hit cegukan.
+
+    Regresi: `auto_typo("hic")` menghasilkan `his` (c->s) dan
+    `phonetic_key("hic") == "his"`, sehingga pronomina `his` dihitung CORE.
+    Satu video vlog biasa langsung jadi puluhan "hit" dan bisa menembus kasta
+    VALID/GOD_MODE tanpa satu pun cegukan.
+    """
+
+    def test_pronoun_his_never_scores(self):
+        for fuzzy in (False, True):
+            with self.subTest(fuzzy=fuzzy):
+                res = _score([{"sec": 0, "text": "he took his bag"}], "en",
+                             enable_fuzzy=fuzzy)
+                self.assertEqual(res.core_hits, 0, res.tier_counts)
+                self.assertEqual(res.tier_counts.get("CORE", 0), 0, res.tier_counts)
+                self.assertFalse(res.is_valid, res.kasta)
+                self.assertEqual(res.status, "no_match")
+
+    def test_common_words_not_matched(self):
+        # Kata Inggris nyata yang dulu lolos lewat varian generated / fonetik.
+        for word in ("his", "hiss", "hick", "heck", "sic", "sick", "hire"):
+            with self.subTest(word=word):
+                for fuzzy in (False, True):
+                    hits = match_segment(word, load("en"), enable_fuzzy=fuzzy)
+                    self.assertEqual(sum(hits.values()), 0, f"{word}: {hits}")
+
+    def test_repeated_his_cannot_reach_valid(self):
+        segs = [
+            {"sec": i * 200, "text": f"and then his friend put his bag on his chair"}
+            for i in range(40)
+        ]
+        res = _score(segs, "en")
+        self.assertEqual(res.core_hits, 0, res.tier_counts)
+        self.assertFalse(res.is_valid, res.kasta)
+        self.assertEqual(res.status, "no_match")
+
+    def test_real_hiccup_still_detected(self):
+        # Perbaikan tidak boleh mematikan deteksi target sesungguhnya.
+        for text in ("hiccup", "hiccups", "hic", "hiccough", "hickup", "hicup"):
+            with self.subTest(text=text):
+                hits = match_segment(text, load("en"), enable_fuzzy=True)
+                self.assertGreater(
+                    hits.get("CORE", 0) + hits.get("TYPO", 0), 0, hits
+                )
 
 
 if __name__ == "__main__":

@@ -19,9 +19,34 @@ exact form + `romanized` untuk bentuk Latin TYPO.
 
 from __future__ import annotations
 
-__all__ = ["FORMS", "DEFAULT_WEIGHTS", "SCRIPTS", "TRANSCRIPT_LANGS"]
+__all__ = [
+    "FORMS",
+    "DEFAULT_WEIGHTS",
+    "SCRIPTS",
+    "TRANSCRIPT_LANGS",
+    "VARIANT_BLOCKLIST",
+]
 
 DEFAULT_WEIGHTS = {"CORE": 5, "TYPO": 4, "SILENT": 4, "CONTEXT": 2, "FP": 1}
+
+# Kata nyata yang TIDAK BOLEH muncul sebagai varian hasil generate.
+#
+# `auto_typo("hic")` menghasilkan `his` (c->s) dan `phonetic_key("hic")` juga
+# `his`; keduanya membuat kata ganti Inggris paling umum dihitung CORE — satu
+# video vlog biasa langsung dapat puluhan "hit cegukan" palsu. Varian typo hanya
+# berguna bila bentuknya BUKAN kata yang lazim dipakai; kata sungguhan tetap
+# ditangkap jalur exact bila memang target.
+#
+# Daftar sengaja pendek: hanya kata Inggris nyata yang bisa dihasilkan
+# `auto_typo`/`phonetic_key` dari form target. Typo ASR yang bukan kata
+# (`hik`, `hec`, `hci`, `ihc`, `hics`) tetap lolos — itu justru yang dicari.
+VARIANT_BLOCKLIST: dict[str, tuple[str, ...]] = {
+    "en": (
+        "his", "hiss", "hick", "hicks", "heck", "hire",
+        "sic", "sick", "hi", "him", "hip", "hit", "hut",
+    ),
+    "id": (),
+}
 
 SCRIPTS = {
     "id": "latin",
@@ -180,7 +205,10 @@ FORMS: dict[str, dict] = {
             "TYPO": _tier(
                 4,
                 core_forms=["hicup", "hicups", "hickup", "hickups"],
-                regex=["\\bhicup+s?\\b", "\\bhickup+s?\\b", "\\bh[ie]ccup+s?\\b", "\\bhic\\s+cup+s?\\b"],
+                # `\bh[ie]ccup+s?\b` sengaja TIDAK dipakai: pattern itu juga
+                # cocok dengan form CORE (`hiccup`/`hiccups`), sehingga satu kata
+                # dihitung CORE + TYPO dan skor en 1.6x id per hit.
+                regex=["\\bhicup+s?\\b", "\\bhickup+s?\\b", "\\bhic\\s+cup+s?\\b"],
                 variants=["auto_typo"],
                 fuzzy_skip=["hic"],
                 fuzzy_threshold=0.78,
@@ -194,7 +222,10 @@ FORMS: dict[str, dict] = {
                     "still\\s*(have|got)\\s*(the\\s*)?hiccup",
                 ],
             ),
-            "CONTEXT": _tier(2, core_forms=["hiccoughs"], regex=["\\bhiccough+s?\\b"]),
+            # `\bhiccough+s?\b` tidak dipakai: `hiccough` sudah form CORE, jadi
+            # satu kata dihitung CORE + CONTEXT. CONTEXT di sini hanya bentuk
+            # jamak yang tidak tercakup CORE (`hiccoughs`).
+            "CONTEXT": _tier(2, core_forms=["hiccoughs"], regex=[]),
             "FP": _tier(
                 1,
                 regex=[
@@ -222,7 +253,8 @@ FORMS: dict[str, dict] = {
             "TYPO": _tier(
                 4,
                 core_forms=["しゃくり", "シャクリ", "ひゃっくり", "ヒャックリ", "ヒック", "ひっく"],
-                regex=["吃\\s*逆"],
+                # `吃\s*逆` tidak dipakai: sudah form CORE (`吃逆`), jadi satu kata
+                # dihitung CORE + TYPO.
                 romanized=["shakuri", "hyakkuri", "hiku"],
             ),
             "SILENT": _tier(

@@ -63,6 +63,9 @@ def _expand_forms(
     script: str,
     exclude: frozenset = frozenset(),
     exclude_regexes: tuple = (),
+    blocklist: frozenset = frozenset(),
+    merged: bool = False,
+    sibling_forms: frozenset = frozenset(),
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Kembalikan (core_forms, patterns) untuk satu tier dari deklarasi.
 
@@ -71,6 +74,16 @@ def _expand_forms(
     mis. `auto_typo("cekukan")` yang menghasilkan `cegukan` (kata CORE) TIDAK
     bocor jadi pattern TYPO. Tanpa ini, satu segmen "cegukan" ikut dihitung TYPO
     dan menaikkan skor (regresi nyata vs baseline).
+
+    `blocklist` = kata nyata yang tidak boleh jadi varian generated
+    (`forms.VARIANT_BLOCKLIST`). `auto_typo("hic")` menghasilkan `his`; tanpa
+    filter ini kata ganti Inggris paling umum ikut dihitung CORE.
+
+    `sibling_forms` = form yang DIDERKLARASIKAN tier lain. Hanya varian generated
+    yang disaring dengannya (bukan `core_forms` deklaratif, yang otoritatif).
+    Arah sebaliknya dari `exclude`: CORE en punya `auto_typo("hiccup")` yang
+    menghasilkan `hicup`/`hickup` — bentuk yang justru milik TYPO. Tanpa saringan
+    ini satu kata dihitung CORE + TYPO dan skor en 1.6x id per hit.
     """
     def _blocked(form: str) -> bool:
         if form.lower() in exclude:
@@ -100,13 +113,14 @@ def _expand_forms(
         {
             f
             for f in (list(gen_variants) + romanized)
-            if f and f.isascii() and not _blocked(f)
+            if f and f.isascii() and not _blocked(f) and f.lower() not in blocklist
+            and f.lower() not in sibling_forms
         }
     )
 
     patterns: list[str] = []
     if core_forms:
-        patterns.append(build_regex(core_forms, script))
+        patterns.append(build_regex(core_forms, script, merged=merged))
     if latin_forms:
         patterns.append(build_regex(latin_forms, "latin"))
     patterns.extend(data.get("regex", []))
@@ -122,6 +136,10 @@ def load(lang: str) -> LanguageSpec:
 
     script = raw.get("script", _SCRIPTS.get(key, "latin"))
     tiers = raw.get("tiers", {})
+    # Kata nyata yang tak boleh jadi varian generated maupun match fuzzy/fonetik.
+    blocklist = frozenset(_forms.VARIANT_BLOCKLIST.get(key, ()))
+    # `in` menggabungkan Hindi + Telugu -> boundary regex harus menutup dua aksara.
+    merged = key == "in"
 
     # Form milik CORE (kata inti + varian generated) — dipakai sebagai exclusion
     # untuk tier lain supaya varian typo (mis. auto_typo("cekukan")->"cegukan")
@@ -146,11 +164,24 @@ def load(lang: str) -> LanguageSpec:
     cores: list[KeywordCore] = []
     fuzzy_skip: set[str] = set()
     thresholds: dict[str, float] = {}
+    # Form deklaratif semua tier — dipakai menyaring varian generated tier lain
+    # supaya satu kata tidak dihitung di dua tier (CORE+TYPO).
+    declared_forms: dict[str, frozenset] = {
+        name: frozenset(
+            f.lower() for f in tiers.get(name, {}).get("core_forms", []) if f
+        )
+        for name in TIER_ORDER
+    }
     for name in TIER_ORDER:
         data = tiers.get(name, {})
         exclude = frozenset() if name == "CORE" else core_exclude
         exclude_re = () if name == "CORE" else core_regexes
-        _core_forms, patterns = _expand_forms(data, script, exclude, exclude_re)
+        siblings = frozenset().union(
+            *(forms for other, forms in declared_forms.items() if other != name)
+        )
+        _core_forms, patterns = _expand_forms(
+            data, script, exclude, exclude_re, blocklist, merged, siblings
+        )
         weight = int(data.get("weight", TierWeights().as_dict().get(name, 0)))
         cores.append(
             KeywordCore(
@@ -188,5 +219,6 @@ def load(lang: str) -> LanguageSpec:
         fuzzy_skip=frozenset(fuzzy_skip),
         fuzzy_threshold=thresholds,
         fuzzy_hits_cap=int(raw.get("fuzzy_hits_cap", 8)),
+        variant_blocklist=blocklist,
     )
     return spec.compile()

@@ -28,6 +28,8 @@ __all__ = [
     "phonetic_hit",
     "neg_context_hit",
     "match_segment",
+    "PHONETIC_LANGS",
+    "best_ratio",
 ]
 
 # Jendela negatif: ±2 token default (arch §3.3 #2).
@@ -193,8 +195,38 @@ def _candidates_for(core: KeywordCore) -> list[str]:
     )
 
 
-def _phonetic_set_for(core: KeywordCore) -> frozenset[str]:
-    forms = [f.lower() for f in (core.core_forms or ()) if f.isascii() and f.isalpha()]
+# Aturan fonetik di `variants._PHONETIC_RULES` diturunkan dari ejaan Indonesia
+# (`c→s`, `j→s`, `k→g`, `u→o`). Diterapkan ke bahasa lain hasilnya rusak:
+# `phonetic_key("hic") == "his"` di en, dan `phonetic_key("hichki") == "hisgi"`
+# di in — semuanya cuma menambah FP tanpa menangkap target. Jadi L3 hanya untuk id.
+PHONETIC_LANGS = frozenset({"id"})
+
+def best_ratio(key: str, candidates) -> float:
+    """Rasio kemiripan tertinggi `key` terhadap `candidates` (0..1).
+
+    Dipakai untuk melaporkan seberapa dekat sebuah token ke kata target, bukan
+    cuma gerbang lolos/tidak. Prefilter panjang yang sama dengan
+    `_extract_one_difflib` supaya biaya tetap terkendali.
+    """
+    if not key or not candidates:
+        return 0.0
+    best = 0.0
+    for cand in candidates:
+        if not cand:
+            continue
+        score = _ratio(key, cand)
+        if score > best:
+            best = score
+            if best >= 1.0:
+                break
+    return best
+
+def _phonetic_set_for(core: KeywordCore, blocklist: frozenset = frozenset()) -> frozenset[str]:
+    forms = [
+        f.lower()
+        for f in (core.core_forms or ())
+        if f.isascii() and f.isalpha() and f.lower() not in blocklist
+    ]
     return frozenset(phonetic_key(f) for f in forms)
 
 
@@ -205,7 +237,8 @@ def _rules_hit(core: KeywordCore, text: str) -> bool:
     return False
 
 
-def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -> dict[str, int]:
+def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True,
+                  with_similarity: bool = False):
     """Klasifikasi satu segmen lintas lapis (L1→L2→L3) dengan short-circuit.
 
     Kembalian: `{tier: 0|1}` untuk semua tier `spec` (0/1 karena konsumen
@@ -218,15 +251,24 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
     - L3 phonetic: hanya script Latin, hanya bila L1+L2 tier kosong.
     - `neg_context`: bila match fuzzy kena konteks negatif → tier diturunkan
       ke TYPO bila ada, else di-suppress (0).
+
+    `with_similarity=True` mengembalikan `(tiers, similarity)` di mana
+    `similarity[tier]` = rasio kemiripan tertinggi yang membuktikan tier itu
+    (1.0 untuk L1 exact, rasio nyata untuk L2/L3, 0.0 bila tidak match). Ini
+    membuat ambang similarity bisa dilaporkan, bukan cuma dipakai sebagai
+    gerbang biner.
     """
     out = {c.tier: 0 for c in spec.cores}
+    sim = {c.tier: 0.0 for c in spec.cores}
     if not text:
-        return out
+        return (out, sim) if with_similarity else out
 
     toks = extract(text)
     token_norms = [t.raw.lower() for t in toks.tokens]
     script_latin = spec.script == "latin"
-    spec_skip = spec.fuzzy_skip or frozenset()
+    # Token yang tak boleh jadi kandidat fuzzy/fonetik: fuzzy_skip per bahasa
+    # + blocklist kata nyata (mis. en "his"/"hiss" dari phonetic_key("hic")).
+    spec_skip = (spec.fuzzy_skip or frozenset()) | (spec.variant_blocklist or frozenset())
 
     # Token yang sudah diklaim EXACT oleh tier mana pun tidak boleh jadi
     # kandidat fuzzy tier lain. Contoh: "cegukan" exact-match CORE; token yang
@@ -246,6 +288,7 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
         # ── L1 exact ────────────────────────────────────────────────
         if _rules_hit(core, text):
             out[tier] = 1
+            sim[tier] = 1.0
             continue
 
         if not enable_fuzzy:
@@ -258,6 +301,7 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
             threshold = DEFAULT_FUZZY_THRESHOLD
         cands = _candidates_for(core)
         fuzzy_ok = False
+        fuzzy_sim = 0.0
         if cands:
             for tok in token_norms:
                 if len(tok) < MIN_FUZZY_LEN or not tok.isascii() or not tok.isalpha():
@@ -266,13 +310,15 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
                     continue
                 if tok in claimed:
                     continue  # sudah exact-match tier lain (mis. CORE)
-                if fuzzy_match_token(tok, cands, float(threshold)):
+                ratio = best_ratio(tok, cands)
+                if ratio >= float(threshold):
                     fuzzy_ok = True
+                    fuzzy_sim = ratio
                     break
 
-        # ── L3 phonetic ─────────────────────────────────────────────
-        if not fuzzy_ok and script_latin:
-            pset = _phonetic_set_for(core)
+        # ── L3 phonetic (hanya bahasa yang aturannya memang valid) ──
+        if not fuzzy_ok and script_latin and spec.lang in PHONETIC_LANGS:
+            pset = _phonetic_set_for(core, spec.variant_blocklist or frozenset())
             if pset:
                 for tok in token_norms:
                     if tok in spec_skip or tok in (core.fuzzy_skip or ()):
@@ -282,6 +328,9 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
                     if len(tok) >= MIN_FUZZY_LEN and tok.isalpha() and tok.isascii() \
                             and phonetic_hit(tok, pset):
                         fuzzy_ok = True
+                        # L3 tidak berbasis rasio; laporkan rasio terbaik yang
+                        # tersedia agar konsumen tetap punya angka pembanding.
+                        fuzzy_sim = best_ratio(tok, cands) if cands else 0.0
                         break
 
         if not fuzzy_ok:
@@ -292,10 +341,12 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True) -
         if neg and neg_context_hit(text, _match_spans(text), neg):
             if tier == "CORE" and _has_tier(spec, "TYPO"):
                 out["TYPO"] = 1  # turunkan CORE→TYPO (arch §3.3 #2)
+                sim["TYPO"] = fuzzy_sim
             continue
         out[tier] = 1
+        sim[tier] = fuzzy_sim
 
-    return out
+    return (out, sim) if with_similarity else out
 
 
 def _has_tier(spec: LanguageSpec, tier: str) -> bool:
