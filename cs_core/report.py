@@ -14,6 +14,7 @@ import time as _time
 from datetime import datetime as _datetime
 
 from . import config as _config
+from . import __version__ as _VERSION
 
 __all__ = [
     "build_html",
@@ -35,7 +36,9 @@ _LANG_LABELS = {
     "en": ("en", "ENGLISH"),
     "jp": ("ja", "JAPANESE"),
     "kr": ("ko", "KOREAN"),
-    "in": ("hi", "HINDI / INDIA"),
+    "in": ("hi", "HINDI + TELUGU / INDIA"),
+    "te": ("te", "TELUGU / INDIA"),
+    "th": ("th", "THAILAND"),
 }
 
 # Kanal ber-ID mentah (bukan @handle). Duck-typed: engine lama punya
@@ -160,21 +163,33 @@ def build_html_rows(result, mode=None, spec=None, engine: str = "E") -> str:
             h_tiers = hit.get("tiers", {})
             h_url = hit.get("url", "")
             h_time = hit.get("time", "")
+            h_sim = hit.get("similarity") or {}
         else:
             h_text = hit.text
             h_tiers = hit.tiers
             h_url = hit.url
             h_time = hit.time
+            h_sim = getattr(hit, "similarity", {}) or {}
 
         hl_class = _dominant_class(h_tiers)
         highlighted = highlight_matches(h_text, spec) if do_highlight else escape_html(h_text)
         tier_strip = _tier_strip(h_tiers)
 
+        # Fuzzy badge: hanya bila hit itu lolos dengan kemiripan < 100%.
+        fuzzy_badge = ""
+        if h_sim:
+            best = max(h_sim.values())
+            if best < 1.0:
+                fuzzy_badge = (
+                    f"<span class='fuzzy' title='rasio kemiripan teks'>"
+                    f"~{best * 100:.0f}%</span>"
+                )
+
         rows += (
             "<tr>"
             f"<td><a href='{_html.escape(h_url, quote=True)}' target='_blank' class='t-link'>"
             f"[{escape_html(h_time)}]</a></td>"
-            f"<td>{tier_strip}{highlighted}</td>"
+            f"<td>{tier_strip}{highlighted}{fuzzy_badge}</td>"
             "</tr>\n"
         )
     return rows
@@ -360,6 +375,12 @@ body {
   font-size: 0.68em;
   color: #445566;
 }
+.confidence + .confidence { margin-left: 12px; }
+.sim {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #8ab0c8;
+}
 .pct {
   font-size: 1.5em;
   font-weight: bold;
@@ -394,6 +415,15 @@ body {
 .tc.silent { color: #c060ff; border-color: #c060ff; }
 .tc.ctx    { color: #4fc3f7; border-color: #4fc3f7; }
 .tc.fp     { color: #556677; border-color: #556677; }
+.fuzzy {
+  font-size: 0.62em;
+  padding: 1px 6px;
+  margin-left: 6px;
+  border: 1px solid #ffa050;
+  color: #ffa050;
+  border-radius: 8px;
+  vertical-align: middle;
+}
 
 /* ── TABLE ───────────────────────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; }
@@ -502,6 +532,9 @@ def build_html(channel: str, executor: str, results: list, lang: str = "id",
     no_trans = [r for r in results
                 if r["status"] in ("no_transcript", "disabled", "unavailable")]
     analyzed = [r for r in results if r["status"] == "analyzed"]
+    # `no_match` = transkrip ada, tapi 0 hit. Bukan "no transcript", jadi
+    # butuh seksi sendiri agar laporan tidak terlihat tidak lengkap.
+    checked_empty = [r for r in results if r["status"] == "no_match"]
 
     sorted_results = sorted(analyzed, key=lambda x: x["persentase"], reverse=True)
     now = _datetime.now()
@@ -521,13 +554,25 @@ def build_html(channel: str, executor: str, results: list, lang: str = "id",
         cc = _card_class(r.get("kasta", ""))
         pc = _pct_class(r.get("persentase", 0))
         ts = _tier_strip_counts(r.get("tier_counts", {}))
+        # `persentase` = SKOR (rumus kasta), bukan keyakinan. `mean_similarity`
+        # = KONFIDENSI (rata-rata kemiripan CORE). Dulu keduanya diberi label
+        # "CONFIDENCE" sehingga angka skor terbaca sebagai keyakinan.
+        sim = r.get("mean_similarity")
+        if isinstance(sim, (int, float)):
+            sim_html = (
+                f"<div class='confidence'>"
+                f"<span class='sim'>{sim * 100:.0f}%</span> KONFIDENSI</div>"
+            )
+        else:
+            sim_html = "<div class='confidence'><span class='sim'>—</span> KONFIDENSI</div>"
         cards_html += f"""
     <div class="card {cc}">
       <div class="card-head">
         <a class="vid-id" href="https://youtu.be/{vid}" target="_blank">&#9889; {vid}</a>
         <div class="confidence">
-          <span class="pct {pc}">{int(r.get('persentase', 0))}%</span> CONFIDENCE
+          <span class="pct {pc}">{int(r.get('persentase', 0))}%</span> SKOR
         </div>
+        {sim_html}
         <div class="card-status">{escape_html(r.get('kasta_label', ''))}</div>
       </div>
       <div class="tier-strip">{ts}</div>
@@ -544,12 +589,42 @@ def build_html(channel: str, executor: str, results: list, lang: str = "id",
         for r in no_trans
     )
 
+    # Video yang dianalisa tapi 0 hit tidak punya kartu (tidak ada baris bukti).
+    # Tanpa daftar ini laporan terlihat seolah video itu tidak pernah diperiksa.
+    checked_links = "".join(
+        f"<a href='https://youtu.be/{_html.escape(str(r.get('video_id', '')), quote=True)}'"
+        f" target='_blank'>{escape_html(str(r.get('video_id', '')))}</a>"
+        for r in checked_empty
+    )
+
+    # Seksi kosong tidak dicetak: laporan satu video yang ZONK tidak perlu
+    # tiga judul "0 VIDEO".
+    no_trans_section = ""
+    if no_trans:
+        no_trans_section = f"""
+  <div class="no-trans-section">
+    <div class="section-head">NO TRANSCRIPT &mdash; <span>{len(no_trans)} VIDEO EXCLUDED</span></div>
+    <div class="no-trans-grid">
+      {no_trans_links}
+    </div>
+  </div>"""
+
+    checked_section = ""
+    if checked_empty:
+        checked_section = f"""
+  <div class="no-trans-section">
+    <div class="section-head">CHECKED, NO HIT &mdash; <span>{len(checked_empty)} VIDEO</span></div>
+    <div class="no-trans-grid">
+      {checked_links}
+    </div>
+  </div>"""
+
     return f"""<!DOCTYPE html>
 <html lang="{html_lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CS20 Intel Report — {escape_html(ch_label)}</title>
+<title>CS21 Intel Report — {escape_html(ch_label)}</title>
 <style>
 {_REPORT_CSS}
 </style>
@@ -558,7 +633,7 @@ def build_html(channel: str, executor: str, results: list, lang: str = "id",
 
 <div class="header">
   <div class="header-top">
-    <h1>CEGUKAN SEEKER &mdash; <span>INTEL REPORT</span> V20</h1>
+    <h1>CEGUKAN SEEKER &mdash; <span>INTEL REPORT</span> V21</h1>
     <div class="op-tag">&#9679; REPORT SELESAI</div>
   </div>
   <div class="header-meta">
@@ -597,14 +672,11 @@ def build_html(channel: str, executor: str, results: list, lang: str = "id",
   <div class="section-head">CONFIRMED &mdash; <span>{len(valid_results)} VIDEO TERDETEKSI</span></div>
   {cards_html}
 
-  <div class="no-trans-section">
-    <div class="section-head">NO TRANSCRIPT &mdash; <span>{len(no_trans)} VIDEO EXCLUDED</span></div>
-    <div class="no-trans-grid">
-      {no_trans_links}
-    </div>
-  </div>
+  {no_trans_section}
 
-  <footer>CS20 Intel Report V20.0 | Fuzzy Regex Engine | {date_str}</footer>
+  {checked_section}
+
+  <footer>CS21 Intel Report v{_VERSION} | Fuzzy Regex Engine | {date_str}</footer>
 </div>
 
 </body>
@@ -701,7 +773,7 @@ def send_discord(webhook_url: str, channel: str, executor: str,
     top_kw = sorted(keyword_freq.items(), key=lambda x: x[1], reverse=True)[:5]
     kw_text = "\n".join(f"• `{k}` ×{v}" for k, v in top_kw) if top_kw else "—"
 
-    desc_val = _trunc(f"Laporan forensik V20 untuk {ch_label} telah selesai.", _DISCORD_DESC_LIMIT)
+    desc_val = _trunc(f"Laporan forensik V21 untuk {ch_label} telah selesai.", _DISCORD_DESC_LIMIT)
     target_val = _trunc(ch_label, _DISCORD_FIELD_LIMIT)
     exec_val = _trunc(executor, _DISCORD_FIELD_LIMIT)
     stat_val = _trunc(

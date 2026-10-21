@@ -24,10 +24,8 @@ __all__ = [
     "wake_unlock",
     "wake_lock_ctx",
     "notify",
-    "toast",
     "open_file",
     "open_url",
-    "vibrate",
 ]
 
 # Deteksi Termux asli (bukan proot): PREFIX + folder usr milik Termux.
@@ -119,16 +117,6 @@ def notify(
     if ongoing:
         cmd += ["--ongoing"]
     return _run(cmd)
-
-def toast(message: str, *, short: bool = True) -> bool:
-    cmd = ["termux-toast"]
-    if short:
-        cmd += ["-s"]
-    cmd += [message]
-    return _run(cmd)
-
-def vibrate(ms: int = 400) -> bool:
-    return _run(["termux-vibrate", "-d", str(ms), "-f"])
 
 def open_file(path: str | Path) -> bool:
     """Buka file (laporan HTML) dengan aplikasi default Android."""

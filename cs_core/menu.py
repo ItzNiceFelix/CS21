@@ -26,6 +26,7 @@ from . import settings as _settings
 from . import termux as _termux
 from .errors import ExitCode
 from .tui import ExitMenu, Option, UI
+from .video import parse_video_id, video_url
 
 __all__ = ["run_menu", "load_saved_channels", "remember_channel"]
 
@@ -36,7 +37,7 @@ _LANGS = [
     Option("2", "English", "en"),
     Option("3", "Jepang", "jp"),
     Option("4", "Korea", "kr"),
-    Option("5", "Hindi/India", "in"),
+    Option("5", "India (Hindi + Telugu)", "in"),
     Option("6", "Thailand", "th"),
 ]
 _LANG_CODE = {"1": "id", "2": "en", "3": "jp", "4": "kr", "5": "in", "6": "th"}
@@ -223,6 +224,14 @@ def _validate_channel(value: str) -> str | None:
 def _engine_path(name: str) -> Path:
     return _REPO_ROOT / _ENGINES.get(name, name)
 
+# Engine lama yang tidak bisa jalan tanpa yt-dlp (listing channel + VTT).
+_ENGINE_NEEDS = {
+    "scan": ("yt-dlp",),
+    "index": ("yt-dlp",),
+    "age": ("yt-dlp",),
+    "autodrive": ("yt-dlp",),
+}
+
 def _run_engine(ctx: Ctx, name: str, args: list[str], *, label: str = "",
                 notify: bool = True, python_engine: str | None = None) -> int:
     """Jalankan engine lama; kembalikan exit code. Tidak pernah melempar."""
@@ -233,6 +242,15 @@ def _run_engine(ctx: Ctx, name: str, args: list[str], *, label: str = "",
     if not script.is_file():
         ctx.ui.err(f"engine tidak ditemukan: {script.name}")
         ctx.ui.info("pastikan cs21 dijalankan dari folder repo CS21")
+        return int(ExitCode.DEPENDENCY)
+
+    # Preflight: tanpa ini engine gagal di tengah dengan pesan samar
+    # ("Tidak ada video ditemukan") padahal yt-dlp-nya yang hilang.
+    missing = [b for b in _ENGINE_NEEDS.get(name, ()) if not shutil.which(b)]
+    if missing:
+        ctx.ui.err(f"{script.name} butuh: {', '.join(missing)}")
+        ctx.ui.info("jalankan: pkg install " + " ".join(missing))
+        ctx.ui.info("atau: cs21 doctor --fix")
         return int(ExitCode.DEPENDENCY)
 
     cmd = [sys.executable, str(script), *args]
@@ -287,34 +305,91 @@ def _executor(ctx: Ctx) -> str:
 # aksi
 # ---------------------------------------------------------------------------
 def _act_scan(ctx: Ctx) -> None:
-    channel = _pick_channel(ctx, prompt="scan channel", preferred=ctx.settings.last_channel)
-    if not channel:
+    channels = _pick_channels(ctx, preferred=ctx.settings.last_channel)
+    if not channels:
         ctx.ui.info("dibatalkan")
         return
-    remember_channel(channel, ctx.config_dir)
 
     limit = ctx.ui.ask("berapa video terakhir (0 = semua)", default=str(ctx.settings.limit),
                        validate=_validate_int)
     live = ctx.ui.confirm("pakai dashboard Live?", default=ctx.ui.interactive)
+    if live and len(channels) > 1:
+        # Satu dashboard per channel; banyak channel = antrean plain.
+        live = False
+        ctx.ui.info("banyak channel -> dashboard Live dimatikan")
 
-    args = [
-        "--channel", channel,
-        "--limit", limit,
-        "--jobs", str(ctx.settings.jobs),
-        "--content-type", "all",
-        "--executor", _executor(ctx),
-        "--mode", "pantau" if live else "plain",
-        "--config-dir", str(ctx.config_dir),
-        "--checkpoint-dir", str(ctx.checkpoint_dir),
-        "--lang", ctx.lang,
-        *_webhook_args(ctx),
-    ]
-    ctx.save_settings(last_channel=channel, last_mode="scan", limit=int(limit or 20))
-    _run_engine(ctx, "scan", args, label=f"scan @{channel}")
+    ctx.save_settings(last_channel=channels[0], last_mode="scan",
+                      limit=int(limit or 20))
+
+    total = len(channels)
+    failures = 0
+    for index, channel in enumerate(channels, 1):
+        remember_channel(channel, ctx.config_dir)
+        if total > 1:
+            ctx.ui.title(f"[{index}/{total}] @{channel}")
+        args = [
+            "--channel", channel,
+            "--limit", limit,
+            "--jobs", str(ctx.settings.jobs),
+            "--content-type", "all",
+            "--executor", _executor(ctx),
+            "--mode", "pantau" if live else "plain",
+            "--config-dir", str(ctx.config_dir),
+            "--checkpoint-dir", str(ctx.checkpoint_dir),
+            "--lang", ctx.lang,
+            *_webhook_args(ctx),
+        ]
+        rc = _run_engine(ctx, "scan", args, label=f"scan @{channel}",
+                         notify=(index == total))
+        if rc != 0:
+            failures += 1
+            if total > 1:
+                ctx.ui.warn(f"@{channel} gagal (exit {rc}) — lanjut channel berikutnya")
+
+    if total > 1:
+        ctx.ui.ok(f"selesai: {total - failures}/{total} channel berhasil")
+
+def _pick_channels(ctx: Ctx, *, preferred: str = "") -> list[str]:
+    """Pilih satu atau banyak channel sekaligus (`UI.multi`)."""
+    saved = load_saved_channels(ctx.config_dir)
+    if preferred and preferred in saved:
+        saved = [preferred] + [c for c in saved if c != preferred]
+
+    options = [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
+    options.append(Option("0", "➕ Channel baru", "ketik handle / UCxxx"))
+    if not options:
+        return [c for c in [_ask_new_channel(ctx)] if c]
+
+    if len(saved) < 2:
+        picked = ctx.ui.select("scan channel", options, filterable=True)
+        if picked is None:
+            return []
+        if picked == "0":
+            return [c for c in [_ask_new_channel(ctx)] if c]
+        try:
+            return [saved[int(picked) - 1]]
+        except (ValueError, IndexError):
+            return []
+
+    picked = ctx.ui.multi("scan channel (boleh banyak)", options)
+    if not picked:
+        return []
+    out: list[str] = []
+    for key in picked:
+        if key == "0":
+            new = _ask_new_channel(ctx)
+            if new:
+                out.append(new)
+            continue
+        try:
+            out.append(saved[int(key) - 1])
+        except (ValueError, IndexError):
+            continue
+    return out
 
 def _act_analyze(ctx: Ctx) -> None:
     raw = ctx.ui.ask("video ID atau URL", validate=lambda v: None if v.strip() else "wajib diisi")
-    video_id = _video_id(raw)
+    video_id = parse_video_id(raw)
     if not video_id:
         ctx.ui.err("ID video tidak valid (harus 11 karakter)")
         return
@@ -326,28 +401,130 @@ def _act_analyze(ctx: Ctx) -> None:
     if rc == 0 and ctx.ui.interactive:
         if _termux.have("termux-open-url"):
             if ctx.ui.confirm("buka video di YouTube?", default=False):
-                _termux.open_url(f"https://www.youtube.com/watch?v={video_id}")
+                _termux.open_url(video_url(video_id))
     elif rc != 0:
         ctx.ui.info("coba: cs21 doctor")
 
-def _video_id(raw: str) -> str:
-    text = (raw or "").strip()
-    if "v=" in text:
-        text = text.split("v=", 1)[1]
-    text = text.split("&", 1)[0].split("?", 1)[0].strip("/")
-    if "/" in text:
-        text = text.rsplit("/", 1)[-1]
-    return text if len(text) == 11 else ""
-
 def _act_search(ctx: Ctx) -> None:
+    from .search import search as _search
+    from . import termux as _termux
+
     query = ctx.ui.ask("kata kunci (mis: cegukan)", validate=lambda v: None if v.strip() else "wajib diisi")
     if not query:
         return
+
+    results = _search(query, index_root=str(_index_root()), cache_root=None)
+    if not results:
+        ctx.ui.info(f"tak ada hasil untuk {query!r}")
+        return
+
+    total = sum(r.hit_count for r in results)
+    ctx.ui.kv("hasil", f"{len(results)} video, {total} momen")
+
+    options = [
+        Option(
+            str(i),
+            r.video_id,
+            f"{r.hit_count} hit · {r.hits[0].time} · {r.source}",
+        )
+        for i, r in enumerate(results, 1)
+    ]
+    picked = ctx.ui.select("buka video", options, filterable=True)
+    if not picked:
+        return
+    try:
+        chosen = results[int(picked) - 1]
+    except (ValueError, IndexError):
+        return
+
+    first = chosen.hits[0]
+    ctx.ui.kv("video", chosen.video_id)
+    ctx.ui.kv("momen", f"{chosen.hit_count} (mulai {first.time})")
+    ctx.ui.kv("kutipan", first.text[:70])
+    ctx.ui.kv("url", first.url)
+
+    if ctx.ui.interactive:
+        action = ctx.ui.select("aksi", [
+            Option("1", "▶️  Buka di YouTube", first.time),
+            Option("2", "📋 Salin link", first.url),
+            Option("3", "🎬 Analisa video ini", chosen.video_id),
+            Option("4", "Kembali"),
+        ], filterable=False)
+        if action == "1":
+            if not _termux.open_url(first.url):
+                ctx.ui.info("Termux:API tidak tersedia — link di atas")
+        elif action == "2":
+            if _termux.clipboard_set(first.url):
+                ctx.ui.ok("link disalin")
+            else:
+                ctx.ui.info("Termux:API tidak tersedia — salin manual link di atas")
+        elif action == "3":
+            from .cli import main as cli_main
+
+            cli_main(["analyze", "--video", chosen.video_id, "--lang", ctx.lang])
+
+def _act_recent(ctx: Ctx) -> None:
+    """Video yang sudah punya transkrip di cache -> analisa ulang tanpa fetch."""
+    from . import cache as _cache
+
+    rows = _cache.recent(40)
+    if not rows:
+        ctx.ui.info("cache transkrip masih kosong")
+        return
+
+    options = [
+        Option(str(i), r["video_id"], f"{r['lang']} · {r['source'] or 'cache'}")
+        for i, r in enumerate(rows, 1)
+    ]
+    picked = ctx.ui.select("video terakhir", options, filterable=True)
+    if not picked:
+        return
+    try:
+        chosen = rows[int(picked) - 1]
+    except (ValueError, IndexError):
+        return
+
+    lang = chosen["lang"] or ctx.lang
     from .cli import main as cli_main
 
-    index_dir = str(_index_root())
-    ctx.ui.info(f"cari di {index_dir}")
-    cli_main(["search", "--query", query, "--index-dir", index_dir])
+    ctx.ui.info(f"analisa {chosen['video_id']} ({lang}, dari cache)…")
+    cli_main(["analyze", "--video", chosen["video_id"], "--lang", lang])
+
+def _act_reports(ctx: Ctx) -> None:
+    from . import reports as _reports
+    from . import termux as _termux
+
+    items = _reports.list_reports()
+    if not items:
+        ctx.ui.info(f"belum ada laporan di {_reports.reports_dir(create=False)}")
+        return
+
+    options = [
+        Option(str(i), rep.label, f"{rep.when} · {rep.size // 1024 or 1} KB")
+        for i, rep in enumerate(items[:30], 1)
+    ]
+    picked = ctx.ui.select("laporan", options, filterable=True)
+    if not picked:
+        return
+    try:
+        chosen = items[int(picked) - 1]
+    except (ValueError, IndexError):
+        return
+
+    ctx.ui.kv("file", str(chosen.path))
+    action = ctx.ui.select("aksi", [
+        Option("1", "📂 Buka", "aplikasi default Android"),
+        Option("2", "📋 Salin path", ""),
+        Option("3", "Kembali"),
+    ], filterable=False)
+    if action == "1":
+        if not _termux.open_file(chosen.path):
+            ctx.ui.info("Termux:API tidak tersedia — path di atas")
+    elif action == "2":
+        if _termux.clipboard_set(str(chosen.path)):
+            ctx.ui.ok("path disalin")
+        else:
+            ctx.ui.info("Termux:API tidak tersedia — salin manual path di atas")
 
 def _act_cache(ctx: Ctx) -> None:
     from .cli import main as cli_main
@@ -684,6 +861,21 @@ def _banner(ctx: Ctx) -> None:
         f"jobs: {ctx.settings.jobs}",
     ]
     ui.kv("", "  ".join(status), key_width=0)
+    # Lokasi data terlihat langsung: dulu cache pindah diam-diam antara home
+    # Termux dan PRoot sehingga isi "hilang" tanpa penjelasan.
+    try:
+        from . import cache as _cache
+        from . import reports as _reports
+
+        roots = _cache.all_cache_dirs()
+        files = sum(len(list(d.glob("*.jsonl.gz"))) for d in roots if d.is_dir())
+        where = str(roots[0]) if roots else "-"
+        extra = f" +{len(roots) - 1} root" if len(roots) > 1 else ""
+        n_reports = len(_reports.list_reports())
+        ui.kv("data", f"{where}{extra} · {files} transkrip · {n_reports} laporan",
+              key_width=0)
+    except Exception:
+        pass
     if not ui.interactive:
         ui.warn("mode non-interaktif (pipe) — beberapa aksi butuh terminal")
     missing = [name for name in _ENGINES.values() if not (_REPO_ROOT / name).is_file()]
@@ -709,16 +901,30 @@ def _apply_env(ctx: Ctx) -> None:
 def _menu_options(ctx: Ctx) -> list[Option]:
     blocked = len(_blocked_logs(ctx.config_dir))
     saved = len(load_saved_channels(ctx.config_dir))
+    try:
+        from . import cache as _cache
+
+        cached = len(_cache.recent(200))
+    except Exception:
+        cached = 0
+    try:
+        from . import reports as _reports
+
+        n_reports = len(_reports.list_reports())
+    except Exception:
+        n_reports = 0
     return [
         Option("1", "⚡ Scan channel", f"{saved} channel tersimpan"),
         Option("2", "🎬 Analisa video", "ID / URL YouTube"),
-        Option("3", "🔎 Cari di index", "hasil mode Index"),
+        Option("3", "🔎 Cari di index", "index + cache transkrip"),
         Option("4", "📋 Log blocked", f"{blocked} log"),
         Option("5", "📦 Index Mode", "channel besar, batch"),
         Option("6", "🔞 Recovery Age", "video age-restricted"),
         Option("7", "💬 ChatSeeker", "live-chat VTuber"),
         Option("8", "🚗 Auto Drive", "discovery channel"),
         Option("9", "🧹 Cache", "stats / bersihkan"),
+        Option("v", "🎞️  Video terakhir", f"{cached} di cache"),
+        Option("r", "📄 Laporan", f"{n_reports} file"),
         Option("d", "🩺 Doctor", "cek & perbaiki dependensi"),
         Option("l", "🌐 Ganti bahasa", ctx.lang),
         Option("s", "⚙️  Setelan", f"jobs={ctx.settings.jobs} fuzzy={ctx.settings.fuzzy}"),
@@ -735,6 +941,8 @@ _ACTIONS = {
     "7": _act_chatseeker,
     "8": _act_autodrive,
     "9": _act_cache,
+    "v": _act_recent,
+    "r": _act_reports,
     "d": _act_doctor,
 }
 
@@ -828,6 +1036,16 @@ def _print_plain_menu(ctx: Ctx) -> None:
     print("=" * 46)
     print("  CS21 · Cegukan Seeker V21")
     print(f"  operator={ctx.executor} lang={ctx.lang} fuzzy={_fuzzy_state(ctx)}")
+    try:
+        from . import cache as _cache
+
+        roots = _cache.all_cache_dirs()
+        files = sum(len(list(d.glob("*.jsonl.gz"))) for d in roots if d.is_dir())
+        where = str(roots[0]) if roots else "-"
+        extra = f" +{len(roots) - 1} root" if len(roots) > 1 else ""
+        print(f"  data={where}{extra} ({files} transkrip)")
+    except Exception:
+        pass
     print("=" * 46)
 
 def _read_executor(cfg: Path) -> str:

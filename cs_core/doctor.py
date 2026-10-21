@@ -18,6 +18,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import paths as _paths
 from . import settings as _settings
 from . import termux as _termux
 from .errors import ExitCode
@@ -68,17 +69,8 @@ def _has(binary: str) -> bool:
     return shutil.which(binary) is not None
 
 def _shared_storage() -> Path | None:
-    """Folder `~/storage/shared` yang benar-benar bisa ditulis."""
-    for candidate in (
-        Path(os.path.expanduser("~/storage/shared")),
-        Path("/storage/emulated/0"),
-    ):
-        try:
-            if candidate.is_dir() and os.access(candidate, os.W_OK):
-                return candidate
-        except OSError:
-            continue
-    return None
+    """Folder storage Android yang bisa ditulis (satu sumber: `paths`)."""
+    return _paths.shared_storage()
 
 def _webhook_file() -> Path:
     return _settings.config_dir() / ".webhook_injected"
@@ -151,7 +143,8 @@ def collect(*, check_network: bool = True) -> Report:
         fixable=py < (3, 10),
     ))
 
-    # 2. yt-dlp
+    # 2. yt-dlp — hanya dipakai Index Mode + listing channel. `analyze`, `search`,
+    #    `cache` jalan penuh tanpa ini, jadi TIDAK boleh menggagalkan preflight.
     ytdlp = shutil.which("yt-dlp")
     if ytdlp:
         version = ""
@@ -163,7 +156,8 @@ def collect(*, check_network: bool = True) -> Report:
             pass
         rep.add(Check("yt-dlp", INFO, f"{ytdlp} {version}".strip()))
     else:
-        rep.add(Check("yt-dlp", FATAL, "tidak ditemukan di PATH",
+        rep.add(Check("yt-dlp", WARN,
+                      "tidak ditemukan — Index Mode & scan channel butuh ini",
                       fix="pkg install yt-dlp", fixable=True))
 
     # 3. modul python
@@ -224,10 +218,18 @@ def collect(*, check_network: bool = True) -> Report:
     rep.add(Check(
         "storage",
         INFO if shared else WARN,
-        str(shared) if shared else "~/storage/shared belum ada — hasil & cache di Termux home",
+        str(shared) if shared else "storage Android tidak terdeteksi — data di Termux home",
         fix="termux-setup-storage",
         fixable=not shared,
     ))
+
+    # 7b. cache: root primer + root lain yang masih dibaca (anti split-brain)
+    primary = _paths.primary_cache_root()
+    others = [p for p in _paths.cache_roots() if p != primary]
+    detail = str(primary)
+    if others:
+        detail += f" (+{len(others)} root lama dibaca: {', '.join(str(p) for p in others)})"
+    rep.add(Check("cache", INFO, detail))
 
     # 8. config dir
     try:

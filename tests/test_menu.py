@@ -50,14 +50,17 @@ class TestChannelNormalization(unittest.TestCase):
                 self.assertEqual(menu._normalize_channel(raw), want)
 
     def test_video_id_from_url(self):
+        from cs_core.video import parse_video_id
+
         for raw, want in (
             ("gAQIEyzUHYc", "gAQIEyzUHYc"),
             ("https://www.youtube.com/watch?v=gAQIEyzUHYc", "gAQIEyzUHYc"),
             ("https://youtu.be/gAQIEyzUHYc?t=30", "gAQIEyzUHYc"),
+            ("https://www.youtube.com/shorts/gAQIEyzUHYc", "gAQIEyzUHYc"),
             ("too-short", ""),
         ):
             with self.subTest(raw=raw):
-                self.assertEqual(menu._video_id(raw), want)
+                self.assertEqual(parse_video_id(raw), want)
 
 class TestMenuLoop(unittest.TestCase):
     def _run_menu(self, inputs, config_dir):

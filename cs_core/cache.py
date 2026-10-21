@@ -1,12 +1,18 @@
 """Cache transcript gzip JSONL (Fase 4).
 
-- Lokasi: `{detect_cache_root()}/transcripts/{video_id}.{lang}.jsonl.gz`.
+- Lokasi tulis: `{paths.primary_cache_root()}/transcripts/{video_id}.{lang}.jsonl.gz`
+  (`CS_DATA_DIR` > storage bersama Android > `~/.cs20/index_cache`).
+- Lokasi baca: **semua** root yang pernah dipakai, primer dulu. Cache lama di
+  home PRoot/Termux tetap terbaca walau lokasi primer berpindah.
 - Baris pertama = header meta `{"_meta": {...}, ...}`; sisanya = segmen.
 - Normalisasi key lang (`id-ID` -> `id`) supaya `id`/`id-ID` berbagi cache.
 - TTL default 30 hari (`cs_core.config.CACHE_TTL_DAYS`).
 - Atomic write: tulis `.tmp` lalu `os.replace` (pola `save_json_safe` parser).
 - `compresslevel=1` (kompromi kecepatan/ukuran di ARM).
 - Format-version mismatch -> miss (tulis ulang).
+
+Tanpa diagnostik: modul ini tidak mencetak apa pun. Peringatan storage adalah
+tugas `doctor`/menu, bukan lapisan data (dulu tercetak 2x per perintah).
 
 Pure stdlib: gzip, json, os, time, pathlib.
 """
@@ -19,6 +25,7 @@ import os
 import time
 from pathlib import Path
 
+from . import paths as _paths
 from .config import CACHE_TTL_DAYS_ENV, DEFAULT_CACHE_TTL_DAYS
 
 __all__ = [
@@ -27,11 +34,14 @@ __all__ = [
     "norm_lang",
     "cache_root",
     "cache_path",
+    "cache_paths",
+    "all_cache_dirs",
     "read",
     "read_meta",
     "write",
     "purge",
     "gc",
+    "stats",
 ]
 
 CACHE_FORMAT_VERSION = 1
@@ -49,23 +59,37 @@ def cache_root(root=None) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
-def _detect_cache_root() -> str:
-    """Delegate ke `detect_cache_root()` engine lama; fallback lokal.
+def all_cache_dirs(root=None) -> list[Path]:
+    """Semua folder `transcripts/` yang ada: primer dulu, tanpa duplikat.
 
-    Import lazy: `cs20_index_parser` punya dependensi (rich/subprocess) yang
-    tidak selalu tersedia di lingkungan inti/test.
+    Root eksplisit (`root`) -> hanya itu. Tanpa root -> tulis ke primer
+    (`paths.primary_cache_root`) tapi **baca** dari semua root yang pernah
+    dipakai (Termux asli, PRoot, storage bersama), supaya cache lama tidak
+    seolah hilang setelah lokasi primer berubah.
     """
-    try:
-        from cs20_index_parser import detect_cache_root as _legacy
-        return _legacy()
-    except Exception:
-        shared = os.path.expanduser("~/storage/shared")
-        if os.path.isdir(shared):
-            base = os.path.join(shared, "CS20_Index")
-        else:
-            base = os.path.expanduser("~/.cs20/index_cache")
-        os.makedirs(base, exist_ok=True)
-        return base
+    if root is not None:
+        return [Path(root) / SUBDIR]
+    out: list[Path] = []
+    for base in _paths.cache_roots():
+        candidate = base / SUBDIR
+        try:
+            if candidate.is_dir():
+                out.append(candidate)
+        except OSError:
+            continue
+    primary = cache_root()
+    if primary not in out:
+        out.insert(0, primary)
+    return out
+
+def cache_paths(video_id: str, lang: str, root=None) -> list[Path]:
+    """Semua path yang mungkin menyimpan cache video+lang ini (primer dulu)."""
+    name = f"{video_id}.{norm_lang(lang)}.jsonl.gz"
+    return [folder / name for folder in all_cache_dirs(root)]
+
+def _detect_cache_root() -> str:
+    """Lokasi primer: `CS_DATA_DIR` > storage bersama > home Termux."""
+    return str(_paths.primary_cache_root())
 
 def _ttl_sec(ttl_days) -> int:
     if ttl_days is None:
@@ -79,16 +103,23 @@ def _ttl_sec(ttl_days) -> int:
     return int(ttl_days) * 86400
 
 def cache_path(video_id: str, lang: str, root=None) -> Path:
-    """Path file cache untuk `(video_id, lang)`."""
+    """Path file cache untuk `(video_id, lang)` di root primer."""
     return cache_root(root) / f"{video_id}.{norm_lang(lang)}.jsonl.gz"
 
 def read(video_id: str, lang: str, root=None, ttl_days=None):
-    """Baca cache. Return `list[dict]` segmen, atau `None` bila miss.
+    """Baca cache dari root primer lalu root lain. `None` bila semua miss.
 
     Miss bila: file tidak ada, TTL lewat, versi format beda, header rusak,
     atau tidak ada segmen valid. Baris rusak di-skip, bukan fatal.
     """
-    path = cache_path(video_id, lang, root)
+    for path in cache_paths(video_id, lang, root):
+        segments = _read_path(path, video_id, ttl_days)
+        if segments is not None:
+            return segments
+    return None
+
+def _read_path(path: Path, video_id: str, ttl_days=None):
+    """Baca satu file cache; `None` bila miss/rusak."""
     if not path.is_file():
         return None
 
@@ -130,10 +161,14 @@ def read(video_id: str, lang: str, root=None, ttl_days=None):
         return None
     return segments
 
-def write(video_id: str, lang: str, segments, *, source: str, root=None) -> Path:
+def write(video_id: str, lang: str, segments, *, source: str, root=None,
+          channel: str = "") -> Path:
     """Tulis cache atomic (gzip JSONL). Return path.
 
-    Header meta baris pertama: `v,id,lang,source,fetched_at,lang_requested`.
+    Header meta baris pertama: `v,id,lang,source,fetched_at,lang_requested`
+    (+ `channel` bila diketahui). Tanpa `channel`, filter `--channel` pada
+    `purge`/`search` tidak pernah cocok karena `_match` membandingkannya
+    dengan field yang tidak pernah ditulis.
     """
     path = cache_path(video_id, lang, root)
     header = {
@@ -146,6 +181,8 @@ def write(video_id: str, lang: str, segments, *, source: str, root=None) -> Path
             "lang_requested": [lang],
         }
     }
+    if channel:
+        header["_meta"]["channel"] = channel
 
     tmp = path.with_suffix(path.suffix + ".tmp")
     try:
@@ -206,17 +243,23 @@ def read_meta(path):
     return None
 
 def purge(video_id=None, lang=None, channel=None, all=False, max_age_days=None, root=None) -> int:
-    """Hapus file cache yang cocok. Return jumlah file dihapus.
+    """Hapus file cache yang cocok di SEMUA root. Return jumlah file dihapus.
 
     `all=True` abaikan filter video/lang (channel tetap dihormati bila diberi).
     `max_age_days` hanya hapus file lebih tua dari itu.
     """
-    base = cache_root(root)
     removed = 0
     cutoff = None
     if max_age_days is not None:
         cutoff = time.time() - int(max_age_days) * 86400
 
+    for base in all_cache_dirs(root):
+        removed += _purge_dir(base, video_id=video_id, lang=lang, channel=channel,
+                              all=all, cutoff=cutoff)
+    return removed
+
+def _purge_dir(base: Path, *, video_id, lang, channel, all: bool, cutoff) -> int:
+    removed = 0
     for path in base.glob("*.jsonl.gz"):
         if not all:
             if not _match(path, video_id=video_id, lang=lang, channel=channel):
@@ -246,3 +289,68 @@ def gc(root=None, ttl_days=None) -> int:
     if ttl_days is None:
         ttl_days = _ttl_sec(None) // 86400
     return purge(all=True, max_age_days=ttl_days, root=root)
+
+def stats(root=None) -> dict:
+    """Ringkasan isi cache di semua root (primer ditandai)."""
+    primary = cache_root(root)
+    rows = []
+    total_files = 0
+    total_bytes = 0
+    for folder in all_cache_dirs(root):
+        files = list(folder.glob("*.jsonl.gz"))
+        size = 0
+        for path in files:
+            try:
+                size += path.stat().st_size
+            except OSError:
+                continue
+        total_files += len(files)
+        total_bytes += size
+        rows.append({
+            "dir": str(folder),
+            "primary": folder == primary,
+            "files": len(files),
+            "bytes": size,
+        })
+    return {
+        "dir": str(primary),
+        "files": total_files,
+        "bytes": total_bytes,
+        "roots": rows,
+    }
+
+def recent(limit: int = 20, root=None) -> list[dict]:
+    """Cache terbaru (untuk menu "video terakhir"). Terbaru dulu, dedup video."""
+    seen: set[str] = set()
+    rows: list[dict] = []
+    candidates: list[Path] = []
+    for folder in all_cache_dirs(root):
+        try:
+            candidates.extend(folder.glob("*.jsonl.gz"))
+        except OSError:
+            continue
+    for path in sorted(candidates, key=lambda p: _safe_mtime(p), reverse=True):
+        stem = path.name[: -len(".jsonl.gz")]
+        video_id, _, lang = stem.partition(".")
+        key = f"{video_id}.{lang}"
+        if not video_id or key in seen:
+            continue
+        seen.add(key)
+        meta = read_meta(path) or {}
+        rows.append({
+            "video_id": video_id,
+            "lang": lang,
+            "path": str(path),
+            "mtime": _safe_mtime(path),
+            "fetched_at": meta.get("fetched_at") or 0,
+            "source": meta.get("source") or "",
+        })
+        if len(rows) >= limit:
+            break
+    return rows
+
+def _safe_mtime(path: Path) -> float:
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0

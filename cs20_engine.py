@@ -2698,10 +2698,17 @@ def process_channel(args):
 
     # ── BUILD & KIRIM HTML ──────────────────────────────────────────
     html_content = build_html(channel, executor, results, lang)
-    html_path = os.path.join(
-        config_dir,
-        f"laporan_{channel}_{datetime.now().strftime('%d%m%Y_%H%M')}.html"
-    )
+    # Fase 7: laporan disimpan di folder yang sama dengan `cs21 report`
+    # (storage Android), bukan di folder config tersembunyi.
+    try:
+        from cs_core.reports import report_path as _report_path
+
+        html_path = str(_report_path(channel))
+    except Exception:
+        html_path = os.path.join(
+            config_dir,
+            f"laporan_{channel}_{datetime.now().strftime('%d%m%Y_%H%M')}.html"
+        )
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
