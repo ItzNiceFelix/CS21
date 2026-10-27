@@ -6,8 +6,9 @@
 #   pip install youtube-transcript-api requests rich --break-system-packages
 #
 # OPSIONAL:
-#   - prompt_toolkit : menu panah + filter + multi-pilih (tanpa ini menu
-#                      otomatis pakai mode angka + tab-completion readline).
+#   - prompt_toolkit : pemilih panah + filter + multi-pilih versi kaya. TANPA
+#                      paket ini menu tetap bisa panah + filter lewat pemilih
+#                      raw stdlib; mode angka hanya dipakai di pipe/cron.
 #   - rapidfuzz      : TIDAK dipakai. Di Termux, pip hanya memasang wheel
 #                      murni Python (tanpa ekstensi native), jadi tidak
 #                      mempercepat apa pun. Fuzzy L2 memakai difflib stdlib.

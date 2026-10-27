@@ -229,6 +229,36 @@ class TestCacheMultiRoot(_TempIndex):
         self.assertEqual({r["video_id"] for r in rows}, {"a", "b"})
         self.assertEqual(len(rows), 2)
 
+    def test_search_cache_reads_every_root(self):
+        """`search --source cache` harus melihat root lama, bukan cuma primer."""
+        other = self.root / "other"
+        cache.write("vid1", "id", [{"sec": 1, "text": "cegukan"}],
+                    source="t", root=str(self.root))
+        cache.write("vid2", "id", [{"sec": 2, "text": "cegukan"}],
+                    source="t", root=str(other))
+        dirs = [self.root / cache.SUBDIR, other / cache.SUBDIR]
+        orig = cache.all_cache_dirs
+        cache.all_cache_dirs = lambda root=None: dirs
+        try:
+            ids = {r.video_id for r in search.search_cache(None, "cegukan")}
+        finally:
+            cache.all_cache_dirs = orig
+        self.assertEqual(ids, {"vid1", "vid2"})
+
+    def test_search_cache_dedups_same_video_across_roots(self):
+        other = self.root / "other"
+        for root in (self.root, other):
+            cache.write("vid1", "id", [{"sec": 1, "text": "cegukan"}],
+                        source="t", root=str(root))
+        dirs = [self.root / cache.SUBDIR, other / cache.SUBDIR]
+        orig = cache.all_cache_dirs
+        cache.all_cache_dirs = lambda root=None: dirs
+        try:
+            results = search.search_cache(None, "cegukan")
+        finally:
+            cache.all_cache_dirs = orig
+        self.assertEqual([r.video_id for r in results], ["vid1"])
+
 class TestReportStore(_TempIndex):
     def test_naming_scheme(self):
         path = reports.report_path("windahbasudara",

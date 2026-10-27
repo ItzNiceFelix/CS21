@@ -2,8 +2,9 @@
 
 Dirancang untuk Termux/Android:
 
-- pemilih panah + filter lewat `prompt_toolkit`; otomatis turun ke mode angka
-  kalau paket tidak ada atau stdout bukan TTY;
+- pemilih channel: panah ↑↓ + filter langsung (prompt_toolkit bila ada, kalau
+  tidak pakai pembaca tombol raw stdlib); `➕ Channel baru` selalu di atas dan
+  tidak ikut tersaring. Mode angka otomatis dipakai di pipe/cron;
 - semua path dari lokasi repo (bukan CWD) sehingga bisa dijalankan dari mana pun;
 - tidak pernah traceback: error engine ditangkap dan ditampilkan satu baris;
 - Ctrl+C/EOF keluar bersih (checkpoint engine tetap tersimpan sendiri).
@@ -178,13 +179,16 @@ def _pick_channel(ctx: Ctx, *, prompt: str = "pilih channel",
     if preferred and preferred in saved:
         saved = [preferred] + [c for c in saved if c != preferred]
 
-    options = [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
+    options: list[Option] = []
     if allow_new:
-        options.append(Option("0", "➕ Channel baru", "ketik handle / UCxxx"))
-    if not options:
-        return _ask_new_channel(ctx)
+        # Pinned: tetap terlihat walau user sudah mengetik filter.
+        options.append(Option("0", "➕ Channel baru", "ketik handle / UCxxx",
+                              pinned=True))
+    options += [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
+    if not saved and not allow_new:
+        return ""
 
-    picked = ctx.ui.select(prompt, options, filterable=True)
+    picked = ctx.ui.pick(prompt, options, filterable=True)
     if picked is None:
         return ""
     if picked == "0":
@@ -350,18 +354,20 @@ def _act_scan(ctx: Ctx) -> None:
         ctx.ui.ok(f"selesai: {total - failures}/{total} channel berhasil")
 
 def _pick_channels(ctx: Ctx, *, preferred: str = "") -> list[str]:
-    """Pilih satu atau banyak channel sekaligus (`UI.multi`)."""
+    """Pilih satu atau banyak channel sekaligus."""
     saved = load_saved_channels(ctx.config_dir)
     if preferred and preferred in saved:
         saved = [preferred] + [c for c in saved if c != preferred]
 
-    options = [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
-    options.append(Option("0", "➕ Channel baru", "ketik handle / UCxxx"))
-    if not options:
+    options: list[Option] = [
+        Option("0", "➕ Channel baru", "ketik handle / UCxxx", pinned=True)
+    ]
+    options += [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
+    if not saved:
         return [c for c in [_ask_new_channel(ctx)] if c]
 
     if len(saved) < 2:
-        picked = ctx.ui.select("scan channel", options, filterable=True)
+        picked = ctx.ui.pick("scan channel", options, filterable=True)
         if picked is None:
             return []
         if picked == "0":
@@ -371,7 +377,8 @@ def _pick_channels(ctx: Ctx, *, preferred: str = "") -> list[str]:
         except (ValueError, IndexError):
             return []
 
-    picked = ctx.ui.multi("scan channel (boleh banyak)", options)
+    picked = ctx.ui.pick("scan channel (boleh banyak) · Enter=selesai",
+                         options, multi=True)
     if not picked:
         return []
     out: list[str] = []
@@ -429,7 +436,7 @@ def _act_search(ctx: Ctx) -> None:
         )
         for i, r in enumerate(results, 1)
     ]
-    picked = ctx.ui.select("buka video", options, filterable=True)
+    picked = ctx.ui.pick("buka video", options, filterable=True)
     if not picked:
         return
     try:
@@ -444,7 +451,7 @@ def _act_search(ctx: Ctx) -> None:
     ctx.ui.kv("url", first.url)
 
     if ctx.ui.interactive:
-        action = ctx.ui.select("aksi", [
+        action = ctx.ui.pick("aksi", [
             Option("1", "▶️  Buka di YouTube", first.time),
             Option("2", "📋 Salin link", first.url),
             Option("3", "🎬 Analisa video ini", chosen.video_id),
@@ -476,7 +483,7 @@ def _act_recent(ctx: Ctx) -> None:
         Option(str(i), r["video_id"], f"{r['lang']} · {r['source'] or 'cache'}")
         for i, r in enumerate(rows, 1)
     ]
-    picked = ctx.ui.select("video terakhir", options, filterable=True)
+    picked = ctx.ui.pick("video terakhir", options, filterable=True)
     if not picked:
         return
     try:
@@ -503,7 +510,7 @@ def _act_reports(ctx: Ctx) -> None:
         Option(str(i), rep.label, f"{rep.when} · {rep.size // 1024 or 1} KB")
         for i, rep in enumerate(items[:30], 1)
     ]
-    picked = ctx.ui.select("laporan", options, filterable=True)
+    picked = ctx.ui.pick("laporan", options, filterable=True)
     if not picked:
         return
     try:
@@ -512,7 +519,7 @@ def _act_reports(ctx: Ctx) -> None:
         return
 
     ctx.ui.kv("file", str(chosen.path))
-    action = ctx.ui.select("aksi", [
+    action = ctx.ui.pick("aksi", [
         Option("1", "📂 Buka", "aplikasi default Android"),
         Option("2", "📋 Salin path", ""),
         Option("3", "Kembali"),
@@ -529,7 +536,7 @@ def _act_reports(ctx: Ctx) -> None:
 def _act_cache(ctx: Ctx) -> None:
     from .cli import main as cli_main
 
-    picked = ctx.ui.select("kelola cache", [
+    picked = ctx.ui.pick("kelola cache", [
         Option("1", "Statistik", "ukuran & jumlah file"),
         Option("2", "Bersihkan kedaluwarsa", "TTL 30 hari"),
         Option("3", "Hapus SEMUA cache", "tidak bisa dibatalkan"),
@@ -554,7 +561,7 @@ def _act_blocked(ctx: Ctx) -> None:
     for path in logs[:60]:
         channel = path.name.replace("_blocked.json", "")
         options.append(Option(channel, f"@{channel}", f"{_blocked_count(path)} video"))
-    picked = ctx.ui.select("log blocked video", options, filterable=True)
+    picked = ctx.ui.pick("log blocked video", options, filterable=True)
     if not picked:
         return
 
@@ -600,7 +607,7 @@ def _act_index(ctx: Ctx) -> None:
         ctx.ui.kv("batch", f"{done}/{len(batches)} selesai")
         ctx.ui.kv("dibuat", str(meta.get("created_at", "?")))
 
-        choice = ctx.ui.select("lanjutkan sesi?", [
+        choice = ctx.ui.pick("lanjutkan sesi?", [
             Option("1", f"Lanjutkan dari batch {pending}"),
             Option("2", "Mulai sesi baru", "hapus cache sesi lama"),
             Option("3", "Batal"),
@@ -632,7 +639,7 @@ def _act_index(ctx: Ctx) -> None:
         total_batches = max(1, int(raw or 10))
         raw = ctx.ui.ask("batch per sesi", default="2", validate=_validate_int)
         batches_per_run = max(1, min(int(raw or 2), total_batches))
-        jobs = ctx.ui.select("kecepatan", [
+        jobs = ctx.ui.pick("kecepatan", [
             Option("1", "Aman", "1 worker"),
             Option("2", "Seimbang", "2 worker"),
             Option("3", "Turbo", "3 worker"),
@@ -687,12 +694,12 @@ def _count_channel_videos(channel: str) -> int:
 
 def _act_age(ctx: Ctx) -> None:
     logs = _blocked_logs(ctx.config_dir)
-    options = [Option("_new", "➕ Channel baru", "ketik handle")]
+    options = [Option("_new", "➕ Channel baru", "ketik handle", pinned=True)]
     for path in logs[:40]:
         options.append(Option(path.name.replace("_blocked.json", ""),
                               f"@{path.name.replace('_blocked.json', '')}",
                               "punya log blocked"))
-    picked = ctx.ui.select("recovery age-restricted", options, filterable=True)
+    picked = ctx.ui.pick("recovery age-restricted", options, filterable=True)
     if not picked:
         return
     channel = _ask_new_channel(ctx) if picked == "_new" else picked
@@ -700,7 +707,7 @@ def _act_age(ctx: Ctx) -> None:
         return
     remember_channel(channel, ctx.config_dir)
 
-    content = ctx.ui.select("tipe konten", [
+    content = ctx.ui.pick("tipe konten", [
         Option("1", "Semua", "live + video"),
         Option("2", "Video", "video biasa"),
         Option("3", "Live", "siaran langsung"),
@@ -735,7 +742,7 @@ def _cookies_ready(ctx: Ctx) -> bool:
 
 def _act_autodrive(ctx: Ctx) -> None:
     ctx.ui.info("discovery channel baru otomatis (search + scan)")
-    time_range = ctx.ui.select("rentang waktu upload", [
+    time_range = ctx.ui.pick("rentang waktu upload", [
         Option("1", "Semua waktu", "all"),
         Option("2", "24 jam terakhir", "1d"),
         Option("3", "7 hari terakhir", "7d"),
@@ -788,7 +795,7 @@ def _act_settings(ctx: Ctx) -> None:
         ctx.ui.kv("notifikasi", "aktif" if s.notify else "mati")
         ctx.ui.kv("wake-lock", "aktif" if s.wake_lock else "mati")
 
-        picked = ctx.ui.select("ubah setelan", [
+        picked = ctx.ui.pick("ubah setelan", [
             Option("1", "Bahasa", s.lang),
             Option("2", "Fuzzy matching", s.fuzzy),
             Option("3", "Worker (jobs)", str(s.jobs)),
@@ -803,7 +810,7 @@ def _act_settings(ctx: Ctx) -> None:
             lang = _pick_language(ctx.ui, current=s.lang)
             ctx.save_settings(lang=lang)
         elif picked == "2":
-            mode = ctx.ui.select("fuzzy matching", [
+            mode = ctx.ui.pick("fuzzy matching", [
                 Option("auto", "Otomatis", "on hanya kalau rapidfuzz native"),
                 Option("on", "Selalu aktif", "deteksi typo ASR maksimal"),
                 Option("off", "Mati", "paling cepat"),
@@ -847,7 +854,7 @@ def _clear() -> None:
 
 def _pick_language(ui: UI, *, current: str = "") -> str:
     default = next((k for k, code in _LANG_CODE.items() if code == current), "")
-    picked = ui.select("bahasa", _LANGS, default=default or "1")
+    picked = ui.pick("bahasa", _LANGS, default=default or "1")
     return _LANG_CODE.get(picked or "1", "id")
 
 def _banner(ctx: Ctx) -> None:
@@ -980,8 +987,8 @@ def run_menu(config_dir: str | os.PathLike = "", lang: str = "") -> int:
             if not ui.interactive:
                 _print_plain_menu(ctx)
 
-            picked = ui.select("pilih menu", _menu_options(ctx), allow_cancel=False,
-                               filterable=False)
+            picked = ui.pick("pilih menu", _menu_options(ctx), allow_cancel=False,
+                             filterable=False)
             key = (picked or "").lower()
 
             if key in ("0", "q", "keluar", "exit"):

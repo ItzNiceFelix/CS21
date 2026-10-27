@@ -198,7 +198,9 @@ def _analyze_one(video_id: str, lang: str, args) -> dict:
 
     spec = load_lang(lang)
     result = score_segments(segments, spec, video_id=video_id, lang=lang)
-    legacy = to_legacy(result, mode=CompatMode.IMPROVED, engine="E")
+    # `CS_COMPAT` menentukan label kasta (default BASELINE, sesuai README).
+    # Sebelumnya hardcode IMPROVED sehingga env itu tidak berpengaruh.
+    legacy = to_legacy(result, mode=CompatMode.from_env(), engine="E")
 
     return {
         "video_id": video_id,

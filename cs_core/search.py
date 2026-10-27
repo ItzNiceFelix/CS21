@@ -241,7 +241,10 @@ def _read_cache_segments(path: Path) -> tuple[list[dict], dict]:
     return segments, meta
 
 def search_cache(root=None, query: str = "", channel: str = "") -> list[SearchResult]:
-    """Cari di cache transkrip (`{root}/transcripts/*.jsonl.gz`).
+    """Cari di cache transkrip di SEMUA root (`{root}/transcripts/*.jsonl.gz`).
+
+    Root dibaca lengkap seperti `cache.read`, bukan cuma primer: cache lama di
+    home PRoot/Termux tetap ketemu setelah lokasi primer berpindah.
 
     Filter `channel` butuh header `_meta.channel`. Cache lama (sebelum field
     itu ditulis) tidak punya informasi channel sehingga **dibuang** saat
@@ -250,29 +253,33 @@ def search_cache(root=None, query: str = "", channel: str = "") -> list[SearchRe
     groups = parse_query(query)
     if not groups:
         return []
-    base = _cache.cache_root(root)
     results: list[SearchResult] = []
-    for path in sorted(base.glob("*.jsonl.gz")):
-        stem = path.name[: -len(".jsonl.gz")]
-        video_id, _, lang = stem.partition(".")
-        segments, meta = _read_cache_segments(path)
-        if not segments:
-            continue
-        if channel and meta.get("channel") != channel:
-            continue
-        hits = _match_groups(segments, groups)
-        if not hits:
-            continue
-        hits = [SearchHit(sec=h.sec, time=h.time, text=h.text,
-                          url=video_url(video_id, h.sec), terms=h.terms) for h in hits]
-        results.append(SearchResult(
-            video_id=video_id,
-            source="cache",
-            lang=lang,
-            channel=str(meta.get("channel") or channel or ""),
-            path=str(path),
-            hits=hits,
-        ))
+    seen: set[str] = set()
+    for folder in _cache.all_cache_dirs(root):
+        for path in sorted(folder.glob("*.jsonl.gz")):
+            stem = path.name[: -len(".jsonl.gz")]
+            video_id, _, lang = stem.partition(".")
+            if video_id in seen:
+                continue  # video sama di root lain: primer menang
+            segments, meta = _read_cache_segments(path)
+            if not segments:
+                continue
+            if channel and meta.get("channel") != channel:
+                continue
+            hits = _match_groups(segments, groups)
+            if not hits:
+                continue
+            seen.add(video_id)
+            hits = [SearchHit(sec=h.sec, time=h.time, text=h.text,
+                              url=video_url(video_id, h.sec), terms=h.terms) for h in hits]
+            results.append(SearchResult(
+                video_id=video_id,
+                source="cache",
+                lang=lang,
+                channel=str(meta.get("channel") or channel or ""),
+                path=str(path),
+                hits=hits,
+            ))
     return results
 
 # ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ deteksi tier yang L1-nya kosong, tidak pernah mengubah hit exact.
 
 from __future__ import annotations
 
+import functools
 from difflib import SequenceMatcher
 
 from . import diagnostics as _diag
@@ -179,20 +180,24 @@ def neg_context_hit(text: str, spans, neg_terms, window: int = NEG_CONTEXT_WINDO
 # ---------------------------------------------------------------------------
 # Orkestrasi tingkat tinggi
 # ---------------------------------------------------------------------------
-def _candidates_for(core: KeywordCore) -> list[str]:
+@functools.lru_cache(maxsize=None)
+def _candidates_for(core: KeywordCore) -> tuple[str, ...]:
     """Kandidat token fuzzy HANYA dari `core_forms` deklaratif.
 
     Pattern regex bersifat struktural (frasa/`[uo]`/`\\b`) sengaja TIDAK
     dipecah jadi kata: melakukannya menarik kata umum (`minor`, `stop`) dan
     memicu FP tier. Kata inti sudah tersedia di `core_forms` (forms.py).
+
+    Di-cache: `core` frozen/hashable, dan tanpa cache daftar ini dibangun
+    ulang untuk setiap segmen × tier.
     """
-    return sorted(
+    return tuple(sorted(
         {
             f.lower()
             for f in (core.core_forms or ())
             if f.isascii() and f.isalpha() and len(f) <= MAX_FUZZY_CAND_LEN
         }
-    )
+    ))
 
 
 # Aturan fonetik di `variants._PHONETIC_RULES` diturunkan dari ejaan Indonesia
@@ -201,18 +206,26 @@ def _candidates_for(core: KeywordCore) -> list[str]:
 # di in — semuanya cuma menambah FP tanpa menangkap target. Jadi L3 hanya untuk id.
 PHONETIC_LANGS = frozenset({"id"})
 
-def best_ratio(key: str, candidates) -> float:
+def best_ratio(key: str, candidates, threshold: float = 0.0) -> float:
     """Rasio kemiripan tertinggi `key` terhadap `candidates` (0..1).
 
     Dipakai untuk melaporkan seberapa dekat sebuah token ke kata target, bukan
-    cuma gerbang lolos/tidak. Prefilter panjang yang sama dengan
-    `_extract_one_difflib` supaya biaya tetap terkendali.
+    cuma gerbang lolos/tidak. Bila `threshold` diberikan, pasangan yang beda
+    panjangnya membuat rasio mustahil mencapai ambang langsung dilewati
+    (batas atas rasio = 2·min(len)/(len_a+len_b)). Hasil tidak berubah: yang
+    dibuang hanya pasangan yang memang tak bisa lolos.
     """
     if not key or not candidates:
         return 0.0
+    max_edit = 0
+    if threshold > 0.0:
+        max_len = max([len(key)] + [len(c) for c in candidates if c])
+        max_edit = max(1, int((1.0 - threshold) * max_len) + 1)
     best = 0.0
     for cand in candidates:
         if not cand:
+            continue
+        if max_edit and abs(len(key) - len(cand)) > max_edit:
             continue
         score = _ratio(key, cand)
         if score > best:
@@ -221,6 +234,7 @@ def best_ratio(key: str, candidates) -> float:
                 break
     return best
 
+@functools.lru_cache(maxsize=None)
 def _phonetic_set_for(core: KeywordCore, blocklist: frozenset = frozenset()) -> frozenset[str]:
     forms = [
         f.lower()
@@ -310,7 +324,7 @@ def match_segment(text: str, spec: LanguageSpec, *, enable_fuzzy: bool = True,
                     continue
                 if tok in claimed:
                     continue  # sudah exact-match tier lain (mis. CORE)
-                ratio = best_ratio(tok, cands)
+                ratio = best_ratio(tok, cands, float(threshold))
                 if ratio >= float(threshold):
                     fuzzy_ok = True
                     fuzzy_sim = ratio

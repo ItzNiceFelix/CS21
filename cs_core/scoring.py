@@ -5,12 +5,13 @@ Satu implementasi menggantikan 3 salinan E/IE/AE. Tidak menyentuh fetch/HTML.
 
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import dataclass, field
 
 from . import config as _config
 from .languages.base import LanguageSpec
-from .matching import match_segment as _match_segment
+from .matching import MIN_FUZZY_LEN, match_segment as _match_segment
 from .text import normalize as _normalize
 
 __all__ = [
@@ -26,6 +27,11 @@ SCORE_CAP = 60
 _VALID_CLUSTER_GAP_3H = 60 * 60
 _VALID_CLUSTER_GAP_1H = 30 * 60
 _VALID_CLUSTER_GAP_DEFAULT = 20 * 60
+
+# Jalur fuzzy butuh token ASCII-alpha sepanjang MIN_FUZZY_LEN (L2/L3). Segmen
+# tanpa itu dan tanpa match exact tidak mungkin menghasilkan hit, jadi lewati
+# sebelum tokenisasi + loop kandidat.
+_FUZZY_TOKEN_RE = re.compile(rf"[A-Za-z]{{{MIN_FUZZY_LEN},}}")
 
 
 @dataclass(frozen=True)
@@ -158,9 +164,13 @@ def score_segments(
       video (`fuzzy_hits_cap` per tier).
     """
     cluster_mode = cluster_mode or _config.cluster_mode()
+    # Materialisasi SEKALI di awal: `_any_duration` + loop di bawah sama-sama
+    # memakainya. Kalau input berupa generator, `list()` setelah probe akan
+    # kosong dan seluruh analisis jadi `no_match` tanpa error.
+    seg_list = list(segments)
     if dedup_mode is None:
         # P8: float bila sumber punya duration, else int0.
-        dedup_mode = "float" if _any_duration(segments) else "int0"
+        dedup_mode = "float" if _any_duration(seg_list) else "int0"
     if enable_fuzzy is None:
         enable_fuzzy = _config.enable_fuzzy()
 
@@ -168,7 +178,6 @@ def score_segments(
     base = _no_match(video_id, lang, spec)
 
     # ── PRE-CHECK CEPAT (E790) ──────────────────────────────────────
-    seg_list = list(segments)
     full_text = " ".join(
         _normalize(s) for s in seg_list
     )
@@ -192,8 +201,13 @@ def score_segments(
         if not text or text == last_text:
             continue
         # Jalur non-fuzzy: prefilter exact per segmen (perilaku Fase 1).
-        # Jalur fuzzy: lewati (token kandidat justru bukan match exact).
-        if not enable_fuzzy and not spec.combined_prefilter.search(text):
+        # Jalur fuzzy: lewati hanya bila tak ada match exact DAN tak ada token
+        # kandidat — fuzzy memang mencari bentuk yang TIDAK match exact.
+        if enable_fuzzy:
+            if not (spec.combined_prefilter.search(text)
+                    or _FUZZY_TOKEN_RE.search(text)):
+                continue
+        elif not spec.combined_prefilter.search(text):
             continue
         if dedup_key(seg, last_sec, dedup_mode):
             continue

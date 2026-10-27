@@ -33,8 +33,11 @@ bash cs20.sh                # menu interaktif
 Header menu menampilkan lokasi data aktif (`data=… · N transkrip · N laporan`),
 jadi kelihatan langsung bila cache berada di root lain.
 
-Navigasi: **panah ↑↓ + filter + Enter** bila `prompt_toolkit` terpasang;
-kalau tidak, otomatis **mode angka + tab-completion** (readline, tanpa dep).
+Navigasi: **panah ↑↓ + ketik untuk memfilter + Enter** di terminal nyata —
+lewat `prompt_toolkit` bila terpasang, atau pemilih raw bawaan (stdlib) bila
+tidak. Mode angka + tab-completion (readline) otomatis dipakai di pipe/cron
+atau bila terminal tidak mendukung pembacaan tombol mentah. Pilihan
+`➕ Channel baru` selalu tampil di atas dan tidak ikut tersaring filter.
 Daftar panjang (mis. 335 channel) dipaginasi dan bisa dipersempit dengan
 mengetik sebagian nama.
 

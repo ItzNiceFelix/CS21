@@ -1,13 +1,15 @@
-"""Lapisan UI interaktif (prompt_toolkit opsional, fallback readline/plain).
+"""Lapisan UI interaktif (prompt_toolkit opsional, fallback stdlib).
 
-Tiga backend, dipilih otomatis:
+Empat backend, dipilih otomatis:
 
 - ``ptk``   — `prompt_toolkit` terpasang & stdout TTY: pemilih panah + filter.
-- ``plain`` — TTY tanpa prompt_toolkit: input angka + tab-completion (readline).
+- ``raw``   — TTY tanpa prompt_toolkit: pemilih panah + filter langsung dengan
+              pembacaan tombol mentah (`termios`/`msvcrt`), tanpa dependensi.
+- ``plain`` — TTY yang tidak bisa raw: input angka + tab-completion (readline).
 - ``pipe``  — bukan TTY (cron/pipe): tanpa prompt, langsung baca stdin.
 
 Prinsip: TIDAK PERNAH melempar exception ke pemanggil. Kalau prompt_toolkit
-error di tengah jalan, otomatis turun ke ``plain``.
+error di tengah jalan, otomatis turun ke backend berikutnya.
 """
 
 from __future__ import annotations
@@ -39,12 +41,18 @@ _PLAIN_PAGE = 16
 
 @dataclass(frozen=True)
 class Option:
-    """Satu pilihan di pemilih."""
+    """Satu pilihan di pemilih.
+
+    `pinned=True` = selalu tampil di atas dan TIDAK ikut tersaring oleh filter
+    (dipakai `➕ Channel baru`, yang harus tetap terlihat saat user mengetik
+    nama channel yang belum tersimpan).
+    """
 
     key: str
     label: str
     detail: str = ""
     badge: str = ""
+    pinned: bool = False
 
     def text(self) -> str:
         parts = [self.label]
@@ -236,10 +244,11 @@ class UI:
     def _plain_select(self, prompt: str, options: Sequence[Option], default,
                       allow_cancel: bool, filterable: bool = True) -> str | None:
         self.install_completer([o.key for o in options] + [o.label for o in options])
-        pool = list(options)
+        pinned = [o for o in options if o.pinned]
+        pool = [o for o in options if not o.pinned]
         shown = pool[:_PLAIN_PAGE]
         while True:
-            for opt in shown:
+            for opt in pinned + shown:
                 mark = self.style(opt.key.rjust(3), "cyan", "bold")
                 detail = f"  {self.style(opt.detail, 'dim')}" if opt.detail else ""
                 print(f"   {mark}  {opt.label}{detail}")
@@ -259,7 +268,7 @@ class UI:
                 return None
             if not value:
                 continue
-            match = self._match_option(value, pool)
+            match = self._match_option(value, pinned + pool)
             if match:
                 return match
             # Bukan nomor/label: anggap pencarian, persempit daftar.
@@ -269,6 +278,9 @@ class UI:
                 if narrowed:
                     pool = narrowed
                     shown = pool[:_PLAIN_PAGE]
+                    continue
+                if pinned:
+                    print(self.style("   (tidak ada yang cocok)", "dim"))
                     continue
             self.warn("pilihan tidak dikenal, coba lagi")
 
@@ -291,8 +303,9 @@ class UI:
             if picked is not False:
                 return list(picked)
         self.install_completer([o.key for o in options] + [o.label for o in options])
+        displayed = [o for o in options if o.pinned] + [o for o in options if not o.pinned]
         print(f"  {prompt} — pisahkan dengan koma, contoh: 1,3,5")
-        for i, opt in enumerate(options, 1):
+        for i, opt in enumerate(displayed, 1):
             print(f"   {i:3d}. {opt.label}" + (f"  {self.style(opt.detail, 'dim')}" if opt.detail else ""))
         raw = self._read("  nomor: ")
         if raw is None:
@@ -303,13 +316,169 @@ class UI:
                 continue
             if token.isdigit():
                 idx = int(token)
-                if 1 <= idx <= len(options):
-                    chosen.append(options[idx - 1].key)
+                if 1 <= idx <= len(displayed):
+                    chosen.append(displayed[idx - 1].key)
                 continue
-            match = self._match_option(token, options)
+            match = self._match_option(token, displayed)
             if match:
                 chosen.append(match)
         return chosen
+
+    # -- pemilih seragam ---------------------------------------------------
+    def pick(self, prompt: str, options: Sequence[Option], *, multi: bool = False,
+             default: str | None = None, allow_cancel: bool = True,
+             preselected: Iterable[str] = (), filterable: bool = True):
+        """Pemilih terbaik yang tersedia: ptk -> raw-TTY -> mode angka.
+
+        `raw` dipakai bila `prompt_toolkit` tidak ada tetapi terminal nyata:
+        panah ↑↓, filter langsung saat mengetik, dan pilihan `pinned` tetap
+        terlihat tanpa dependensi tambahan.
+        """
+        if not options:
+            return [] if multi else None
+        if self.mode == "ptk":
+            if multi:
+                keys = self._ptk_multi(prompt, options, tuple(preselected))
+                if keys is not False:
+                    return list(keys)
+            else:
+                key = self._ptk_select(prompt, options, default, allow_cancel, filterable)
+                if key is not False:
+                    return key
+        if self.interactive and _raw_capable():
+            return self._raw_pick(prompt, options, multi=multi, default=default,
+                                  allow_cancel=allow_cancel,
+                                  preselected=preselected, filterable=filterable)
+        if multi:
+            return self.multi(prompt, options, preselected=preselected)
+        return self.select(prompt, options, default=default,
+                           allow_cancel=allow_cancel, filterable=filterable)
+
+    def _raw_pick(self, prompt: str, options: Sequence[Option], *, multi: bool,
+                  default, allow_cancel: bool, preselected=(), filterable: bool = True):
+        state = {"filter": "", "index": 0, "offset": 0,
+                 "checked": set(preselected)}
+        pinned = [o for o in options if o.pinned]
+        rest = [o for o in options if not o.pinned]
+        if default:
+            for i, opt in enumerate(pinned + rest):
+                if opt.key == default:
+                    state["index"] = i
+                    break
+        try:
+            rows = shutil.get_terminal_size((80, 24)).lines
+        except Exception:
+            rows = 24
+        view = max(5, min(12, rows - 6))
+
+        def visible():
+            needle = state["filter"].lower()
+            items = rest
+            if needle and filterable:
+                items = [o for o in rest
+                         if needle in o.label.lower()
+                         or needle in o.detail.lower()
+                         or needle in o.key.lower()]
+            return pinned + items
+
+        def render(renderer):
+            items = visible()
+            state["index"] = max(0, min(state["index"], len(items) - 1))
+            if state["index"] < state["offset"]:
+                state["offset"] = state["index"]
+            elif state["index"] >= state["offset"] + view:
+                state["offset"] = state["index"] - view + 1
+            state["offset"] = max(0, min(state["offset"], max(0, len(items) - view)))
+            lines = [("  " + prompt, "title")]
+            if filterable:
+                lines.append((f"  filter: {state['filter'] or '—'}", "dim"))
+            if not items:
+                lines.append(("  (tidak ada yang cocok)", "dim"))
+            for i, opt in enumerate(items[state["offset"]: state["offset"] + view],
+                                     start=state["offset"]):
+                cursor = "▸ " if i == state["index"] else "  "
+                mark = ""
+                if multi:
+                    mark = "[x] " if opt.key in state["checked"] else "[ ] "
+                detail = f"  {opt.detail}" if opt.detail else ""
+                lines.append((f" {cursor}{mark}{opt.label}{detail}",
+                              "sel" if i == state["index"] else ""))
+            arrows = "↑↓" if self.unicode else "^v"
+            extra = " · spasi=pilih" if multi else ""
+            finish = "Enter=selesai" if multi else "Enter=ok"
+            cancel = " · Esc=batal" if allow_cancel else ""
+            lines.append((f"  {arrows} · ketik=cari · ⌫=hapus · {finish}{extra}{cancel}"
+                          f"   [{min(view, len(items))}/{len(items)}]", "dim"))
+            renderer.draw(lines)
+
+        with _KeyReader() as reader:
+            renderer = _RawRenderer(self.width)
+            try:
+                render(renderer)
+                while True:
+                    kind, value = reader.key()
+                    if kind == "interrupt":
+                        raise KeyboardInterrupt()
+                    if kind == "eof":
+                        if allow_cancel:
+                            return [] if multi else None
+                        raise ExitMenu()
+                    if kind == "up":
+                        items = visible()
+                        if items:
+                            state["index"] = (state["index"] - 1) % len(items)
+                    elif kind == "down":
+                        items = visible()
+                        if items:
+                            state["index"] = (state["index"] + 1) % len(items)
+                    elif kind == "pgup":
+                        state["index"] = max(0, state["index"] - view)
+                    elif kind == "pgdn":
+                        state["index"] += view
+                    elif kind == "home":
+                        state["index"] = 0
+                    elif kind == "end":
+                        state["index"] = max(0, len(visible()) - 1)
+                    elif kind == "backspace":
+                        if filterable and state["filter"]:
+                            state["filter"] = state["filter"][:-1]
+                            state["index"] = 0
+                    elif kind == "esc":
+                        if allow_cancel:
+                            return [] if multi else None
+                    elif kind == "enter":
+                        items = visible()
+                        if multi:
+                            return sorted(state["checked"])
+                        typed = state["filter"].strip().lower()
+                        if typed:
+                            exact = next((o.key for o in options
+                                          if o.key.lower() == typed), None)
+                            if exact is not None:
+                                return exact
+                        if items:
+                            return items[min(state["index"], len(items) - 1)].key
+                    elif kind == "space" and multi:
+                        items = visible()
+                        if items:
+                            key = items[min(state["index"], len(items) - 1)].key
+                            state["checked"].symmetric_difference_update({key})
+                    elif kind == "char" and value:
+                        if filterable:
+                            state["filter"] += value
+                            state["index"] = 0
+                        else:
+                            # Tanpa filter: angka/huruf = pilih langsung.
+                            direct = next((o.key for o in visible()
+                                           if o.key.lower() == value.lower()), None)
+                            if direct is not None:
+                                if multi:
+                                    state["checked"].symmetric_difference_update({direct})
+                                else:
+                                    return direct
+                    render(renderer)
+            finally:
+                renderer.finish()
 
     # -- prompt_toolkit ----------------------------------------------------
     def _ptk_select(self, prompt: str, options: Sequence[Option], default,
@@ -417,6 +586,179 @@ class UI:
             print("  " + (" " * gap).join(cells))
 
 # ---------------------------------------------------------------------------
+# pemilih raw (tanpa dependensi): panah + filter langsung di terminal nyata
+# ---------------------------------------------------------------------------
+_RAW_STYLES = {
+    "title": "\x1b[1;36m",
+    "sel": "\x1b[7m",
+    "dim": "\x1b[2m",
+}
+
+# Escape sequence terminal (POSIX) -> nama tombol.
+_ESCAPE_KEYS = {
+    b"[A": "up", b"OA": "up",
+    b"[B": "down", b"OB": "down",
+    b"[H": "home", b"OH": "home", b"[1~": "home",
+    b"[F": "end", b"OF": "end", b"[4~": "end",
+    b"[5~": "pgup", b"[6~": "pgdn",
+}
+
+# Kode kedua dari msvcrt (Windows) -> nama tombol.
+_WIN_KEYS = {"H": "up", "P": "down", "I": "pgup", "Q": "pgdn",
+             "G": "home", "O": "end"}
+
+def _raw_capable() -> bool:
+    """True bila pemilih raw bisa dipakai: stdin & stdout terminal nyata."""
+    if not (_tty(sys.stdin) and _tty(sys.stdout)):
+        return False
+    if os.name == "nt":
+        try:
+            import msvcrt  # noqa: F401
+        except Exception:
+            return False
+        return True
+    try:
+        import termios  # noqa: F401
+        import tty  # noqa: F401
+    except Exception:
+        return False
+    return True
+
+def _enable_windows_vt() -> None:
+    """Aktifkan ANSI escape di console Windows (best-effort)."""
+    try:
+        import ctypes
+        kernel = ctypes.windll.kernel32
+        handle = kernel.GetStdHandle(-11)
+        mode = ctypes.c_uint32()
+        if kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            kernel.SetConsoleMode(handle, mode.value | 0x0004)
+    except Exception:
+        pass
+
+class _KeyReader:
+    """Baca satu tombol dalam mode raw; restore terminal saat keluar."""
+
+    def __init__(self):
+        self._fd = None
+        self._restore = None
+
+    def __enter__(self):
+        if os.name == "nt":
+            _enable_windows_vt()
+        else:
+            import termios
+            import tty
+            self._fd = sys.stdin.fileno()
+            self._restore = termios.tcgetattr(self._fd)
+            tty.setraw(self._fd)
+        return self
+
+    def __exit__(self, *exc):
+        if self._restore is not None:
+            import termios
+            try:
+                termios.tcsetattr(self._fd, termios.TCSADRAIN, self._restore)
+            except Exception:
+                pass
+        return False
+
+    def key(self):
+        """Return `(nama, teks)`; nama ∈ up/down/pgup/pgdn/home/end/enter/
+        backspace/space/esc/interrupt/eof/char/unknown."""
+        if os.name == "nt":
+            return self._key_windows()
+        return self._key_posix()
+
+    def _key_posix(self):
+        import select
+        b = os.read(self._fd, 1)
+        if not b:
+            return ("eof", "")
+        if b == b"\x1b":
+            seq = b""
+            while len(seq) < 5:
+                ready, _, _ = select.select([self._fd], [], [], 0.01)
+                if not ready:
+                    break
+                nxt = os.read(self._fd, 1)
+                if not nxt:
+                    break
+                seq += nxt
+                if seq in _ESCAPE_KEYS:
+                    break
+            if not seq:
+                return ("esc", "")
+            return (_ESCAPE_KEYS.get(seq, "unknown"), "")
+        if b in (b"\r", b"\n"):
+            return ("enter", "")
+        if b in (b"\x7f", b"\x08"):
+            return ("backspace", "")
+        if b == b"\x03":
+            return ("interrupt", "")
+        if b == b" ":
+            return ("space", "")
+        if b[0] < 0x80:
+            return ("char", b.decode("ascii", "ignore"))
+        # UTF-8 multibyte (mis. huruf beraksen / CJK) — baca lanjutannya.
+        need = 1 if b[0] < 0xE0 else 2 if b[0] < 0xF0 else 3
+        for _ in range(need):
+            nxt = os.read(self._fd, 1)
+            if not nxt:
+                break
+            b += nxt
+        return ("char", b.decode("utf-8", "ignore"))
+
+    def _key_windows(self):
+        import msvcrt
+        ch = msvcrt.getwch()
+        if ch in ("\x00", "\xe0"):
+            return (_WIN_KEYS.get(msvcrt.getwch(), "unknown"), "")
+        if ch in ("\r", "\n"):
+            return ("enter", "")
+        if ch == "\x08":
+            return ("backspace", "")
+        if ch == "\x03":
+            return ("interrupt", "")
+        if ch == " ":
+            return ("space", "")
+        return ("char", ch)
+
+class _RawRenderer:
+    """Gambar blok pilihan di tempat (tanpa scroll) memakai ANSI."""
+
+    def __init__(self, width: int):
+        self.width = max(24, width)
+        self.lines = 0
+
+    def draw(self, rows) -> None:
+        out = []
+        if self.lines:
+            out.append(f"\x1b[{self.lines}A")
+        for text, style in rows:
+            shown = _clip(text, self.width)
+            code = _RAW_STYLES.get(style, "")
+            if code:
+                shown = code + shown + "\x1b[0m"
+            out.append("\x1b[2K" + shown + "\n")
+        out.append("\x1b[J")
+        sys.stdout.write("".join(out))
+        sys.stdout.flush()
+        self.lines = len(rows)
+
+    def finish(self) -> None:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        self.lines = 0
+
+def _clip(text: str, width: int) -> str:
+    """Potong baris ke lebar terminal supaya hitungan baris tidak meleset."""
+    if len(text) <= width:
+        return text
+    tail = "…" if _unicode_ok() else "~"
+    return text[: max(0, width - 1)] + tail
+
+# ---------------------------------------------------------------------------
 # prompt_toolkit picker (diimpor malas; modul ini tetap ringan)
 # ---------------------------------------------------------------------------
 def _ptk_picker(prompt: str, options: Sequence[Option], default,
@@ -433,10 +775,13 @@ def _ptk_picker(prompt: str, options: Sequence[Option], default,
 
     def visible():
         needle = state["filter"].lower()
-        if not needle:
-            return list(options)
-        return [o for o in options
-                if needle in o.label.lower() or needle in o.detail.lower() or needle in o.key.lower()]
+        pinned = [o for o in options if o.pinned]
+        rest = [o for o in options if not o.pinned]
+        if needle:
+            rest = [o for o in rest
+                    if needle in o.label.lower() or needle in o.detail.lower()
+                    or needle in o.key.lower()]
+        return pinned + rest
 
     def render():
         items = visible()
@@ -484,7 +829,7 @@ def _ptk_picker(prompt: str, options: Sequence[Option], default,
     )
 
     if default:
-        items = list(options)
+        items = visible()
         for i, opt in enumerate(items):
             if opt.key == default:
                 state["index"] = i
@@ -555,13 +900,19 @@ def _ptk_keys(state, visible, allow_cancel: bool, filterable: bool):
 
     @kb.add(Keys.Any)
     def _any(event):
-        if not filterable:
-            return
         data = event.data or ""
-        if data.isprintable() and data.strip():
-            state["filter"] += data
-            state["index"] = 0
-            event.app.invalidate()
+        if not data or not data.isprintable():
+            return
+        if filterable:
+            if data.strip():
+                state["filter"] += data
+                state["index"] = 0
+                event.app.invalidate()
+            return
+        # Tanpa filter: angka/huruf = pilih langsung (perilaku mode angka).
+        key = next((o.key for o in visible() if o.key.lower() == data.lower()), None)
+        if key is not None:
+            event.app.exit(result=key)
 
     return kb
 
@@ -581,9 +932,11 @@ def _ptk_multi_picker(prompt: str, options: Sequence[Option], preselected: Seque
 
     def visible():
         needle = state["filter"].lower()
-        if not needle:
-            return list(options)
-        return [o for o in options if needle in o.label.lower() or needle in o.key.lower()]
+        pinned = [o for o in options if o.pinned]
+        rest = [o for o in options if not o.pinned]
+        if needle:
+            rest = [o for o in rest if needle in o.label.lower() or needle in o.key.lower()]
+        return pinned + rest
 
     def render():
         items = visible()

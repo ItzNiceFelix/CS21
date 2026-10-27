@@ -322,5 +322,41 @@ class TestReportCommand(unittest.TestCase):
             self.assertEqual(r.returncode, int(cli.ExitCode.USAGE))
             self.assertIn("tidak ditemukan", r.stderr)
 
+    def test_analyze_respects_cs_compat_env(self):
+        """`CS_COMPAT` harus dipakai, bukan hardcode IMPROVED."""
+        import os
+
+        import cs_core.compat as compat_mod
+        import cs_core.config as config
+        import cs_core.transcript as transcript
+
+        seen = {}
+        orig_get = transcript.get_segments
+        orig_to = compat_mod.to_legacy
+        transcript.get_segments = lambda *a, **k: (
+            [{"sec": 0, "text": "cegukan"}], "mock", "hit")
+
+        def _spy(result, *, mode=None, engine="E"):
+            seen["mode"] = mode
+            return orig_to(result, mode=mode, engine=engine)
+
+        compat_mod.to_legacy = _spy
+        old = os.environ.get("CS_COMPAT")
+        os.environ["CS_COMPAT"] = "BASELINE"
+        try:
+            with redirect_stdout(io.StringIO()):
+                rc = cli.main(["analyze", "--video", "gAQIEyzUHYc",
+                               "--lang", "id", "--json"])
+        finally:
+            transcript.get_segments = orig_get
+            compat_mod.to_legacy = orig_to
+            if old is None:
+                os.environ.pop("CS_COMPAT", None)
+            else:
+                os.environ["CS_COMPAT"] = old
+
+        self.assertEqual(rc, 0)
+        self.assertIs(seen["mode"], config.CompatMode.BASELINE)
+
 if __name__ == "__main__":
     unittest.main()

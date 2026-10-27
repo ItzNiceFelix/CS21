@@ -319,5 +319,15 @@ class TestCompatLabels(unittest.TestCase):
         self.assertIsInstance(d["hits"], list)
 
 
+class TestGeneratorInput(unittest.TestCase):
+    def test_generator_segments_are_not_swallowed(self):
+        """Input generator harus dianalisis, bukan jadi `no_match` diam-diam."""
+        spec = load("id")
+        gen = ({"sec": i * 10, "text": f"ini cegukan nomor {i}"} for i in range(3))
+        res = score_segments(gen, spec, video_id="v", lang="id")
+        self.assertEqual(res.status, "analyzed")
+        self.assertGreater(res.core_hits, 0)
+        self.assertEqual(len(res.hits), 3)
+
 if __name__ == "__main__":
     unittest.main()
