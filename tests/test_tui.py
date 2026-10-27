@@ -7,6 +7,7 @@ from __future__ import annotations
 import builtins
 import importlib
 import io
+import re
 import sys
 import unittest
 from contextlib import redirect_stdout
@@ -307,6 +308,45 @@ class TestKeyReader(unittest.TestCase):
         self.assertEqual(self._read([b"\r"]), ("enter", ""))
         self.assertEqual(self._read([b"\x7f"]), ("backspace", ""))
         self.assertEqual(self._read([b"a"]), ("char", "a"))
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+class TestSmallScreen(unittest.TestCase):
+    """Termux sempit/pendek: lebar dihitung dalam sel, tinggi tidak scroll."""
+
+    def test_cells_counts_wide_chars(self):
+        self.assertEqual(tui._cells("abc"), 3)
+        self.assertEqual(tui._cells("➕"), 2)
+        self.assertEqual(tui._cells("a\u0301"), 1)
+
+    def test_clip_uses_cell_width(self):
+        out = tui._clip("➕" * 20, 10)
+        self.assertLessEqual(tui._cells(out), 10)
+
+    def test_renderer_uses_crlf_and_fits_height(self):
+        """Raw mode mematikan OPOST: tanpa `\\r` baris akan miring."""
+        rows = [(f"baris-{i} " + "x" * 80, "") for i in range(30)]
+        renderer = tui._RawRenderer()
+        out = io.StringIO()
+        with redirect_stdout(out):
+            renderer.draw(rows, width=20, screen=8)
+        text = out.getvalue()
+        self.assertIn("\r\n", text)
+        self.assertEqual(text.count("\x1b[2K"), 7)  # screen - 1
+        for line in _ANSI_RE.sub("", text).replace("\r", "").split("\n"):
+            if line:
+                self.assertLessEqual(tui._cells(line), 20)
+
+    def test_pick_works_on_small_terminal(self):
+        opts = [Option(str(i), f"channel-{i}") for i in range(1, 40)]
+        keys = [("down", ""), ("enter", "")]
+        with mock.patch.object(tui, "_raw_capable", lambda: True), \
+                mock.patch.object(tui, "_KeyReader", lambda: _FakeReader(keys)), \
+                mock.patch.object(tui, "_term_size", lambda: (32, 10)):
+            with redirect_stdout(io.StringIO()):
+                picked = UI(interactive=True, colors=False,
+                            mode="plain").pick("scan channel", opts)
+        self.assertEqual(picked, "2")
 
 if __name__ == "__main__":
     unittest.main()

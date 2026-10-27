@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import unicodedata
 from dataclasses import dataclass
 from typing import Callable, Iterable, Sequence
 
@@ -365,11 +366,9 @@ class UI:
                 if opt.key == default:
                     state["index"] = i
                     break
-        try:
-            rows = shutil.get_terminal_size((80, 24)).lines
-        except Exception:
-            rows = 24
-        view = max(5, min(12, rows - 6))
+        # Jumlah baris yang ditampilkan; dihitung ulang tiap frame dari ukuran
+        # terminal nyata (Termux bisa sempit/pendek dan di-resize saat jalan).
+        view = [8]
 
         def visible():
             needle = state["filter"].lower()
@@ -382,19 +381,24 @@ class UI:
             return pinned + items
 
         def render(renderer):
+            cols, screen = _term_size()
+            width = max(20, min(cols, 100))
+            # Sisakan ruang untuk banner menu + judul/filter/hint picker.
+            view[0] = max(3, min(12, screen - 12))
             items = visible()
             state["index"] = max(0, min(state["index"], len(items) - 1))
             if state["index"] < state["offset"]:
                 state["offset"] = state["index"]
-            elif state["index"] >= state["offset"] + view:
-                state["offset"] = state["index"] - view + 1
-            state["offset"] = max(0, min(state["offset"], max(0, len(items) - view)))
+            elif state["index"] >= state["offset"] + view[0]:
+                state["offset"] = state["index"] - view[0] + 1
+            state["offset"] = max(0, min(state["offset"],
+                                         max(0, len(items) - view[0])))
             lines = [("  " + prompt, "title")]
             if filterable:
                 lines.append((f"  filter: {state['filter'] or '—'}", "dim"))
             if not items:
                 lines.append(("  (tidak ada yang cocok)", "dim"))
-            for i, opt in enumerate(items[state["offset"]: state["offset"] + view],
+            for i, opt in enumerate(items[state["offset"]: state["offset"] + view[0]],
                                      start=state["offset"]):
                 cursor = "▸ " if i == state["index"] else "  "
                 mark = ""
@@ -404,15 +408,23 @@ class UI:
                 lines.append((f" {cursor}{mark}{opt.label}{detail}",
                               "sel" if i == state["index"] else ""))
             arrows = "↑↓" if self.unicode else "^v"
-            extra = " · spasi=pilih" if multi else ""
-            finish = "Enter=selesai" if multi else "Enter=ok"
-            cancel = " · Esc=batal" if allow_cancel else ""
-            lines.append((f"  {arrows} · ketik=cari · ⌫=hapus · {finish}{extra}{cancel}"
-                          f"   [{min(view, len(items))}/{len(items)}]", "dim"))
-            renderer.draw(lines)
+            total = f"[{min(view[0], len(items))}/{len(items)}]"
+            if width < 46:
+                extra = "spasi · " if multi else ""
+                finish = "Enter=selesai" if multi else "Enter"
+                cancel = " · Esc" if allow_cancel else ""
+                hint = f"  {arrows} · {extra}{finish}{cancel} {total}"
+            else:
+                extra = " · spasi=pilih" if multi else ""
+                finish = "Enter=selesai" if multi else "Enter=ok"
+                cancel = " · Esc=batal" if allow_cancel else ""
+                hint = (f"  {arrows} · ketik=cari · ⌫=hapus · {finish}"
+                        f"{extra}{cancel}   {total}")
+            lines.append((hint, "dim"))
+            renderer.draw(lines, width=width, screen=screen)
 
         with _KeyReader() as reader:
-            renderer = _RawRenderer(self.width)
+            renderer = _RawRenderer()
             try:
                 render(renderer)
                 while True:
@@ -432,9 +444,9 @@ class UI:
                         if items:
                             state["index"] = (state["index"] + 1) % len(items)
                     elif kind == "pgup":
-                        state["index"] = max(0, state["index"] - view)
+                        state["index"] = max(0, state["index"] - view[0])
                     elif kind == "pgdn":
-                        state["index"] += view
+                        state["index"] += view[0]
                     elif kind == "home":
                         state["index"] = 0
                     elif kind == "end":
@@ -725,38 +737,80 @@ class _KeyReader:
         return ("char", ch)
 
 class _RawRenderer:
-    """Gambar blok pilihan di tempat (tanpa scroll) memakai ANSI."""
+    """Gambar blok pilihan di tempat (tanpa scroll) memakai ANSI.
 
-    def __init__(self, width: int):
-        self.width = max(24, width)
+    Lebar dihitung dalam **sel terminal**, bukan jumlah karakter: emoji
+    (`➕`, `▸`) memakan 2 sel. Tanpa ini baris terlipat di layar sempit
+    (Termux) dan hitungan baris untuk cursor-up jadi meleset -> tampilan kacau.
+    Tinggi blok juga dibatasi `screen - 1` supaya tidak memicu scroll.
+    """
+
+    def __init__(self):
         self.lines = 0
 
-    def draw(self, rows) -> None:
-        out = []
-        if self.lines:
-            out.append(f"\x1b[{self.lines}A")
-        for text, style in rows:
-            shown = _clip(text, self.width)
+    def draw(self, rows, *, width: int, screen: int) -> None:
+        limit = max(1, screen - 1)
+        rows = list(rows)[:limit]
+        out = ["\r"]
+        if self.lines >= limit:
+            # Blok lama lebih tinggi dari layar sekarang (di-resize): cursor-up
+            # tidak bisa dipercaya, gambar ulang dari atas.
+            out.append("\x1b[2J\x1b[H")
+        elif self.lines:
+            # Naik ke baris pertama blok sebelumnya (kolom direset oleh `\r`).
+            out.append(f"\x1b[{self.lines - 1}A")
+        for idx, (text, style) in enumerate(rows):
+            if idx:
+                # `\r\n` WAJIB: di Termux raw mode OPOST mati, jadi `\n` saja
+                # hanya turun baris tanpa kembali ke kolom 0 -> tampilan miring.
+                out.append("\r\n")
+            shown = _clip(text, width)
             code = _RAW_STYLES.get(style, "")
             if code:
                 shown = code + shown + "\x1b[0m"
-            out.append("\x1b[2K" + shown + "\n")
+            out.append("\x1b[2K" + shown)
         out.append("\x1b[J")
         sys.stdout.write("".join(out))
         sys.stdout.flush()
         self.lines = len(rows)
 
     def finish(self) -> None:
-        sys.stdout.write("\n")
+        sys.stdout.write("\r\n")
         sys.stdout.flush()
         self.lines = 0
 
+def _term_size() -> tuple[int, int]:
+    """Ukuran terminal saat ini (kolom, baris); aman di pipe/CI."""
+    try:
+        size = shutil.get_terminal_size((80, 24))
+        return max(20, int(size.columns)), max(4, int(size.lines))
+    except Exception:
+        return 80, 24
+
+def _char_cells(ch: str) -> int:
+    """Lebar satu karakter dalam sel terminal (0/1/2)."""
+    if unicodedata.combining(ch):
+        return 0
+    return 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+
+def _cells(text: str) -> int:
+    return sum(_char_cells(ch) for ch in text)
+
 def _clip(text: str, width: int) -> str:
-    """Potong baris ke lebar terminal supaya hitungan baris tidak meleset."""
-    if len(text) <= width:
+    """Potong baris ke `width` sel terminal (emoji dihitung 2 sel)."""
+    if _cells(text) <= width:
         return text
     tail = "…" if _unicode_ok() else "~"
-    return text[: max(0, width - 1)] + tail
+    budget = max(0, width - 1)
+    out = []
+    used = 0
+    for ch in text:
+        w = _char_cells(ch)
+        if used + w > budget:
+            break
+        out.append(ch)
+        used += w
+    return "".join(out) + tail
 
 # ---------------------------------------------------------------------------
 # prompt_toolkit picker (diimpor malas; modul ini tetap ringan)

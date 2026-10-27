@@ -38,6 +38,9 @@ lewat `prompt_toolkit` bila terpasang, atau pemilih raw bawaan (stdlib) bila
 tidak. Mode angka + tab-completion (readline) otomatis dipakai di pipe/cron
 atau bila terminal tidak mendukung pembacaan tombol mentah. Pilihan
 `➕ Channel baru` selalu tampil di atas dan tidak ikut tersaring filter.
+Tata letak pemilih menyesuaikan ukuran terminal: lebar dihitung dalam sel
+(emoji = 2 sel) dan jumlah baris dibatasi tinggi layar, jadi tetap rapi di
+Termux sempit atau setelah layar di-resize.
 Daftar panjang (mis. 335 channel) dipaginasi dan bisa dipersempit dengan
 mengetik sebagian nama.
 
