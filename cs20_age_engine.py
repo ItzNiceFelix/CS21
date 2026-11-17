@@ -22,6 +22,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 try:
+    from cs_core.engine_compat import MATCH_FILTER_VIDEO
+except ImportError:  # engine disalin tanpa cs_core
+    MATCH_FILTER_VIDEO = "duration>=60"
+
+try:
     from rich.console import Console
     from rich.live import Live
     from rich.table import Table
@@ -976,8 +981,13 @@ def _send_discord(webhook_url: str, channel: str, executor: str,
         return False
     try:
         import requests as rq
+        try:
+            from cs_core.report import channel_label
+            ch_label = channel_label(channel)
+        except Exception:
+            ch_label = f"@{channel}"
         valid_count = sum(1 for r in results if r.get("is_valid"))
-        payload     = {"embeds": [{"title": f"🔞 AGE BYPASS — @{channel}",
+        payload     = {"embeds": [{"title": f"🔞 AGE BYPASS — {ch_label}",
                                     "color": 16711680,
                                     "description": f"Sesi: {session_label}\n"
                                                    f"Valid: {valid_count}/{len(results)}"}]}
@@ -988,7 +998,7 @@ def _send_discord(webhook_url: str, channel: str, executor: str,
             if sz <= 7.5:
                 with open(html_path, "rb") as f:
                     r2 = rq.post(webhook_url,
-                                 data={"payload_json": json.dumps({"content": f"📄 @{channel} age report:"})},
+                                 data={"payload_json": json.dumps({"content": f"📄 {ch_label} age report:"})},
                                  files={"file": (os.path.basename(html_path), f, "text/html")},
                                  timeout=60)
                 ok = ok and r2.status_code in (200, 204)
@@ -1086,18 +1096,31 @@ def phase_check_cookies(cookies_path: str, test_video_id: str | None) -> bool:
 # ==============================================================================
 # INPUT CHANNEL & VIDEO IDS
 # ==============================================================================
+def _channel_base_url(channel: str) -> str:
+    """Base URL channel: /channel/UCxxx untuk ID mentah, else /@handle."""
+    try:
+        from cs_core.engine_compat import channel_base_url as _shared
+
+        return _shared(channel)
+    except ImportError:
+        pass
+    if re.fullmatch(r"UC[A-Za-z0-9_-]{22}", channel or ""):
+        return f"https://www.youtube.com/channel/{channel}"
+    return f"https://www.youtube.com/@{channel}"
+
 def _get_video_ids_from_channel(channel: str, content_type: str, limit: int) -> list:
     """Ambil video IDs dari channel via yt-dlp."""
+    base = _channel_base_url(channel)
     if content_type == "live":
-        url       = f"https://www.youtube.com/@{channel}/streams"
+        url       = f"{base}/streams"
         extra     = []
     elif content_type == "video":
-        url       = f"https://www.youtube.com/@{channel}/videos"
-        extra     = ["--match-filter", "duration>60"]
+        url       = f"{base}/videos"
+        extra     = ["--match-filter", MATCH_FILTER_VIDEO]
     else:
-        ids_l = _fetch_ids_flat(f"https://www.youtube.com/@{channel}/streams", limit, [])
-        ids_v = _fetch_ids_flat(f"https://www.youtube.com/@{channel}/videos", limit,
-                                ["--match-filter", "duration>60"])
+        ids_l = _fetch_ids_flat(f"{base}/streams", limit, [])
+        ids_v = _fetch_ids_flat(f"{base}/videos", limit,
+                                ["--match-filter", MATCH_FILTER_VIDEO])
         seen, combined = set(), []
         for v in ids_l + ids_v:
             if v not in seen:
@@ -1460,5 +1483,10 @@ if __name__ == "__main__":
         args.channel = normalize_channel(args.channel)
         args.lang = resolve_lang_arg(args.lang)
     except ImportError:
+        pass
+    try:
+        from cs_core.channels import ensure_channel_name
+        ensure_channel_name(args.channel, config_dir=args.config_dir)
+    except Exception:
         pass
     process_age_mode(args)

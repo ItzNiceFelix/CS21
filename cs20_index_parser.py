@@ -17,6 +17,11 @@ from datetime import datetime
 from typing import Optional
 
 try:
+    from cs_core.engine_compat import MATCH_FILTER_VIDEO
+except ImportError:  # parser disalin tanpa cs_core
+    MATCH_FILTER_VIDEO = "duration>=60"
+
+try:
     from rich.console import Console
     from rich.progress import (
         Progress, SpinnerColumn, BarColumn,
@@ -344,10 +349,11 @@ def get_playlist_count(channel: str, content_type: str) -> int:
     Ambil estimasi jumlah video via --playlist-items 0 --print playlist_count.
     Return 0 jika gagal (caller harus handle fallback ke input manual).
     """
+    base = _channel_base_url(channel)
     if content_type == "live":
-        url = f"https://www.youtube.com/@{channel}/streams"
+        url = f"{base}/streams"
     else:
-        url = f"https://www.youtube.com/@{channel}/videos"
+        url = f"{base}/videos"
 
     cmd = [
         "yt-dlp",
@@ -375,6 +381,12 @@ def _is_raw_channel_id(channel: str) -> bool:
 
 def _channel_base_url(channel: str) -> str:
     """Base URL channel: /channel/UCxxx untuk ID mentah, else /@handle."""
+    try:
+        from cs_core.engine_compat import channel_base_url as _shared
+
+        return _shared(channel)
+    except ImportError:
+        pass
     if _is_raw_channel_id(channel):
         return f"https://www.youtube.com/channel/{channel}"
     return f"https://www.youtube.com/@{channel}"
@@ -396,13 +408,13 @@ def fetch_video_ids_range(
         extra_args = []
     elif content_type == "video":
         urls       = [f"{base}/videos"]
-        extra_args = ["--match-filter", "duration>60"]
+        extra_args = ["--match-filter", MATCH_FILTER_VIDEO]
     else:
         urls = [
             f"{base}/streams",
             f"{base}/videos",
         ]
-        extra_args = ["--match-filter", "duration>60"]
+        extra_args = ["--match-filter", MATCH_FILTER_VIDEO]
 
     seen, result = set(), []
     for url in urls:

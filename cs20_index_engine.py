@@ -679,8 +679,14 @@ def send_discord_index(
         + (f" — 🔍 SEARCH: {search_query[:30]}" if search_query else "")
     )
 
+    try:
+        from cs_core.report import channel_label
+        ch_label = channel_label(channel)
+    except Exception:
+        ch_label = f"@{channel}"
+
     payload = {"embeds": [{"title": title, "color": 4886754, "fields": [
-        {"name": "Target",    "value": f"@{channel}",          "inline": True},
+        {"name": "Target",    "value": ch_label,                "inline": True},
         {"name": "Operator",  "value": executor,                "inline": True},
         {"name": "Hasil",
          "value": f"Valid: {valid_count} | Hits: {total_hits} | Total: {len(results)}",
@@ -703,7 +709,7 @@ def send_discord_index(
                     resp2 = _req_lib.post(
                         webhook_url,
                         data={"payload_json": json.dumps(
-                            {"content": f"📄 Laporan @{channel} Batch {batch_no:02d}:"}
+                            {"content": f"📄 Laporan {ch_label} Batch {batch_no:02d}:"}
                         )},
                         files={"file": (os.path.basename(html_path), f, "text/html")},
                         timeout=60,
@@ -1121,5 +1127,10 @@ if __name__ == "__main__":
         args.channel = normalize_channel(args.channel)
         args.lang = resolve_lang_arg(args.lang)
     except ImportError:
+        pass
+    try:
+        from cs_core.channels import ensure_channel_name
+        ensure_channel_name(args.channel, config_dir=args.config_dir)
+    except Exception:
         pass
     process_index_mode(args)

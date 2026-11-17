@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from . import settings as _settings
@@ -43,8 +44,15 @@ _LANGS = [
 ]
 _LANG_CODE = {"1": "id", "2": "en", "3": "jp", "4": "kr", "5": "in", "6": "th"}
 
+_CONTENT_LABELS = {
+    "all": "Semua (live + video)",
+    "video": "Video biasa (tanpa Shorts/<60s)",
+    "live": "Arsip live saja",
+}
+
 _ENGINES = {
     "scan": "cs20_engine.py",
+    "playlist": "cs20_playlist_engine.py",
     "index": "cs20_index_engine.py",
     "age": "cs20_age_engine.py",
     "autodrive": "cs20_autodrive_engine.py",
@@ -173,6 +181,20 @@ def _session_meta(channel: str) -> dict:
 # ---------------------------------------------------------------------------
 # pemilih channel
 # ---------------------------------------------------------------------------
+def _display_channel(channel: str) -> str:
+    """Label tampilan: `@handle` atau nama asli untuk `UC…`."""
+    try:
+        from .channels import channel_display_name
+
+        return channel_display_name(channel) or channel
+    except Exception:
+        return channel
+
+def _channel_option(key: str, channel: str, badge: str = "") -> Option:
+    label = _display_channel(channel)
+    detail = channel if label != channel else ""
+    return Option(key, label, detail, badge=badge)
+
 def _pick_channel(ctx: Ctx, *, prompt: str = "pilih channel",
                   allow_new: bool = True, preferred: str = "") -> str:
     saved = load_saved_channels(ctx.config_dir)
@@ -184,7 +206,16 @@ def _pick_channel(ctx: Ctx, *, prompt: str = "pilih channel",
         # Pinned: tetap terlihat walau user sudah mengetik filter.
         options.append(Option("0", "➕ Channel baru", "ketik handle / UCxxx",
                               pinned=True))
-    options += [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
+    if preferred and preferred in saved:
+        options.append(Option(
+            "last", "🔁 Scan terakhir",
+            f"{_display_channel(preferred)} · {_last_scan_label(ctx, preferred)}",
+            pinned=True,
+        ))
+    options += [
+        _channel_option(str(i), ch, "terakhir" if ch == preferred else "")
+        for i, ch in enumerate(saved, 1)
+    ]
     if not saved and not allow_new:
         return ""
 
@@ -193,6 +224,8 @@ def _pick_channel(ctx: Ctx, *, prompt: str = "pilih channel",
         return ""
     if picked == "0":
         return _ask_new_channel(ctx)
+    if picked == "last":
+        return preferred
     try:
         return saved[int(picked) - 1]
     except (ValueError, IndexError):
@@ -201,7 +234,52 @@ def _pick_channel(ctx: Ctx, *, prompt: str = "pilih channel",
 def _ask_new_channel(ctx: Ctx) -> str:
     raw = ctx.ui.ask("channel (handle / UCxxx / URL)",
                      validate=_validate_channel)
-    return _normalize_channel(raw)
+    clean = _normalize_channel(raw)
+    if not clean:
+        return ""
+    try:
+        from .channels import (
+            AmbiguousChannel,
+            ensure_channel_name,
+            remember_channel_name,
+            resolve_channel,
+        )
+
+        ctx.ui.info("mendeteksi channel ID…")
+        res = resolve_channel(raw, config_dir=ctx.config_dir)
+    except AmbiguousChannel as exc:
+        options = [
+            Option(c.channel_id, c.name or c.channel_id,
+                   f"{c.channel_id} · {c.hits} hasil")
+            for c in exc.candidates[:10]
+        ]
+        picked = ctx.ui.pick("pilih kanal", options) if options else None
+        if not picked:
+            return clean
+        name = ensure_channel_name(picked, config_dir=ctx.config_dir)
+        if name:
+            remember_channel_name(picked, name, config_dir=ctx.config_dir)
+        return picked
+    except Exception as exc:
+        ctx.ui.warn(f"deteksi channel ID gagal: {exc}")
+        return clean
+
+    if res.warning:
+        ctx.ui.warn(res.warning)
+    if res.channel_id != clean:
+        if res.redirected:
+            ctx.ui.warn(
+                f"{raw} dialihkan YouTube; memakai {res.channel_id}"
+                + (f" ({res.name})" if res.name else "")
+            )
+        else:
+            ctx.ui.info(f"channel ID: {res.channel_id}")
+    name = res.name or ensure_channel_name(res.channel_id,
+                                           config_dir=ctx.config_dir)
+    if name:
+        remember_channel_name(res.channel_id, name, res.handle,
+                              ctx.config_dir)
+    return res.channel_id
 
 def _normalize_channel(raw: str) -> str:
     """Buang '@', spasi, path, dan URL YouTube yang tidak diperlukan."""
@@ -305,6 +383,63 @@ def _webhook_args(ctx: Ctx) -> list[str]:
 def _executor(ctx: Ctx) -> str:
     return ctx.executor or "Operator"
 
+def _last_scan_label(ctx: Ctx, channel: str) -> str:
+    path = ctx.checkpoint_dir / f"{channel}.checkpoint"
+    try:
+        ts = path.stat().st_mtime
+    except OSError:
+        return "belum pernah"
+    return datetime.fromtimestamp(ts).strftime("%d %b %H:%M")
+
+def _show_scan_plan(ctx: Ctx, channels: list[str]) -> None:
+    """Preflight RSS untuk channel yang dipilih: video terbaru + jumlah baru."""
+    if not channels:
+        return
+    if len(channels) > 20:
+        ctx.ui.warn("preflight dibatasi 20 channel — lewati cek video terbaru")
+        return
+    if not ctx.ui.confirm(
+        f"cek video terbaru {len(channels)} channel? (1–2 request/channel)",
+        default=True,
+    ):
+        return
+
+    from .feed import channel_latest
+    from .watch import filter_new, get as watch_get
+
+    rows: list[list[str]] = []
+    for i, channel in enumerate(channels, 1):
+        ctx.ui.info(f"[{i}/{len(channels)}] cek {_display_channel(channel)}…")
+        info = channel_latest(channel, config_dir=ctx.config_dir)
+        baru = "?"
+        if info and info.error == "error":
+            latest = "tidak tersedia"
+        elif info and info.videos:
+            video = info.videos[0]
+            latest = f"{video.title[:38]} ({video.published[:10]})"
+            last = str(watch_get(info.channel_id, ctx.config_dir).get("last_video_id") or "")
+            if last:
+                new = filter_new(info.channel_id, info.videos, ctx.config_dir)
+                baru = str(len(new))
+                if all(v.video_id != last for v in info.videos):
+                    baru += "+"
+        elif info:
+            latest = "tidak ada video"
+            baru = "0"
+        else:
+            latest = "tidak tersedia"
+        rows.append([
+            str(i),
+            _display_channel(channel),
+            info.channel_id if info else channel,
+            _last_scan_label(ctx, channel),
+            latest,
+            baru,
+        ])
+    ctx.ui.table(rows, headers=[
+        "#", "Channel", "ID", "Terakhir scan", "Video terbaru", "Baru",
+    ])
+
 # ---------------------------------------------------------------------------
 # aksi
 # ---------------------------------------------------------------------------
@@ -313,6 +448,8 @@ def _act_scan(ctx: Ctx) -> None:
     if not channels:
         ctx.ui.info("dibatalkan")
         return
+
+    _show_scan_plan(ctx, channels)
 
     limit = ctx.ui.ask("berapa video terakhir (0 = semua)", default=str(ctx.settings.limit),
                        validate=_validate_int)
@@ -324,18 +461,20 @@ def _act_scan(ctx: Ctx) -> None:
 
     ctx.save_settings(last_channel=channels[0], last_mode="scan",
                       limit=int(limit or 20))
+    ctx.ui.kv("konten", _CONTENT_LABELS.get(ctx.settings.content_type,
+                                            ctx.settings.content_type))
 
     total = len(channels)
     failures = 0
     for index, channel in enumerate(channels, 1):
         remember_channel(channel, ctx.config_dir)
         if total > 1:
-            ctx.ui.title(f"[{index}/{total}] @{channel}")
+            ctx.ui.title(f"[{index}/{total}] {_display_channel(channel)}")
         args = [
             "--channel", channel,
             "--limit", limit,
             "--jobs", str(ctx.settings.jobs),
-            "--content-type", "all",
+            "--content-type", ctx.settings.content_type,
             "--executor", _executor(ctx),
             "--mode", "pantau" if live else "plain",
             "--config-dir", str(ctx.config_dir),
@@ -343,12 +482,12 @@ def _act_scan(ctx: Ctx) -> None:
             "--lang", ctx.lang,
             *_webhook_args(ctx),
         ]
-        rc = _run_engine(ctx, "scan", args, label=f"scan @{channel}",
+        rc = _run_engine(ctx, "scan", args, label=f"scan {_display_channel(channel)}",
                          notify=(index == total))
         if rc != 0:
             failures += 1
             if total > 1:
-                ctx.ui.warn(f"@{channel} gagal (exit {rc}) — lanjut channel berikutnya")
+                ctx.ui.warn(f"{_display_channel(channel)} gagal (exit {rc}) — lanjut channel berikutnya")
 
     if total > 1:
         ctx.ui.ok(f"selesai: {total - failures}/{total} channel berhasil")
@@ -362,7 +501,16 @@ def _pick_channels(ctx: Ctx, *, preferred: str = "") -> list[str]:
     options: list[Option] = [
         Option("0", "➕ Channel baru", "ketik handle / UCxxx", pinned=True)
     ]
-    options += [Option(str(i), ch) for i, ch in enumerate(saved, 1)]
+    if preferred and preferred in saved:
+        options.append(Option(
+            "last", "🔁 Scan terakhir",
+            f"{_display_channel(preferred)} · {_last_scan_label(ctx, preferred)}",
+            pinned=True,
+        ))
+    options += [
+        _channel_option(str(i), ch, "terakhir" if ch == preferred else "")
+        for i, ch in enumerate(saved, 1)
+    ]
     if not saved:
         return [c for c in [_ask_new_channel(ctx)] if c]
 
@@ -372,6 +520,8 @@ def _pick_channels(ctx: Ctx, *, preferred: str = "") -> list[str]:
             return []
         if picked == "0":
             return [c for c in [_ask_new_channel(ctx)] if c]
+        if picked == "last":
+            return [preferred]
         try:
             return [saved[int(picked) - 1]]
         except (ValueError, IndexError):
@@ -388,11 +538,15 @@ def _pick_channels(ctx: Ctx, *, preferred: str = "") -> list[str]:
             if new:
                 out.append(new)
             continue
+        if key == "last":
+            if preferred:
+                out.append(preferred)
+            continue
         try:
             out.append(saved[int(key) - 1])
         except (ValueError, IndexError):
             continue
-    return out
+    return list(dict.fromkeys(out))
 
 def _act_analyze(ctx: Ctx) -> None:
     raw = ctx.ui.ask("video ID atau URL", validate=lambda v: None if v.strip() else "wajib diisi")
@@ -677,7 +831,12 @@ def _count_channel_videos(channel: str) -> int:
     """Ambil playlist_count channel via yt-dlp (0 bila gagal)."""
     if not shutil.which("yt-dlp"):
         return 0
-    url = f"https://www.youtube.com/@{channel}/videos"
+    try:
+        from .engine_compat import channel_base_url
+
+        url = f"{channel_base_url(channel)}/videos"
+    except ImportError:  # pragma: no cover
+        url = f"https://www.youtube.com/@{channel}/videos"
     try:
         proc = subprocess.run(
             ["yt-dlp", "--playlist-items", "0", "--print", "playlist_count",
@@ -777,7 +936,159 @@ def _act_chatseeker(ctx: Ctx) -> None:
         ctx.ui.err("ChatSeeker butuh paket 'rich'")
         ctx.ui.info("pip install rich --break-system-packages")
         return
-    _run_engine(ctx, "chatseeker", [], label="chatseeker")
+    _run_engine(ctx, "chatseeker", ["--lang", ctx.lang], label="chatseeker")
+
+def _act_channel_id(ctx: Ctx) -> None:
+    raw = ctx.ui.ask("handle / URL kanal / URL video / UC…",
+                     validate=lambda v: None if (v or "").strip() else "wajib diisi")
+    if not raw:
+        return
+    try:
+        from .channels import (
+            AmbiguousChannel,
+            ensure_channel_name,
+            remember_channel_name,
+            resolve_channel,
+        )
+
+        res = resolve_channel(raw, config_dir=ctx.config_dir)
+    except AmbiguousChannel as exc:
+        options = [
+            Option(c.channel_id, c.name or c.channel_id,
+                   f"{c.channel_id} · {c.hits} hasil")
+            for c in exc.candidates[:10]
+        ]
+        picked = ctx.ui.pick("pilih kanal", options) if options else None
+        if not picked:
+            return
+        name = ensure_channel_name(picked, config_dir=ctx.config_dir)
+        if name:
+            remember_channel_name(picked, name, config_dir=ctx.config_dir)
+        ctx.ui.kv("channel ID", picked)
+        if ctx.ui.confirm("simpan channel?", default=True):
+            remember_channel(picked, ctx.config_dir)
+            ctx.ui.ok(f"@{picked} tersimpan")
+        return
+    except Exception as exc:
+        ctx.ui.err(str(exc))
+        return
+
+    name = res.name or ensure_channel_name(res.channel_id,
+                                           config_dir=ctx.config_dir)
+    if name:
+        remember_channel_name(res.channel_id, name, res.handle,
+                              ctx.config_dir)
+        ctx.ui.kv("nama", name)
+    if res.redirected:
+        ctx.ui.warn("handle dialihkan YouTube; ID di bawah adalah kandidat terverifikasi")
+    ctx.ui.kv("channel ID", res.channel_id)
+    if res.warning:
+        ctx.ui.warn(res.warning)
+    if ctx.ui.confirm("simpan channel?", default=True):
+        remember_channel(res.channel_id, ctx.config_dir)
+        ctx.ui.ok(f"@{res.channel_id} tersimpan")
+
+def _act_playlist(ctx: Ctx) -> None:
+    raw = ctx.ui.ask("URL/ID playlist (PL…, UU…, UUMO…, RD…)",
+                     validate=lambda v: None if (v or "").strip() else "wajib diisi")
+    if not raw:
+        return
+    limit = ctx.ui.ask("berapa video playlist", default=str(ctx.settings.limit),
+                       validate=_validate_int)
+    live = ctx.ui.confirm("pakai dashboard Live?", default=ctx.ui.interactive)
+    args = [
+        "--playlist", raw,
+        "--limit", limit,
+        "--start", "1",
+        "--lang", ctx.lang,
+        "--jobs", str(ctx.settings.jobs),
+        "--content-type", ctx.settings.content_type,
+        "--executor", _executor(ctx),
+        "--mode", "pantau" if live else "plain",
+        "--config-dir", str(ctx.config_dir),
+        "--checkpoint-dir", str(ctx.checkpoint_dir),
+        *_webhook_args(ctx),
+    ]
+    _run_engine(ctx, "playlist", args, label="playlist")
+
+def _act_chatseeker_membership(ctx: Ctx) -> None:
+    if not ctx.ui.interactive:
+        ctx.ui.warn("ChatSeeker butuh terminal interaktif (tidak bisa dari pipe)")
+        return
+    if not _module_ok("rich"):
+        ctx.ui.err("ChatSeeker butuh paket 'rich'")
+        ctx.ui.info("pip install rich --break-system-packages")
+        return
+    _run_engine(ctx, "chatseeker", ["--lang", ctx.lang, "--membership"],
+                label="chatseeker membership")
+
+def _read_pasted_cookies(ctx: Ctx) -> str:
+    ctx.ui.info("paste cookies Netscape; akhiri dengan baris kosong")
+    lines: list[str] = []
+    while True:
+        try:
+            line = input("  > ")
+        except EOFError:
+            break
+        if not line.strip():
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
+def _act_cookies(ctx: Ctx) -> None:
+    from . import cookies
+
+    while True:
+        st = cookies.status(ctx.config_dir)
+        ctx.ui.title("🍪 Cookies")
+        ctx.ui.kv("file", str(st.path))
+        if st.exists:
+            ctx.ui.kv("status", f"{st.size} B · {st.count} cookie · "
+                               f"login={'ya' if st.has_login else 'tidak'} · "
+                               f"{st.age_days:.1f} hari")
+        else:
+            ctx.ui.kv("status", "belum ada")
+        picked = ctx.ui.pick("cookies", [
+            Option("1", "Import dari file", "cookies.txt Netscape"),
+            Option("2", "Paste cookies", "tempel langsung di CLI"),
+            Option("3", "Cek validitas", "yt-dlp + cookies"),
+            Option("4", "Hapus cookies", ""),
+            Option("5", "Kembali", ""),
+        ], filterable=False)
+        if picked in (None, "5"):
+            return
+        if picked == "1":
+            path = ctx.ui.ask("path cookies.txt",
+                              validate=lambda v: None if (v or "").strip() else "wajib diisi")
+            try:
+                st = cookies.import_file(path, ctx.config_dir)
+                ctx.ui.ok(f"cookies tersimpan: {st.count} baris")
+            except ValueError as exc:
+                ctx.ui.err(str(exc))
+        elif picked == "2":
+            text = _read_pasted_cookies(ctx)
+            if not text.strip():
+                ctx.ui.warn("tidak ada cookies yang dipaste")
+                continue
+            try:
+                st = cookies.save_text(text, ctx.config_dir)
+                ctx.ui.ok(f"cookies tersimpan: {st.count} baris")
+            except ValueError as exc:
+                ctx.ui.err(str(exc))
+        elif picked == "3":
+            url = ctx.ui.ask("URL video member untuk cek akses (opsional)", default="")
+            ctx.ui.info("cek cookies…")
+            check = cookies.validate(ctx.config_dir, url)
+            if check.ok:
+                ctx.ui.ok(check.message)
+            else:
+                ctx.ui.err(check.message)
+                if check.detail:
+                    ctx.ui.info(check.detail)
+        elif picked == "4":
+            if ctx.ui.confirm("hapus cookies?", default=False):
+                ctx.ui.ok("cookies dihapus" if cookies.clear(ctx.config_dir)
+                          else "tidak ada cookies")
 
 def _act_doctor(ctx: Ctx) -> None:
     from .doctor import run_doctor
@@ -792,6 +1103,7 @@ def _act_settings(ctx: Ctx) -> None:
         ctx.ui.kv("fuzzy", s.fuzzy)
         ctx.ui.kv("jobs", str(s.jobs))
         ctx.ui.kv("limit", str(s.limit))
+        ctx.ui.kv("konten", _CONTENT_LABELS.get(s.content_type, s.content_type))
         ctx.ui.kv("notifikasi", "aktif" if s.notify else "mati")
         ctx.ui.kv("wake-lock", "aktif" if s.wake_lock else "mati")
 
@@ -802,9 +1114,10 @@ def _act_settings(ctx: Ctx) -> None:
             Option("4", "Limit video", str(s.limit)),
             Option("5", "Notifikasi", "aktif" if s.notify else "mati"),
             Option("6", "Wake-lock", "aktif" if s.wake_lock else "mati"),
-            Option("7", "Kembali"),
+            Option("7", "Tipe konten scan", _CONTENT_LABELS.get(s.content_type, s.content_type)),
+            Option("8", "Kembali"),
         ])
-        if picked in (None, "7"):
+        if picked in (None, "8"):
             return
         if picked == "1":
             lang = _pick_language(ctx.ui, current=s.lang)
@@ -827,6 +1140,15 @@ def _act_settings(ctx: Ctx) -> None:
             ctx.save_settings(notify=not s.notify)
         elif picked == "6":
             ctx.save_settings(wake_lock=not s.wake_lock)
+        elif picked == "7":
+            picked_ct = ctx.ui.pick("tipe konten scan", [
+                Option("1", "Semua", "arsip live + video biasa"),
+                Option("2", "Video biasa", "kecuali Shorts & video <60 detik"),
+                Option("3", "Arsip live", "hanya tab /streams"),
+            ], default={"all": "1", "video": "2", "live": "3"}[s.content_type])
+            code = {"1": "all", "2": "video", "3": "live"}.get(picked_ct or "")
+            if code:
+                ctx.save_settings(content_type=code)
 
 def _module_ok(name: str) -> bool:
     import importlib.util
@@ -866,6 +1188,7 @@ def _banner(ctx: Ctx) -> None:
         f"lang: {ctx.lang}",
         f"fuzzy: {_fuzzy_state(ctx)}",
         f"jobs: {ctx.settings.jobs}",
+        f"konten: {ctx.settings.content_type}",
     ]
     ui.kv("", "  ".join(status), key_width=0)
     # Lokasi data terlihat langsung: dulu cache pindah diam-diam antara home
@@ -930,9 +1253,13 @@ def _menu_options(ctx: Ctx) -> list[Option]:
         Option("7", "💬 ChatSeeker", "live-chat VTuber"),
         Option("8", "🚗 Auto Drive", "discovery channel"),
         Option("9", "🧹 Cache", "stats / bersihkan"),
+        Option("p", "📃 Playlist", "scan khusus playlist"),
+        Option("m", "💬 ChatSeeker Membership", "live chat member"),
+        Option("k", "🍪 Cookies", "import / paste / cek"),
         Option("v", "🎞️  Video terakhir", f"{cached} di cache"),
         Option("r", "📄 Laporan", f"{n_reports} file"),
         Option("d", "🩺 Doctor", "cek & perbaiki dependensi"),
+        Option("c", "🔗 Cek channel ID", "handle / URL / video"),
         Option("l", "🌐 Ganti bahasa", ctx.lang),
         Option("s", "⚙️  Setelan", f"jobs={ctx.settings.jobs} fuzzy={ctx.settings.fuzzy}"),
         Option("0", "Keluar"),
@@ -948,9 +1275,13 @@ _ACTIONS = {
     "7": _act_chatseeker,
     "8": _act_autodrive,
     "9": _act_cache,
+    "p": _act_playlist,
+    "m": _act_chatseeker_membership,
+    "k": _act_cookies,
     "v": _act_recent,
     "r": _act_reports,
     "d": _act_doctor,
+    "c": _act_channel_id,
 }
 
 # ---------------------------------------------------------------------------

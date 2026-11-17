@@ -5,10 +5,10 @@
 #   Rewrite dari chatseeker.sh V2.1 + adaptasi error engine dari cs20_age_engine
 # ==============================================================================
 
+import argparse
 import gc
 import json
 import os
-import re
 import shutil
 import signal
 import subprocess
@@ -19,6 +19,18 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+
+try:
+    from cs_core.engine_compat import (
+        channel_base_url,
+        is_raw_channel_id,
+        normalize_channel,
+    )
+    from cs_core.errors import resolve_lang
+    from cs_core.languages.chat_spec import load_chat
+except ImportError as _exc:  # pragma: no cover - repo selalu menyertakan cs_core
+    print(f"[x] ChatSeeker butuh paket cs_core: {_exc}")
+    raise SystemExit(1)
 
 # ── Rich import ────────────────────────────────────────────────────────────────
 try:
@@ -58,29 +70,38 @@ DL_SLEEP_BASE   = 0.8        # detik jeda antar request (lebih rendah dari v2)
 SOCK_TIMEOUT    = 15
 EXTRACTOR_RETRY = 3
 
-def _load_webhook() -> str:
-    """Ambil webhook ChatSeeker: env dulu, lalu file inject (`WEBHOOK_GLOBAL`).
+def _load_webhook(webhook_key: str = "WEBHOOK_GLOBAL") -> str:
+    """Ambil webhook ChatSeeker: env dulu, lalu file inject.
 
-    ChatSeeker = engine live-chat global (bukan khusus Indonesia), jadi pakai
-    webhook Global bila ada. Semua jalur gagal -> string kosong (laporan
-    Discord dilewati, bukan error).
+    `webhook_key` berasal dari `ChatLangSpec.webhook_key` (`id` memakai
+    `WEBHOOK_INDONESIA`, bahasa lain `WEBHOOK_GLOBAL`). Bahasa Indonesia tetap
+    fallback ke `WEBHOOK_GLOBAL` agar setup lama tidak pecah. Semua jalur gagal
+    -> string kosong (laporan Discord dilewati, bukan error).
     """
     for key in ("CHATSEEKER_WEBHOOK", "CS_WEBHOOK"):
         value = (os.environ.get(key) or "").strip()
         if value:
             return value
+    wanted = [webhook_key]
+    if webhook_key != "WEBHOOK_GLOBAL":
+        wanted.append("WEBHOOK_GLOBAL")
+    hooks: dict[str, str] = {}
     try:
         for line in WEBHOOK_FILE.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line.startswith("#") or "=" not in line:
                 continue
             name, _, value = line.partition("=")
-            if name.strip() == "WEBHOOK_GLOBAL":
+            name = name.strip()
+            if name in wanted:
                 value = value.strip().strip('"').strip("'")
                 if value:
-                    return value
+                    hooks.setdefault(name, value)
     except OSError:
         pass
+    for name in wanted:
+        if hooks.get(name):
+            return hooks[name]
     return ""
 
 # Webhook diambil saat dipakai (`_load_webhook()` di `_send_discord`), bukan
@@ -131,6 +152,8 @@ _html_kolektif    = []        # list string HTML sections (thread-safe via _html
 _score_buckets    = {4: [], 3: [], 2: [], 1: []}  # bucket score per level
 _score_lock       = threading.Lock()
 _shutdown_flag    = threading.Event()
+_active_spec      = None      # ChatLangSpec sesi berjalan (display/laporan)
+_selected_lang    = "id"      # bahasa pilihan CLI/menu (checkpoint & log)
 
 # ==============================================================================
 # HELPER UMUM
@@ -220,6 +243,14 @@ def _classify_ytdlp_error(combined: str) -> str:
     if "confirm your age" in c or "age-restricted" in c or "age restricted" in c:
         return "age_restricted"
 
+    # 2b. Members-only — butuh cookies akun yang sudah join membership
+    if any(k in c for k in (
+        "members only", "members-only", "join this channel",
+        "available to this channel's members", "subscriber_only",
+        "subscriber only", "channel members",
+    )):
+        return "members_only"
+
     # 3. Bot-check YouTube — butuh cookies login valid (baru, sejak pertengahan 2025)
     if "sign in to confirm" in c or "not a bot" in c or "login required" in c:
         return "auth_required"
@@ -266,6 +297,8 @@ def _make_dashboard(target: str) -> Panel:
     left.add_column("v", style="bold white",  min_width=14)
 
     left.add_row("Target",  f"[cyan]@{target}[/cyan]")
+    if _active_spec is not None:
+        left.add_row("Bahasa", f"[cyan]{_active_spec.label}[/cyan] [dim]({_active_spec.lang})[/dim]")
     left.add_row("Fase",    phase_txt)
     left.add_row(
         "Progress",
@@ -354,12 +387,14 @@ def _save_log(data: dict):
     LOG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def _append_log(channel: str, filter_mode: str, total_vid: int, total_hits: int):
+def _append_log(channel: str, filter_mode: str, total_vid: int, total_hits: int,
+                lang: str = "id"):
     data = _load_log()
     if channel not in data:
         data[channel] = []
     data[channel].append({
         "filter_mode": filter_mode,
+        "lang":        lang,
         "scanned_at":  datetime.now().strftime("%d-%m-%Y %H:%M"),
         "total_video": total_vid,
         "total_hits":  total_hits,
@@ -376,13 +411,15 @@ def _show_log_channel(channel: str):
     tbl = Table(box=rbox.SIMPLE, show_header=True, header_style="bold cyan",
                 width=_PANEL_W)
     tbl.add_column("#",       width=3)
-    tbl.add_column("Filter",  width=18)
+    tbl.add_column("Bahasa",  width=6)
+    tbl.add_column("Filter",  width=14)
     tbl.add_column("Video",   width=6,  justify="right")
     tbl.add_column("Hits",    width=6,  justify="right")
     tbl.add_column("Waktu",   width=16)
     for i, e in enumerate(entries[-10:], 1):   # max 10 entri terbaru
         tbl.add_row(
             str(i),
+            e.get("lang", "id"),
             e.get("filter_mode", "?"),
             str(e.get("total_video", 0)),
             str(e.get("total_hits", 0)),
@@ -395,35 +432,61 @@ def _show_log_channel(channel: str):
 # CHECKPOINT SYSTEM
 # ==============================================================================
 
-def _cp_file(channel: str) -> Path:
+def _cp_file(channel: str, lang: str = "id") -> Path:
     CHECKPOINT_DIR.mkdir(exist_ok=True)
+    return CHECKPOINT_DIR / f"{channel}.{lang}.json"
+
+def _legacy_cp_file(channel: str) -> Path:
     return CHECKPOINT_DIR / f"{channel}.json"
 
+def _cp_lang() -> str:
+    """Bahasa aktif: sesi scan berjalan, atau pilihan terakhir di main()."""
+    return _active_spec.lang if _active_spec is not None else _selected_lang
 
-def _load_checkpoint(channel: str) -> set:
-    cp = _cp_file(channel)
+
+def _load_checkpoint(channel: str, lang: str = "id") -> set:
+    cp = _cp_file(channel, lang)
+    if lang == "id" and not cp.exists():
+        legacy = _legacy_cp_file(channel)
+        if legacy.exists():
+            cp = legacy
     try:
         return set(json.loads(cp.read_text(encoding="utf-8")))
     except Exception:
         return set()
 
 
-def _save_checkpoint(channel: str, done_ids: set):
-    cp = _cp_file(channel)
+def _save_checkpoint(channel: str, done_ids: set, lang: str = "id"):
+    cp = _cp_file(channel, lang)
     cp.write_text(json.dumps(sorted(done_ids), indent=2), encoding="utf-8")
 
 
-def _reset_checkpoint(channel: str):
-    _cp_file(channel).write_text("[]", encoding="utf-8")
+def _reset_checkpoint(channel: str, lang: str = "id"):
+    _cp_file(channel, lang).write_text("[]", encoding="utf-8")
 
 
 # ==============================================================================
 # FASE 0: AMBIL ID VIDEO DARI CHANNEL
 # ==============================================================================
 
-def _fetch_video_ids(channel: str) -> list[str]:
+def _membership_playlist_id(channel: str) -> str:
+    """UUMO + channel ID tanpa 'UC' (playlist members-only resmi YouTube)."""
+    cid = channel
+    if not is_raw_channel_id(cid):
+        try:
+            from cs_core.channels import resolve_channel
+
+            cid = resolve_channel(channel, use_search=True).channel_id
+        except Exception:
+            return ""
+    if not is_raw_channel_id(cid):
+        return ""
+    return "UUMO" + cid[2:]
+
+def _fetch_video_ids(channel: str, membership: bool = False) -> list[str]:
     """
     Ambil daftar video ID dari channel/streams via yt-dlp --flat-playlist.
+    `membership=True` memakai playlist UUMO (members-only videos).
     Return list of video_id string, kosong jika gagal.
     """
     ytdlp = _ytdlp_cmd()
@@ -434,7 +497,15 @@ def _fetch_video_ids(channel: str) -> list[str]:
         )
         return []
 
-    url = f"https://www.youtube.com/@{channel}/streams"
+    url = f"{channel_base_url(channel)}/streams"
+    if membership:
+        pid = _membership_playlist_id(channel)
+        if pid:
+            url = f"https://www.youtube.com/playlist?list={pid}"
+            _console.print(f"  [dim]Membership playlist: {pid}[/dim]")
+        else:
+            _console.print("  [yellow][!] Channel ID tidak terdeteksi; fallback /streams.[/yellow]")
+
     cmd = [
         *ytdlp,
         "--flat-playlist",
@@ -442,8 +513,10 @@ def _fetch_video_ids(channel: str) -> list[str]:
         "--print", "id",
         "--no-warnings",
         "--socket-timeout", "20",
-        url,
     ]
+    if COOKIES_PATH.exists():
+        cmd += ["--cookies", str(COOKIES_PATH)]
+    cmd.append(url)
     try:
         r   = _run(cmd, timeout=120)
         ids = [l.strip() for l in r.stdout.splitlines() if l.strip()]
@@ -528,8 +601,8 @@ def _download_chat(video_id: str, work_dir: Path) -> dict:
 
         status1 = _classify_ytdlp_error(comb1)
 
-        # Kalau errornya BUKAN karena butuh login/umur, langsung kembalikan hasil
-        if status1 not in ("age_restricted", "auth_required"):
+        # Kalau errornya BUKAN karena butuh login/umur/membership, langsung kembalikan hasil
+        if status1 not in ("age_restricted", "auth_required", "members_only"):
             return {**base, "status": status1, "error_type": status1,
                     "error_msg": r1.stderr.strip()[:300] or r1.stdout.strip()[:300]}
 
@@ -548,95 +621,89 @@ def _download_chat(video_id: str, work_dir: Path) -> dict:
     if not COOKIES_PATH.exists():
         # Menyerah kalau butuh cookies tapi file cookies belum ada
         return {**base, "status": status1, "error_type": status1,
-                "error_msg": "Video restricted, butuh cookies.txt tapi file tidak ditemukan."}
+                "error_msg": "Video restricted/membership, butuh cookies.txt "
+                             "tapi file tidak ditemukan. Import lewat menu Cookies."}
 
-    cmd_restricted = [
-        *ytdlp,
-        "--skip-download",
-        "--write-subs",
-        "--sub-langs", "live_chat",
-        "--extractor-args", "youtube:player_client=mweb",  # client mweb baca cookies
-        "--cookies", str(COOKIES_PATH),
-        "--sleep-requests", str(DL_SLEEP_BASE),
-        "--extractor-retries", str(EXTRACTOR_RETRY),
-        "--socket-timeout", str(SOCK_TIMEOUT),
-        "--no-warnings",
-        "-o", outtmpl, url,
-    ]
+    last_status = status1
+    last_msg = ""
+    for client in ("mweb", "web"):
+        cmd_restricted = [
+            *ytdlp,
+            "--skip-download",
+            "--write-subs",
+            "--sub-langs", "live_chat",
+            "--extractor-args", f"youtube:player_client={client}",
+            "--cookies", str(COOKIES_PATH),
+            "--sleep-requests", str(DL_SLEEP_BASE),
+            "--extractor-retries", str(EXTRACTOR_RETRY),
+            "--socket-timeout", str(SOCK_TIMEOUT),
+            "--no-warnings",
+            "-o", outtmpl, url,
+        ]
 
-    try:
-        r2    = _run(cmd_restricted, timeout=60)
-        comb2 = r2.stdout + " " + r2.stderr
+        try:
+            r2    = _run(cmd_restricted, timeout=60)
+            comb2 = r2.stdout + " " + r2.stderr
 
-        if chat_path.exists() and chat_path.stat().st_size > 10:
-            return {**base, "status": "ok", "chat_file": chat_path}
+            if chat_path.exists() and chat_path.stat().st_size > 10:
+                return {**base, "status": "ok", "chat_file": chat_path}
 
-        status2 = _classify_ytdlp_error(comb2)
-        return {**base, "status": status2, "error_type": status2,
-                "error_msg": r2.stderr.strip()[:300] or r2.stdout.strip()[:300]}
+            status2 = _classify_ytdlp_error(comb2)
+            last_status = status2
+            last_msg = r2.stderr.strip()[:300] or r2.stdout.strip()[:300]
+            if status2 != "members_only":
+                break
+        except subprocess.TimeoutExpired:
+            return {**base, "status": "network_error",
+                    "error_type": "timeout",
+                    "error_msg": f"Timeout di Strategi 2 ({client}+cookies)"}
+        except FileNotFoundError:
+            return {**base, "status": "error",
+                    "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan"}
+        except Exception as e:
+            return {**base, "status": "error", "error_type": "unknown",
+                    "error_msg": str(e)[:200]}
 
-    except subprocess.TimeoutExpired:
-        return {**base, "status": "network_error",
-                "error_type": "timeout", "error_msg": "Timeout di Strategi 2 (mweb+cookies)"}
-    except FileNotFoundError:
-        return {**base, "status": "error",
-                "error_type": "ytdlp_missing", "error_msg": "yt-dlp tidak ditemukan"}
-    except Exception as e:
-        return {**base, "status": "error", "error_type": "unknown", "error_msg": str(e)[:200]}
+    return {**base, "status": last_status, "error_type": last_status,
+            "error_msg": last_msg}
 
 
 # ==============================================================================
 # FASE 2: PARSE & SCORE (single-pass, efisien)
 # ==============================================================================
 
-# Keyword regex — dikompile sekali saja
-_KW_UTAMA = re.compile(
-    r'"text"\s*:\s*"[^"]*(cegukan|cekukan|kecegukan)[^"]*"',
-    re.IGNORECASE
-)
-_KW_ONOMA = re.compile(
-    r'"text"\s*:\s*"[^"]*(hicc|hikk|ngikk)[^"]*"',
-    re.IGNORECASE
-)
-_KW_DASAR = re.compile(
-    r'"text"\s*:\s*"[^"]*(minum|nafas|napas|kagetin)[^"]*"',
-    re.IGNORECASE
-)
-_KW_KOMBI = re.compile(
-    r'"text"\s*:\s*"[^"]*((coba|tahan|tarik|buang|kasih)\s*(nafas|napas)'
-    r'|(minum)\s*(dulu|kak|bang|dir|obat|dlu)'
-    r'|[0-9]+\s*tegukan'
-    r'|(gas|coba|di)\s*kagetin)[^"]*"',
-    re.IGNORECASE
-)
-_KW_ANY = re.compile(
-    r'cegukan|cekukan|hicc|hikk|ngikk|minum|nafas|napas|kagetin',
-    re.IGNORECASE
-)
-_TEXT_RE = re.compile(r'"text"\s*:\s*"([^"]*)"')
+# Keyword regex dimuat dari spesifikasi bahasa: `cs_core.languages.chat_spec`.
 
 
-def _score_file(chat_path: Path) -> int:
+def _score_file(chat_path: Path, spec) -> int:
     """
     Hitung skor dari file chat JSON dengan single-pass baca file.
-    Return int skor.
+
+    Bobot tier berasal dari `spec` (data per bahasa). Rumus Indonesia tidak
+    berubah: `int(core*35 + onoma*10 + max(0, dasar-kombi)*0.5 + kombi*4.5)`.
     """
     try:
         content = chat_path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return 0
 
-    c_utama = len(_KW_UTAMA.findall(content))
-    c_onoma = len(_KW_ONOMA.findall(content))
-    c_dasar = len(_KW_DASAR.findall(content))
-    c_kombi = len(_KW_KOMBI.findall(content))
+    tiers = spec.tiers
+    c_core  = len(spec.line["CORE"].findall(content))
+    c_onom  = len(spec.line["ONOMA"].findall(content))
+    c_dasar = len(spec.line["DASAR"].findall(content))
+    c_kombi = len(spec.line["KOMBI"].findall(content))
 
     r_dasar = max(0, c_dasar - c_kombi)
-    score   = int(c_utama * 35 + c_onoma * 10 + r_dasar * 0.5 + c_kombi * 4.5)
+    score = int(
+        c_core  * tiers["CORE"].weight
+        + c_onom  * tiers["ONOMA"].weight
+        + r_dasar * tiers["DASAR"].weight
+        + c_kombi * tiers["KOMBI"].weight
+    )
     return score
 
 
-def _extract_hits(video_id: str, chat_path: Path) -> list[dict]:
+def _extract_hits(video_id: str, chat_path: Path, spec) -> list[dict]:
     """
     Single-pass JSON parse → ekstrak baris chat yang match keyword.
     Return list of {sec, ts, text, url}.
@@ -645,7 +712,7 @@ def _extract_hits(video_id: str, chat_path: Path) -> list[dict]:
     try:
         with chat_path.open(encoding="utf-8", errors="ignore") as f:
             for line in f:
-                if not _KW_ANY.search(line):
+                if not spec.any_line.search(line):
                     continue
                 try:
                     data    = json.loads(line)
@@ -659,7 +726,7 @@ def _extract_hits(video_id: str, chat_path: Path) -> list[dict]:
                             continue
                         runs = msg.get("message", {}).get("runs", [])
                         text = "".join(r.get("text", "") for r in runs)
-                        if not _KW_ANY.search(text):
+                        if not spec.any_text.search(text):
                             continue
                         msec = int(str(
                             data.get("replayChatItemAction", {})
@@ -680,7 +747,7 @@ def _extract_hits(video_id: str, chat_path: Path) -> list[dict]:
     return hits
 
 
-def _parse_and_score(video_id: str, chat_path: Path, target_ch: str) -> dict:
+def _parse_and_score(video_id: str, chat_path: Path, target_ch: str, spec) -> dict:
     """
     Parse satu file chat:
     1. Hitung skor (single-pass)
@@ -688,14 +755,15 @@ def _parse_and_score(video_id: str, chat_path: Path, target_ch: str) -> dict:
     3. Buat HTML section
     Return dict result.
     """
-    score = _score_file(chat_path)
+    score = _score_file(chat_path, spec)
     if score == 0:
         return {"video_id": video_id, "score": 0, "level": 0, "hits": [], "html": ""}
 
-    if   score >= 100: level = 4
-    elif score >= 75:  level = 3
-    elif score >= 50:  level = 2
-    else:              level = 1
+    lvl2, lvl3, lvl4 = spec.levels
+    if   score >= lvl4: level = 4
+    elif score >= lvl3: level = 3
+    elif score >= lvl2: level = 2
+    else:               level = 1
 
     level_labels = {
         4: "LVL4-ABSOLUTE-HYPE",
@@ -705,7 +773,7 @@ def _parse_and_score(video_id: str, chat_path: Path, target_ch: str) -> dict:
     }
     lvl_tag = level_labels[level]
 
-    hits    = _extract_hits(video_id, chat_path)
+    hits    = _extract_hits(video_id, chat_path, spec)
 
     # HTML section
     rows = ""
@@ -746,11 +814,12 @@ def _parse_and_score(video_id: str, chat_path: Path, target_ch: str) -> dict:
 # HTML BUILDER
 # ==============================================================================
 
-def _build_html(target: str, results: list[dict]) -> str:
+def _build_html(target: str, results: list[dict], spec=None) -> str:
+    lang_label = f" · {spec.label} ({spec.lang})" if spec is not None else ""
     header = (
         "<!DOCTYPE html><html><head>"
         "<meta charset='UTF-8'>"
-        f"<title>ChatSeeker V3 — @{target}</title>"
+        f"<title>ChatSeeker V3 — @{target}{lang_label}</title>"
         "<style>"
         "body{background:#0d1117;color:#c9d1d9;font-family:monospace;padding:20px}"
         "h2{color:#58a6ff;border-bottom:1px solid #30363d;padding-bottom:8px}"
@@ -758,7 +827,7 @@ def _build_html(target: str, results: list[dict]) -> str:
         "a{color:#58a6ff;text-decoration:none}"
         "a:hover{text-decoration:underline}"
         "</style></head><body>"
-        f"<h2>CHATSEEKER V3.0 — @{target}</h2>"
+        f"<h2>CHATSEEKER V3.0 — @{target}{lang_label}</h2>"
         f"<p style='color:#8b949e'>Operator: {_operator_name} | "
         f"Dibuat: {datetime.now().strftime('%d-%m-%Y %H:%M')}</p>"
         f"<p style='color:#8b949e'>Klik timestamp biru untuk lompat ke momen di YouTube.</p>"
@@ -778,14 +847,25 @@ def _send_discord(
     total_scanned: int,
     html_path: Path | None = None,
     partial: bool = False,
+    spec=None,
 ):
-    webhook = _load_webhook()
+    webhook_key = getattr(spec, "webhook_key", "WEBHOOK_GLOBAL")
+    webhook = _load_webhook(webhook_key)
     if not webhook:
         return
+
+    lang_field = []
+    if spec is not None:
+        lang_field = [{"name": "🌐 Bahasa", "value": f"{spec.label} ({spec.lang})", "inline": True}]
 
     total_hits = t4 + t3 + t2 + t1
     mention    = "@everyone 🚨 LEVEL-4 TERDETEKSI! 🚨\n" if t4 > 0 else ""
     title_pfx  = "⚠️ [PARTIAL — INTERRUPTED]" if partial else "🗃️ LAPORAN FORENSIK"
+    try:
+        from cs_core.report import channel_label
+        ch_label = channel_label(target)
+    except Exception:
+        ch_label = f"@{target}"
 
     payload = {
         "content": mention,
@@ -794,13 +874,14 @@ def _send_discord(
             "color": 16776960 if partial else 65535,
             "fields": [
                 {"name": "👤 Operator",          "value": _operator_name or "?",   "inline": True},
-                {"name": "🦊 Channel",           "value": f"@{target}",            "inline": True},
+                {"name": "🦊 Channel",           "value": ch_label,              "inline": True},
                 {"name": "📅 Filter",            "value": filter_label,            "inline": True},
                 {"name": "🎬 Total Diperiksa",   "value": f"{total_scanned} video","inline": True},
                 {"name": "🔥 LVL-4-HYPE",        "value": f"`{t4}` arsip",         "inline": True},
                 {"name": "🔴 LVL-3-TINGGI",      "value": f"`{t3}` arsip",         "inline": True},
                 {"name": "🟡 LVL-2-SEDANG",      "value": f"`{t2}` arsip",         "inline": True},
                 {"name": "⚪ LVL-1-RENDAH",       "value": f"`{t1}` arsip",         "inline": True},
+                *lang_field,
             ],
             "footer": {"text": "ChatSeeker V3.0 | Python · Rich"},
         }]
@@ -888,6 +969,7 @@ def _sigint_handler(sig, frame):
                 _stats["done"],
                 partial_path,
                 partial=True,
+                spec=_active_spec,
             )
             try:
                 partial_path.unlink()
@@ -899,6 +981,7 @@ def _sigint_handler(sig, frame):
                 t4, t3, t2, t1,
                 _stats["done"],
                 partial=True,
+                spec=_active_spec,
             )
         _console.print("  [green][✓] Partial report terkirim.[/green]")
 
@@ -919,12 +1002,17 @@ def run_forensik_engine(
     target:      str,
     filter_mode: str,   # "ALL" | "LIMIT" | "CHECKPOINT" | "LIMIT_CHECKPOINT"
     max_vid:     int | str,   # int atau "ALL"
+    lang:        str = "id",
+    membership:  bool = False,
 ) -> bool:
     """
     Engine utama: fetch ID → download chat (paralel) → parse+score (paralel) → laporan.
     Return True jika sukses.
     """
-    global _current_target, _tmp_dir, _html_kolektif, _score_buckets
+    global _current_target, _tmp_dir, _html_kolektif, _score_buckets, _active_spec
+
+    spec = load_chat(lang)
+    _active_spec = spec
 
     # Reset state di bawah lock MASING-MASING dulu, baru pindah _current_target
     # paling akhir. Kalau SIGINT datang di tengah reset, handler masih lihat
@@ -942,11 +1030,17 @@ def run_forensik_engine(
         _stats["phase"] = "dl"
 
     _current_target = target
+    try:
+        from cs_core.channels import ensure_channel_name
+        ensure_channel_name(target)
+    except Exception:
+        pass
 
     # ── FASE 0: Fetch ID ───────────────────────────────────────────────────────
     _console.print("")
     _console.print(Panel(
         f"[white]Target  :[/white] [cyan]@{target}[/cyan]\n"
+        f"[white]Bahasa  :[/white] [cyan]{spec.label}[/cyan] [dim]({spec.lang})[/dim]\n"
         f"[white]Filter  :[/white] [yellow]{filter_mode}[/yellow]"
         + (f" — max [bold]{max_vid}[/bold] video" if max_vid != "ALL" else ""),
         title="[bold cyan]CHATSEEKER V3.0 — MULAI SCAN[/bold cyan]",
@@ -955,7 +1049,7 @@ def run_forensik_engine(
     ))
 
     with _console.status("[cyan]Menghubungkan ke YouTube...[/cyan]"):
-        all_ids = _fetch_video_ids(target)
+        all_ids = _fetch_video_ids(target, membership=membership)
 
     if not all_ids:
         _console.print("[red]  [✗] Tidak ada video ditemukan / channel tidak valid.[/red]")
@@ -964,7 +1058,7 @@ def run_forensik_engine(
     # ── Filter checkpoint ──────────────────────────────────────────────────────
     done_checkpoint: set = set()
     if filter_mode in ("CHECKPOINT", "LIMIT_CHECKPOINT"):
-        done_checkpoint = _load_checkpoint(target)
+        done_checkpoint = _load_checkpoint(target, spec.lang)
         all_ids         = [i for i in all_ids if i not in done_checkpoint]
         _console.print(
             f"  [dim]Checkpoint: {len(done_checkpoint)} sudah diproses, "
@@ -976,8 +1070,8 @@ def run_forensik_engine(
             )
             reset = Confirm.ask("  Reset checkpoint dan mulai ulang?", default=False)
             if reset:
-                _reset_checkpoint(target)
-                all_ids = _fetch_video_ids(target)
+                _reset_checkpoint(target, spec.lang)
+                all_ids = _fetch_video_ids(target, membership=membership)
             else:
                 return False
 
@@ -1151,7 +1245,7 @@ def run_forensik_engine(
 
     def _worker_parse(args_tuple) -> dict:
         vid_id, chat_path = args_tuple
-        return _parse_and_score(vid_id, chat_path, target)
+        return _parse_and_score(vid_id, chat_path, target, spec)
 
     with Live(layout2, console=_console, refresh_per_second=4, transient=False) as live2:
         with ThreadPoolExecutor(max_workers=WORKERS) as pool:
@@ -1289,7 +1383,7 @@ def run_forensik_engine(
                         if r["status"] == "ok" and r.get("chat_file"):
                             retry_ok.append((r["video_id"], r["chat_file"]))
                             # Parse langsung
-                            pr = _parse_and_score(r["video_id"], r["chat_file"], target)
+                            pr = _parse_and_score(r["video_id"], r["chat_file"], target, spec)
                             if pr["level"] > 0:
                                 with _stats_lock:
                                     _stats[f"lvl{pr['level']}"] += 1
@@ -1317,7 +1411,7 @@ def run_forensik_engine(
     # ── Checkpoint update ──────────────────────────────────────────────────────
     if filter_mode in ("CHECKPOINT", "LIMIT_CHECKPOINT"):
         new_done = done_checkpoint | {r["video_id"] for r in dl_results}
-        _save_checkpoint(target, new_done)
+        _save_checkpoint(target, new_done, spec.lang)
         _console.print(
             f"  [green][✓] Checkpoint diperbarui: {len(new_done)} total.[/green]"
         )
@@ -1330,7 +1424,7 @@ def run_forensik_engine(
         "LIMIT_CHECKPOINT": f"Max {max_vid} + Checkpoint",
     }.get(filter_mode, filter_mode)
 
-    _append_log(target, filter_label, total, total_hits)
+    _append_log(target, filter_label, total, total_hits, spec.lang)
 
     # ── Build HTML & kirim Discord ─────────────────────────────────────────────
     with _html_lock:
@@ -1338,9 +1432,9 @@ def run_forensik_engine(
 
     if html_sections:
         all_results_sorted = sorted(parse_results, key=lambda x: x.get("score", 0), reverse=True)
-        html_content = _build_html(target, all_results_sorted)
+        html_content = _build_html(target, all_results_sorted, spec)
         ts_str       = datetime.now().strftime("%d%m%Y_%H%M")
-        html_path    = Path(f"{target}_FORENSIK_{ts_str}.html")
+        html_path    = Path(f"{target}_{spec.lang.upper()}_FORENSIK_{ts_str}.html")
         html_path.write_text(html_content, encoding="utf-8")
         _console.print(f"  [dim]HTML: {html_path}[/dim]")
     else:
@@ -1352,6 +1446,7 @@ def run_forensik_engine(
         t4, t3, t2, t1,
         total,
         html_path,
+        spec=spec,
     )
 
     # Hapus HTML jika berhasil dikirim (ukuran kecil)
@@ -1433,7 +1528,7 @@ def menu_log():
 
         elif choice == "4":
             ch = Prompt.ask("  [cyan]Username channel[/cyan]").strip().lstrip("@")
-            done = _load_checkpoint(ch)
+            done = _load_checkpoint(ch, _cp_lang())
             _console.print(
                 f"  [cyan]Checkpoint @{ch}:[/cyan] "
                 f"[bold]{len(done)}[/bold] video sudah diproses."
@@ -1443,7 +1538,7 @@ def menu_log():
         elif choice == "5":
             ch = Prompt.ask("  [cyan]Username channel[/cyan]").strip().lstrip("@")
             if Confirm.ask(f"  Reset checkpoint @{ch}?", default=False):
-                _reset_checkpoint(ch)
+                _reset_checkpoint(ch, _cp_lang())
                 _console.print(f"  [green][✓] Checkpoint @{ch} direset.[/green]")
             input("\n  [Enter] lanjut...")
 
@@ -1455,7 +1550,7 @@ def menu_log():
 # INPUT FILTER
 # ==============================================================================
 
-def input_filter(channel: str) -> tuple[str, int | str]:
+def input_filter(channel: str, lang: str = "id") -> tuple[str, int | str]:
     """
     Interaktif pilih filter mode.
     Return (filter_mode, max_vid).
@@ -1481,7 +1576,7 @@ def input_filter(channel: str) -> tuple[str, int | str]:
                 _console.print("  [red]Masukkan angka valid.[/red]")
 
         # Cek checkpoint
-        done = _load_checkpoint(channel)
+        done = _load_checkpoint(channel, lang)
         if done:
             _console.print(
                 f"  [yellow][i] Ada checkpoint: {len(done)} video sudah diproses.[/yellow]"
@@ -1492,7 +1587,7 @@ def input_filter(channel: str) -> tuple[str, int | str]:
         return "LIMIT", n
 
     elif fc == "2":
-        done = _load_checkpoint(channel)
+        done = _load_checkpoint(channel, lang)
         if not done:
             _console.print(
                 "  [yellow][i] Belum ada checkpoint untuk channel ini. "
@@ -1524,15 +1619,55 @@ def input_filter(channel: str) -> tuple[str, int | str]:
 # MAIN — BANNER + MODE SELECTION
 # ==============================================================================
 
-def main():
-    global _operator_name
+_ENGINE_LANGS = (
+    ("1", "Indonesia", "id"),
+    ("2", "English", "en"),
+    ("3", "Jepang", "jp"),
+    ("4", "Korea", "kr"),
+    ("5", "India (Hindi + Telugu)", "in"),
+    ("6", "Thailand", "th"),
+)
+_LANG_BY_KEY = {key: code for key, _label, code in _ENGINE_LANGS}
+
+def _choose_language() -> str:
+    _console.print("")
+    _console.print("  [white]PILIH BAHASA LIVE CHAT:[/white]")
+    for key, label, code in _ENGINE_LANGS:
+        _console.print(f"  [cyan]{key}.[/cyan] {label} [dim]({code})[/dim]")
+    _console.print("")
+    picked = Prompt.ask("  [bold cyan]Pilihan[/bold cyan]", default="1",
+                        choices=[k for k, *_ in _ENGINE_LANGS])
+    return _LANG_BY_KEY.get(picked, "id")
+
+def main(argv=None):
+    global _operator_name, _selected_lang
+
+    parser = argparse.ArgumentParser(
+        prog="chatseeker.py",
+        description="ChatSeeker — forensik live chat YouTube (multi-bahasa)",
+    )
+    parser.add_argument("--lang", default=os.environ.get("CS_CHAT_LANG", ""),
+                        help="id/en/jp/kr/in/th (default: tanya interaktif)")
+    parser.add_argument("--membership", action="store_true",
+                        help="scan live chat video members-only (butuh cookies member)")
+    args = parser.parse_args(argv)
+
+    raw_lang = (args.lang or "").strip()
+    lang_code = ""
+    if raw_lang:
+        try:
+            lang_code = resolve_lang(raw_lang)
+            load_chat(lang_code)   # validasi dukungan ChatSeeker
+        except Exception as exc:
+            print(f"[x] {exc}")
+            return 2
 
     # ChatSeeker sepenuhnya interaktif (nama operator, mode, channel). Kalau
     # stdin bukan terminal (cron/pipe/`< /dev/null`), prompt rich akan berujung
     # EOFError + traceback. Berhenti dengan pesan jelas.
     if not sys.stdin.isatty():
         print("ChatSeeker butuh terminal interaktif (stdin bukan TTY).")
-        print("Jalankan langsung: bash cs20.sh  -> menu 7, atau: python3 chatseeker.py")
+        print("Jalankan langsung: bash cs20.sh  -> menu 7, atau: python3 chatseeker.py --lang id")
         return 2
 
     _console.clear()
@@ -1561,6 +1696,14 @@ def main():
         _operator_name = "Operator"
 
     _console.print(f"\n  Selamat datang, [bold green]{_operator_name}[/bold green]!")
+
+    if not lang_code:
+        lang_code = _choose_language()
+    _selected_lang = lang_code
+    _console.print(
+        f"  Bahasa live chat: [bold cyan]{load_chat(lang_code).label}[/bold cyan] "
+        f"[dim]({lang_code})[/dim]"
+    )
 
     # Mode
     while True:
@@ -1609,11 +1752,14 @@ def main():
                 _console.print("  [red]Channel wajib diisi![/red]")
                 continue
 
-            clean = ch_in.lstrip("@")
+            clean = normalize_channel(ch_in)
+            if not clean:
+                _console.print("  [red]Channel tidak valid![/red]")
+                continue
             channels.append(clean)
             _show_log_channel(clean)
 
-            fm, mv = input_filter(clean)
+            fm, mv = input_filter(clean, lang_code)
             filter_modes.append(fm)
             max_vids.append(mv)
 
@@ -1636,7 +1782,8 @@ def main():
             for ch, fm, mv in zip(channels, filter_modes, max_vids):
                 if _shutdown_flag.is_set():
                     break
-                run_forensik_engine(ch, fm, mv)
+                run_forensik_engine(ch, fm, mv, lang_code,
+                                    membership=args.membership)
             subprocess.run(["termux-wake-unlock"], capture_output=True)
 
         t = threading.Thread(target=_bg_worker, daemon=True)
@@ -1655,11 +1802,15 @@ def main():
             _console.print("  [red]Target kosong![/red]")
             continue
 
-        clean = ch_in.lstrip("@")
+        clean = normalize_channel(ch_in)
+        if not clean:
+            _console.print("  [red]Channel tidak valid![/red]")
+            continue
         _show_log_channel(clean)
 
-        fm, mv = input_filter(clean)
-        run_forensik_engine(clean, fm, mv)
+        fm, mv = input_filter(clean, lang_code)
+        run_forensik_engine(clean, fm, mv, lang_code,
+                            membership=args.membership)
 
         _console.print("")
         lanjut = Confirm.ask("  Cari channel lain?", default=False)

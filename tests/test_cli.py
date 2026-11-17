@@ -15,6 +15,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -36,7 +37,7 @@ class TestStartupIsLight(unittest.TestCase):
     def test_help_exit_zero(self):
         r = _run_module("--help")
         self.assertEqual(r.returncode, 0, r.stderr)
-        for cmd in ("menu", "scan", "analyze", "search", "index", "age", "cache", "doctor"):
+        for cmd in ("menu", "scan", "watch", "playlist", "cookies", "analyze", "search", "index", "age", "runs", "cache", "doctor"):
             self.assertIn(cmd, r.stdout)
 
     def test_help_does_not_import_heavy_deps(self):
@@ -285,6 +286,43 @@ class TestEnginePreflight(unittest.TestCase):
         self.assertEqual(r.returncode, int(cli.ExitCode.DEPENDENCY))
         self.assertIn("yt-dlp", r.stderr)
         self.assertNotIn("cek nama channel", r.stderr)
+
+class TestScanContentType(unittest.TestCase):
+    """`scan` tanpa flag mengikuti settings.json; flag eksplisit menang."""
+
+    def _capture(self, tmp: str, *extra):
+        calls = {}
+
+        def _fake(script, passthrough, **kw):
+            calls["script"] = script
+            calls["args"] = list(passthrough)
+            return 0
+
+        with mock.patch.object(cli, "_run_engine", _fake):
+            rc = cli.main(["scan", "--channel", "x", "--config-dir", tmp, *extra])
+        return rc, calls.get("args", [])
+
+    def test_follows_settings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "settings.json").write_text(
+                json.dumps({"content_type": "live"}), encoding="utf-8")
+            rc, args = self._capture(tmp)
+            self.assertEqual(rc, 0)
+            self.assertEqual(args[args.index("--content-type") + 1], "live")
+
+    def test_explicit_flag_wins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "settings.json").write_text(
+                json.dumps({"content_type": "live"}), encoding="utf-8")
+            rc, args = self._capture(tmp, "--content-type", "video")
+            self.assertEqual(rc, 0)
+            self.assertEqual(args[args.index("--content-type") + 1], "video")
+
+    def test_unknown_value_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rc, args = self._capture(tmp, "--content-type", "shorts")
+            self.assertEqual(rc, int(cli.ExitCode.USAGE))
+            self.assertEqual(args, [])
 
 class TestReportCommand(unittest.TestCase):
     def test_list_json_on_empty_dir(self):

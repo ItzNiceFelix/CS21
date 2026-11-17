@@ -22,6 +22,7 @@ import argparse
 import contextlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -323,6 +324,17 @@ def _cmd_search(args) -> int:
             sources=sources,
         )
 
+        if args.playlist:
+            from .playlists import playlist_video_ids
+
+            try:
+                allowed = set(playlist_video_ids(
+                    args.playlist, config_dir=args.config_dir or None
+                ))
+            except CsError as exc:
+                return _fail(exc.message, exc.hint, exc.code)
+            results = [r for r in results if r.video_id in allowed]
+
         if args.json:
             print(json.dumps([_result_payload(r) for r in results],
                              ensure_ascii=False, indent=2), file=out)
@@ -414,10 +426,24 @@ def _run_engine(script_name: str, passthrough: list, *, quiet_stdout: bool = Fal
         return _fail(f"gagal menjalankan {script_name}: {exc}", "jalankan: cs21 doctor")
 
 def _cmd_scan(args) -> int:
+    from .engine_compat import CONTENT_TYPES, normalize_content_type
+    from .settings import load as _load_settings
+
     channel = (args.channel or "").strip().lstrip("@")
     if not channel:
         return _fail("--channel wajib diisi", "contoh: cs21 scan --channel windahbasudara", ExitCode.USAGE)
     lang = resolve_lang(args.lang)
+
+    raw_ct = (args.content_type or "").strip().lower()
+    if raw_ct and raw_ct not in CONTENT_TYPES:
+        return _fail(
+            f"--content-type '{raw_ct}' tidak dikenal",
+            "pilihan: all | video | live (atau kosongkan untuk ikut setelan)",
+            ExitCode.USAGE,
+        )
+    content_type = normalize_content_type(
+        raw_ct or _load_settings(args.config_dir or None).content_type
+    )
     _ensure_config_dir(args.config_dir)
 
     mode = "pantau" if args.ui else "plain"
@@ -425,7 +451,7 @@ def _cmd_scan(args) -> int:
         "--channel", channel,
         "--limit", str(args.limit),
         "--jobs", str(args.jobs),
-        "--content-type", args.content_type,
+        "--content-type", content_type,
         "--executor", args.executor,
         "--mode", mode,
         "--start-from", str(args.start_from),
@@ -438,6 +464,10 @@ def _cmd_scan(args) -> int:
         passthrough += ["--display-name", args.display_name]
     if args.retry_blocked_log:
         passthrough += ["--retry-blocked-log", args.retry_blocked_log]
+    if args.video_ids:
+        passthrough += ["--video-ids", args.video_ids]
+    if args.new_only:
+        passthrough += ["--new-only"]
 
     rc = _run_engine("cs20_engine.py", passthrough, quiet_stdout=args.json,
                      requires=("yt-dlp",))
@@ -446,6 +476,7 @@ def _cmd_scan(args) -> int:
             "channel": channel,
             "mode": mode,
             "limit": args.limit,
+            "content_type": content_type,
             "exit": rc,
             "ok": rc == 0,
         }, ensure_ascii=False, indent=2))
@@ -626,6 +657,454 @@ def _human_size(num_bytes: int) -> str:
     return f"{size:.1f} GB"
 
 # ---------------------------------------------------------------------------
+# watch
+# ---------------------------------------------------------------------------
+def _parse_interval(text: str) -> float:
+    match = re.fullmatch(r"\s*(\d+)\s*([smh]?)\s*", (text or "").lower())
+    if not match:
+        raise ValueError("format interval: 30s, 15m, 2h")
+    value = int(match.group(1))
+    unit = match.group(2) or "m"
+    factor = {"s": 1, "m": 60, "h": 3600}[unit]
+    seconds = value * factor
+    if seconds < 30:
+        raise ValueError("interval minimal 30 detik")
+    return float(seconds)
+
+def _webhook_from_file(config_dir: str, lang: str) -> str:
+    path = Path(config_dir or _settings.config_dir()) / ".webhook_injected"
+    hooks: dict[str, str] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            hooks[key.strip()] = value.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    key = "WEBHOOK_INDONESIA" if lang == "id" else "WEBHOOK_GLOBAL"
+    return hooks.get(key) or os.environ.get("CS_WEBHOOK", "")
+
+def _watch_channels(args) -> list[str]:
+    raw: list[str] = []
+    for item in (args.channel or []):
+        raw.extend(part.strip() for part in item.split(",") if part.strip())
+    if args.all:
+        from .menu import load_saved_channels
+
+        raw.extend(load_saved_channels(args.config_dir or None))
+    seen, out = set(), []
+    for channel in raw:
+        if channel not in seen:
+            seen.add(channel)
+            out.append(channel)
+    return out
+
+def _watch_pass(channels: list[str], args, *, lang: str, content_type: str,
+                jobs: int, webhook: str, checkpoint_dir: str) -> tuple[list[dict], int]:
+    from .feed import channel_latest
+    from .watch import filter_new, get, mark_seen, touch
+
+    cfg = args.config_dir or None
+    limit = max(1, min(15, int(args.limit)))
+    results: list[dict] = []
+    worst = 0
+
+    for index, channel in enumerate(channels, 1):
+        info = channel_latest(channel, config_dir=cfg, limit=15,
+                              use_search=True)
+        if info is None or info.error == "error":
+            results.append({"channel": channel, "status": "feed_error"})
+            print(f"[{index}/{len(channels)}] {channel}: feed tidak tersedia",
+                  file=sys.stderr)
+            continue
+
+        new = filter_new(info.channel_id, info.videos, cfg)
+        if not new:
+            touch(info.channel_id, cfg)
+            results.append({
+                "channel": channel, "channel_id": info.channel_id,
+                "name": info.name, "status": "no_new", "new": [],
+            })
+            print(f"[{index}/{len(channels)}] {info.name or channel}: tidak ada video baru",
+                  file=sys.stderr)
+            continue
+
+        # Run pertama = baseline: ambil yang terbaru. Setelah ada kursor,
+        # backlog diproses dari potongan tertua agar tidak ada yang terlewat.
+        first_run = not get(info.channel_id, cfg).get("last_video_id")
+        selected = new[:limit] if first_run else new[-limit:]
+        ids = [v.video_id for v in selected]
+        print(f"[{index}/{len(channels)}] {info.name or channel}: "
+              f"{len(selected)} video baru", file=sys.stderr)
+        for video in selected:
+            print(f"    - {video.video_id}  {video.published[:10]}  {video.title[:60]}",
+                  file=sys.stderr)
+
+        if args.dry_run:
+            results.append({
+                "channel": channel, "channel_id": info.channel_id,
+                "name": info.name, "status": "dry_run", "new": ids,
+            })
+            continue
+
+        passthrough = [
+            "--channel", info.channel_id,
+            "--video-ids", ",".join(ids),
+            "--limit", str(len(ids)),
+            "--jobs", str(jobs),
+            "--content-type", content_type,
+            "--executor", args.executor,
+            "--mode", "plain",
+            "--start-from", "0",
+            "--checkpoint-dir", checkpoint_dir,
+            "--config-dir", str(cfg or _settings.config_dir()),
+            "--lang", lang,
+        ]
+        if info.name:
+            passthrough += ["--display-name", info.name]
+        if webhook:
+            passthrough += ["--webhook-url", webhook]
+
+        rc = _run_engine("cs20_engine.py", passthrough,
+                         quiet_stdout=args.json, requires=("yt-dlp",))
+        if rc == 0:
+            mark_seen(info.channel_id, selected, cfg)
+        else:
+            worst = max(worst, rc)
+        results.append({
+            "channel": channel, "channel_id": info.channel_id,
+            "name": info.name, "status": "scanned" if rc == 0 else "failed",
+            "rc": rc, "new": ids,
+        })
+
+        if index < len(channels) and args.channel_delay > 0:
+            _time.sleep(args.channel_delay)
+
+    return results, worst
+
+def _cmd_watch(args) -> int:
+    from . import store
+    from .engine_compat import CONTENT_TYPES, normalize_content_type
+    from .settings import load as _load_settings
+
+    try:
+        store.require()
+    except DependencyError as exc:
+        return _fail(exc.message, exc.hint, exc.code)
+
+    channels = _watch_channels(args)
+    if not channels:
+        return _fail("--channel atau --all wajib diisi",
+                     "contoh: cs21 watch --channel @aerithlive --once",
+                     ExitCode.USAGE)
+    if len(channels) > args.max_channels:
+        _warn(f"{len(channels)} channel > --max-channels {args.max_channels}; "
+              f"hanya {args.max_channels} pertama dipakai")
+        channels = channels[:args.max_channels]
+    if not channels:
+        return _fail("tidak ada channel untuk dipantau", "", ExitCode.USAGE)
+
+    try:
+        interval = _parse_interval(args.interval)
+    except ValueError as exc:
+        return _fail(str(exc), "contoh: --interval 30m", ExitCode.USAGE)
+
+    lang = resolve_lang(args.lang)
+    raw_ct = (args.content_type or "").strip().lower()
+    if raw_ct and raw_ct not in CONTENT_TYPES:
+        return _fail(f"--content-type '{raw_ct}' tidak dikenal",
+                     "pilihan: all | video | live", ExitCode.USAGE)
+    settings = _load_settings(args.config_dir or None)
+    content_type = normalize_content_type(raw_ct or settings.content_type)
+    jobs = args.jobs or settings.jobs
+    cfg = args.config_dir or str(_settings.config_dir())
+    checkpoint_dir = args.checkpoint_dir or str(Path(cfg) / "checkpoints")
+    webhook = args.webhook_url or _webhook_from_file(cfg, lang)
+
+    pass_no = 0
+    worst = 0
+    with _json_stdout(args.json) as out:
+        while True:
+            pass_no += 1
+            results, rc = _watch_pass(
+                channels, args, lang=lang, content_type=content_type,
+                jobs=jobs, webhook=webhook, checkpoint_dir=checkpoint_dir,
+            )
+            worst = max(worst, rc)
+            if args.json:
+                print(json.dumps({
+                    "pass": pass_no,
+                    "channels": results,
+                }, ensure_ascii=False, indent=2), file=out, flush=True)
+            if args.once:
+                break
+            _time.sleep(interval)
+    return int(worst)
+
+# ---------------------------------------------------------------------------
+# playlist
+# ---------------------------------------------------------------------------
+def _cmd_playlist(args) -> int:
+    from .engine_compat import CONTENT_TYPES, normalize_content_type
+    from .settings import load as _load_settings
+
+    lang = resolve_lang(args.lang)
+    raw_ct = (args.content_type or "").strip().lower()
+    if raw_ct and raw_ct not in CONTENT_TYPES:
+        return _fail(f"--content-type '{raw_ct}' tidak dikenal",
+                     "pilihan: all | video | live", ExitCode.USAGE)
+    settings = _load_settings(args.config_dir or None)
+    content_type = normalize_content_type(raw_ct or settings.content_type)
+    cfg = args.config_dir or str(_settings.config_dir())
+    checkpoint_dir = args.checkpoint_dir or str(Path(cfg) / "checkpoints")
+    webhook = args.webhook_url or _webhook_from_file(cfg, lang)
+
+    passthrough = [
+        "--playlist", args.url,
+        "--limit", str(args.limit),
+        "--start", str(args.start),
+        "--lang", lang,
+        "--jobs", str(args.jobs or settings.jobs),
+        "--content-type", content_type,
+        "--executor", args.executor,
+        "--mode", "pantau" if args.ui else "plain",
+        "--config-dir", cfg,
+        "--checkpoint-dir", checkpoint_dir,
+    ]
+    if webhook:
+        passthrough += ["--webhook-url", webhook]
+    if args.json:
+        passthrough += ["--json"]
+    if args.dry_run:
+        passthrough += ["--dry-run"]
+    return _run_engine("cs20_playlist_engine.py", passthrough,
+                       requires=("yt-dlp",))
+
+# ---------------------------------------------------------------------------
+# cookies
+# ---------------------------------------------------------------------------
+def _read_pasted_cookies() -> str:
+    lines: list[str] = []
+    if sys.stdin.isatty():
+        print("paste cookies Netscape; akhiri dengan baris kosong:", file=sys.stderr)
+    for line in sys.stdin:
+        if not line.strip():
+            break
+        lines.append(line.rstrip("\n"))
+    return "\n".join(lines)
+
+def _cmd_cookies(args) -> int:
+    from . import cookies
+
+    as_json = getattr(args, "json", False)
+    cfg = args.config_dir or None
+    try:
+        if args.clear:
+            ok = cookies.clear(cfg)
+            if as_json:
+                print(json.dumps({"cleared": ok}, ensure_ascii=False, indent=2))
+            else:
+                print("cookies dihapus" if ok else "tidak ada cookies untuk dihapus")
+            return int(ExitCode.OK)
+
+        if args.file:
+            st = cookies.import_file(args.file, cfg)
+        elif args.paste:
+            text = _read_pasted_cookies()
+            if not text.strip():
+                return _fail("tidak ada cookies yang dipaste", "", ExitCode.USAGE)
+            st = cookies.save_text(text, cfg)
+        else:
+            st = cookies.status(cfg)
+
+        check = cookies.validate(cfg, args.url) if args.check else None
+        if as_json:
+            payload = {
+                "path": str(st.path), "exists": st.exists, "size": st.size,
+                "count": st.count, "has_login": st.has_login,
+                "names": list(st.names),
+            }
+            if check:
+                payload["check"] = {
+                    "ok": check.ok, "message": check.message,
+                    "detail": check.detail,
+                }
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return int(ExitCode.OK if (check is None or check.ok) else ExitCode.FAIL)
+
+        print(f"file       {st.path}")
+        print(f"status     {'ada' if st.exists else 'belum ada'}")
+        if st.exists:
+            print(f"ukuran     {st.size} B · {st.count} cookie · login={'ya' if st.has_login else 'tidak'}")
+            print(f"umur       {st.age_days:.1f} hari")
+        if check:
+            print(f"cek        {'OK' if check.ok else 'GAGAL'} — {check.message}")
+            if check.detail:
+                print(f"detail     {check.detail}")
+        return int(ExitCode.OK if (check is None or check.ok) else ExitCode.FAIL)
+    except ValueError as exc:
+        return _fail(str(exc), "pastikan format Netscape (7 kolom tab)", ExitCode.USAGE)
+
+# ---------------------------------------------------------------------------
+# runs
+# ---------------------------------------------------------------------------
+def _fmt_ts(ts: float) -> str:
+    try:
+        return _time.strftime("%d %b %H:%M", _time.localtime(float(ts)))
+    except (TypeError, ValueError, OSError):
+        return "?"
+
+def _run_label(run: dict) -> str:
+    return str(run.get("name") or run.get("channel") or "?")
+
+def _cmd_runs(args) -> int:
+    from . import store
+
+    try:
+        store.require()
+    except DependencyError as exc:
+        return _fail(exc.message, exc.hint, exc.code)
+
+    as_json = getattr(args, "json", False)
+    cfg = args.config_dir or None
+    cmd = args.runs_cmd
+
+    if cmd == "list":
+        runs = store.list_runs(args.limit, args.channel, cfg)
+        if as_json:
+            print(json.dumps(runs, ensure_ascii=False, indent=2))
+            return int(ExitCode.OK)
+        if not runs:
+            print("(belum ada run)")
+            return int(ExitCode.OK)
+        rows = [
+            (str(r["id"]), _fmt_ts(r["started_at"]), _run_label(r),
+             str(r["lang"]), str(r["total"]), str(r["valid"]),
+             str(r["hits"]), str(r["score"]), str(r["status"]))
+            for r in runs
+        ]
+        widths = [4, 14, 24, 5, 6, 6, 6, 6, 8]
+        print("  " + "  ".join(h.ljust(w) for h, w in zip(
+            ("ID", "Waktu", "Channel", "Lang", "Total", "Valid", "Hits", "Score", "Status"),
+            widths)))
+        for row in rows:
+            print("  " + "  ".join(str(c)[:w].ljust(w) for c, w in zip(row, widths)))
+        return int(ExitCode.OK)
+
+    if cmd == "show":
+        run = store.get_run(args.run_id, cfg)
+        if run is None:
+            return _fail(f"run {args.run_id} tidak ditemukan", "", ExitCode.FAIL)
+        if as_json:
+            print(json.dumps(run, ensure_ascii=False, indent=2))
+            return int(ExitCode.OK)
+        print(f"run {run['id']} — {_run_label(run)}")
+        print(f"channel   {run['channel']}")
+        print(f"waktu     {_fmt_ts(run['started_at'])} → {_fmt_ts(run['finished_at'])}")
+        print(f"mode      {run['mode']} | lang {run['lang']} | konten {run['content_type']}")
+        print(f"total     {run['total']} | valid {run['valid']} | hits {len(run['hits'])} | score {run['score']}")
+        print(f"status    {run['status']}")
+        if run["videos"]:
+            print("\nvideo:")
+            for v in run["videos"]:
+                print(f"  {v['video_id']}  {v['status']:<14} score={v['score']:<3} "
+                      f"{v['persentase']:>3}%  {v['kasta']:<10} hits={v['hits']}")
+        if run["hits"]:
+            print("\nhit:")
+            for h in run["hits"]:
+                print(f"  {h['video_id']}  {h['time']}  {h['text'][:70]}")
+        return int(ExitCode.OK)
+
+    if cmd == "diff":
+        diff = store.diff_runs(args.a, args.b, cfg)
+        if diff is None:
+            return _fail(f"run {args.a} atau {args.b} tidak ditemukan", "", ExitCode.FAIL)
+        if as_json:
+            print(json.dumps({
+                "a": diff["a"]["id"], "b": diff["b"]["id"],
+                "new_hits": diff["new_hits"],
+                "removed_hits": diff["removed_hits"],
+                "score_changes": diff["score_changes"],
+            }, ensure_ascii=False, indent=2))
+            return int(ExitCode.OK)
+        print(f"run {diff['a']['id']} → {diff['b']['id']}")
+        print(f"hit baru   {len(diff['new_hits'])}")
+        for h in diff["new_hits"]:
+            print(f"  + {h['video_id']}  {h['time']}  {h['text'][:70]}")
+        print(f"hit hilang {len(diff['removed_hits'])}")
+        for h in diff["removed_hits"]:
+            print(f"  - {h['video_id']}  {h['time']}  {h['text'][:70]}")
+        print(f"skor berubah {len(diff['score_changes'])}")
+        for c in diff["score_changes"]:
+            print(f"  {c['video_id']}  {c['old']} → {c['new']} ({c['delta']:+d})")
+        return int(ExitCode.OK)
+
+    return _fail(f"perintah runs tidak dikenal: {cmd}", "", ExitCode.USAGE)
+
+# ---------------------------------------------------------------------------
+# channel-id
+# ---------------------------------------------------------------------------
+def _cmd_channel_id(args) -> int:
+    from .channels import AmbiguousChannel, append_channel, resolve_channel
+
+    cfg = args.config_dir or None
+    with _json_stdout(args.json) as out:
+        try:
+            res = resolve_channel(
+                args.target,
+                use_search=not args.no_search,
+                config_dir=cfg,
+                refresh=args.refresh,
+            )
+        except AmbiguousChannel as exc:
+            if args.json:
+                print(json.dumps({
+                    "input": args.target,
+                    "ambiguous": True,
+                    "error": exc.message,
+                    "candidates": [c.as_dict() for c in exc.candidates],
+                }, ensure_ascii=False, indent=2), file=out)
+            return _fail(
+                exc.message,
+                "pilih ID dari daftar kandidat, atau pakai URL video dari kanal target",
+                exc.code,
+            )
+        except CsError as exc:
+            if args.json:
+                print(json.dumps({
+                    "input": args.target,
+                    "error": exc.message,
+                }, ensure_ascii=False, indent=2), file=out)
+            return _fail(exc.message, exc.hint, exc.code)
+
+        saved = append_channel(res.channel_id, cfg) if args.save else False
+        if args.json:
+            payload = res.as_dict()
+            payload["saved"] = saved
+            print(json.dumps(payload, ensure_ascii=False, indent=2), file=out)
+            return int(ExitCode.OK)
+
+        print(f"input      {res.input}")
+        if res.redirected:
+            print("redirect   handle dialihkan YouTube ke kanal lain")
+        if res.name:
+            print(f"nama       {res.name}")
+        if res.handle and res.handle.lower() != (args.target or "").strip().lower():
+            print(f"handle     {res.handle}")
+        if res.candidates:
+            for cand in res.candidates[:5]:
+                print(f"kandidat   {cand.channel_id}  {cand.name}  "
+                      f"({cand.hits} hasil)")
+        print(f"hasil      {res.channel_id}")
+        if res.warning:
+            print(f"catatan    {res.warning}")
+        if args.save:
+            print("disimpan   " + ("ya (channels.txt)" if saved else "sudah ada"))
+    return int(ExitCode.OK)
+
+# ---------------------------------------------------------------------------
 # menu
 # ---------------------------------------------------------------------------
 def _cmd_menu(args) -> int:
@@ -676,6 +1155,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_search.add_argument("--index-dir", default="", help="root index (default: root cache primer)")
     p_search.add_argument("--cache-dir", default="", help="root cache transcript (default: otomatis)")
     p_search.add_argument("--channel", default="", help="filter/label channel (opsional)")
+    p_search.add_argument("--playlist", default="",
+                          help="batasi hasil ke video playlist (URL/ID)")
     p_search.add_argument("--source", action="append", choices=("index", "cache"),
                           default=None, help="sumber pencarian (boleh diulang; default: keduanya)")
     p_search.add_argument("--json", action="store_true", help="output JSON murni")
@@ -686,16 +1167,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_scan.add_argument("--lang", default="id", help="id/en/jp/kr/in/th")
     p_scan.add_argument("--limit", type=int, default=50, help="jumlah video (<=0 = semua)")
     p_scan.add_argument("--jobs", type=int, default=4, help="worker paralel")
-    p_scan.add_argument("--content-type", default="all", help="live | video | all",
+    p_scan.add_argument("--content-type", default="",
+                        help="live | video | all (kosong = ikut setelan menu)",
                         dest="content_type")
     p_scan.add_argument("--executor", default="cli", help="nama operator di laporan")
     p_scan.add_argument("--start-from", type=int, default=0, dest="start_from")
     p_scan.add_argument("--checkpoint-dir", default="", dest="checkpoint_dir")
-    p_scan.add_argument("--config-dir", default="", dest="config_dir")
+    p_scan.add_argument("--config-dir", default=argparse.SUPPRESS, dest="config_dir")
     p_scan.add_argument("--webhook-url", default="", dest="webhook_url",
                         help="URL Discord; kosong = tanpa kirim laporan")
     p_scan.add_argument("--display-name", default="", dest="display_name")
     p_scan.add_argument("--retry-blocked-log", default="", dest="retry_blocked_log")
+    p_scan.add_argument("--video-ids", default="", dest="video_ids",
+                        help="daftar video ID eksplisit (dipisah koma)")
+    p_scan.add_argument("--new-only", action="store_true", dest="new_only",
+                        help="hanya video baru dari kursor watch_state")
     p_scan.add_argument("--ui", action="store_true",
                         help="pakai dashboard Live (default: plain/cron-friendly)")
     p_scan.add_argument("--json", action="store_true", help="ringkas hasil sebagai JSON")
@@ -710,6 +1196,117 @@ def build_parser() -> argparse.ArgumentParser:
     p_age.add_argument("passthrough", nargs=argparse.REMAINDER)
     p_age.set_defaults(func=lambda a: _run_engine(
         "cs20_age_engine.py", a.passthrough, requires=("yt-dlp",)))
+
+    p_watch = sub.add_parser(
+        "watch",
+        help="pantau video baru via RSS lalu scan otomatis",
+    )
+    p_watch.add_argument("--channel", action="append", default=None,
+                         help="handle/ID/URL; boleh diulang atau dipisah koma")
+    p_watch.add_argument("--all", action="store_true",
+                         help="pakai semua channel di channels.txt")
+    p_watch.add_argument("--interval", default="30m",
+                         help="jeda antar-pass: 30s/15m/2h (default 30m)")
+    p_watch.add_argument("--once", action="store_true",
+                         help="jalankan satu pass lalu keluar")
+    p_watch.add_argument("--limit", type=int, default=5,
+                         help="maksimal video baru per channel per pass (1–15)")
+    p_watch.add_argument("--lang", default="id", help="id/en/jp/kr/in/th")
+    p_watch.add_argument("--content-type", default="", dest="content_type",
+                         help="live | video | all (kosong = ikut setelan)")
+    p_watch.add_argument("--jobs", type=int, default=0,
+                         help="worker paralel (0 = ikut setelan)")
+    p_watch.add_argument("--executor", default="watch",
+                         help="nama operator di laporan")
+    p_watch.add_argument("--webhook-url", default="", dest="webhook_url",
+                         help="URL Discord; kosong = baca .webhook_injected")
+    p_watch.add_argument("--config-dir", default=argparse.SUPPRESS, dest="config_dir")
+    p_watch.add_argument("--checkpoint-dir", default="", dest="checkpoint_dir")
+    p_watch.add_argument("--max-channels", type=int, default=20,
+                         dest="max_channels")
+    p_watch.add_argument("--channel-delay", type=float, default=3.0,
+                         dest="channel_delay",
+                         help="jeda antar-channel (detik)")
+    p_watch.add_argument("--dry-run", action="store_true", dest="dry_run",
+                         help="tampilkan video baru tanpa scan")
+    p_watch.add_argument("--json", action="store_true", help="output JSON per pass")
+    p_watch.set_defaults(func=_cmd_watch)
+
+    p_playlist = sub.add_parser("playlist", help="scan khusus playlist YouTube")
+    p_playlist.add_argument("--url", required=True,
+                            help="URL/ID playlist (PL…, UU…, UUMO…, OLAK5uy…, RD…)")
+    p_playlist.add_argument("--limit", type=int, default=50,
+                            help="jumlah video (<=0 = semua)")
+    p_playlist.add_argument("--start", type=int, default=1,
+                            help="mulai dari item playlist ke-N")
+    p_playlist.add_argument("--lang", default="id", help="id/en/jp/kr/in/th")
+    p_playlist.add_argument("--jobs", type=int, default=0,
+                            help="worker paralel (0 = ikut setelan)")
+    p_playlist.add_argument("--content-type", default="", dest="content_type",
+                            help="all | video | live (kosong = ikut setelan)")
+    p_playlist.add_argument("--executor", default="playlist")
+    p_playlist.add_argument("--config-dir", default=argparse.SUPPRESS,
+                            dest="config_dir")
+    p_playlist.add_argument("--checkpoint-dir", default="", dest="checkpoint_dir")
+    p_playlist.add_argument("--webhook-url", default="", dest="webhook_url")
+    p_playlist.add_argument("--ui", action="store_true",
+                            help="pakai dashboard Live")
+    p_playlist.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_playlist.add_argument("--json", action="store_true")
+    p_playlist.set_defaults(func=_cmd_playlist)
+
+    p_cookies = sub.add_parser("cookies", help="import/paste/cek cookies YouTube")
+    p_cookies.add_argument("--file", default="", help="import cookies.txt")
+    p_cookies.add_argument("--paste", action="store_true",
+                           help="baca cookies Netscape dari stdin")
+    p_cookies.add_argument("--check", action="store_true",
+                           help="cek cookies lewat yt-dlp")
+    p_cookies.add_argument("--url", default="",
+                           help="URL video member untuk cek akses (opsional)")
+    p_cookies.add_argument("--clear", action="store_true", help="hapus cookies")
+    p_cookies.add_argument("--config-dir", default=argparse.SUPPRESS,
+                           dest="config_dir")
+    p_cookies.add_argument("--json", action="store_true")
+    p_cookies.set_defaults(func=_cmd_cookies)
+
+    p_runs = sub.add_parser("runs", help="riwayat run, detail, dan diff")
+    p_runs.add_argument("--json", action="store_true",
+                        help="output JSON murni")
+    runs_sub = p_runs.add_subparsers(dest="runs_cmd", required=True)
+    _runs_json = {"action": "store_true", "default": argparse.SUPPRESS,
+                  "help": "output JSON murni"}
+
+    r_list = runs_sub.add_parser("list", help="daftar run terakhir")
+    r_list.add_argument("--limit", type=int, default=20)
+    r_list.add_argument("--channel", default="", help="filter channel/ID")
+    r_list.add_argument("--json", **_runs_json)
+    r_list.set_defaults(func=_cmd_runs)
+
+    r_show = runs_sub.add_parser("show", help="detail satu run")
+    r_show.add_argument("run_id", type=int)
+    r_show.add_argument("--json", **_runs_json)
+    r_show.set_defaults(func=_cmd_runs)
+
+    r_diff = runs_sub.add_parser("diff", help="bandingkan dua run")
+    r_diff.add_argument("a", type=int)
+    r_diff.add_argument("b", type=int)
+    r_diff.add_argument("--json", **_runs_json)
+    r_diff.set_defaults(func=_cmd_runs)
+
+    p_channel = sub.add_parser(
+        "channel-id",
+        help="deteksi channel ID dari handle / URL kanal / URL video",
+    )
+    p_channel.add_argument("target",
+                           help="@handle, URL kanal, URL/ID video, atau UC…")
+    p_channel.add_argument("--json", action="store_true", help="output JSON murni")
+    p_channel.add_argument("--save", action="store_true",
+                           help="tambahkan channel ID ke channels.txt")
+    p_channel.add_argument("--refresh", action="store_true",
+                           help="abaikan cache channel_ids.json")
+    p_channel.add_argument("--no-search", action="store_true", dest="no_search",
+                           help="jangan cari kandidat saat handle dialihkan")
+    p_channel.set_defaults(func=_cmd_channel_id)
 
     p_cache = sub.add_parser("cache", help="kelola cache transcript")
     p_cache.add_argument("--cache-dir", default="", help="root cache transcript")

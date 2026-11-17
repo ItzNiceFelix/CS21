@@ -50,10 +50,18 @@ def _is_raw_channel_id(channel: str) -> bool:
 
 
 def channel_label(channel: str, display_name: str = "") -> str:
-    """Label display kanal — `@handle`, `@name`, atau `channel/UCxxx`."""
+    """Label display kanal — `@handle`, `@nama`, atau `channel/UCxxx`."""
     if _is_raw_channel_id(channel):
-        if display_name:
-            return f"@{display_name}"
+        name = (display_name or "").strip()
+        if not name:
+            try:
+                from .channels import channel_display_name
+
+                name = channel_display_name(channel)
+            except Exception:
+                name = ""
+        if name:
+            return f"@{name}"
         return f"channel/{channel}"
     return f"@{channel}"
 
@@ -715,7 +723,8 @@ def _log(msg: str) -> None:
 
 
 def send_discord(webhook_url: str, channel: str, executor: str,
-                 results: list, html_path: str) -> bool:
+                 results: list, html_path: str,
+                 display_name: str = "") -> bool:
     """Kirim laporan ke Discord webhook.
 
     Return True bila ringkasan + file berhasil terkirim; False bila
@@ -730,7 +739,7 @@ def send_discord(webhook_url: str, channel: str, executor: str,
         1 for r in results if r["status"] in ("no_transcript", "disabled", "unavailable")
     )
     all_hits = sum(len(r.get("hits", [])) for r in results)
-    ch_label = channel_label(channel)
+    ch_label = channel_label(channel, display_name)
 
     kasta_global, warna = _kasta_global(results, valid_results)
 

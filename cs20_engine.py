@@ -30,6 +30,36 @@ _BAR_WIDTH    = max(10, min(30, _TERM_WIDTH - 30))  # lebar bar dinamis
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
+try:
+    from cs_core.engine_compat import MATCH_FILTER_VIDEO
+except ImportError:  # engine disalin tanpa cs_core
+    MATCH_FILTER_VIDEO = "duration>=60"
+
+try:
+    from cs_core.ratelimit import (
+        BudgetExceeded,
+        RateLimitStop,
+        get_limiter,
+    )
+    _RATE = get_limiter()
+except ImportError:  # engine standalone tanpa cs_core
+    BudgetExceeded = RateLimitStop = RuntimeError  # type: ignore
+    _RATE = None
+
+def _rate_wait() -> None:
+    if _RATE is not None:
+        _RATE.wait()
+
+def _rate_success() -> None:
+    if _RATE is not None:
+        _RATE.on_success()
+
+def _rate_429(retry_after: float | None = None) -> None:
+    if _RATE is not None:
+        _RATE.on_429(retry_after)
+    else:
+        time.sleep(30)
+
 # ── Hook age-restricted log (opsional, tidak crash jika engine tidak ada) ──
 try:
     from cs20_age_engine import hook_log_age_restricted as _hook_age
@@ -528,12 +558,13 @@ def _is_raw_channel_id(channel: str) -> bool:
 
 
 def _channel_base_url(channel: str) -> str:
-    """Bangun base URL channel yang BENAR sesuai formatnya:
-    - channel_id mentah (dari Auto Drive / yt-dlp search)  → /channel/UCxxx
-    - handle biasa (input manual user)                     → /@handle
-    Sebelumnya SELALU pakai format /@{channel} — kalau channel isinya
-    ID mentah, YouTube gak bisa resolve itu (bukan format @handle), jadi
-    yt-dlp gagal instan & video_ids selalu kosong tanpa pesan jelas."""
+    """Base URL channel: /channel/UCxxx untuk ID mentah, else /@handle."""
+    try:
+        from cs_core.engine_compat import channel_base_url as _shared
+
+        return _shared(channel)
+    except ImportError:
+        pass
     if _is_raw_channel_id(channel):
         return f"https://www.youtube.com/channel/{channel}"
     return f"https://www.youtube.com/@{channel}"
@@ -543,22 +574,25 @@ _display_name_override: str = ""  # diisi process_channel() dari --display-name 
 
 def _channel_label(channel: str) -> str:
     """Label buat DISPLAY doang (terminal/HTML/Discord) — bukan URL.
-    Handle biasa tampil '@handle' seperti biasa. channel_id mentah
-    (dari Auto Drive) tampil nama asli '@uploader' kalau ada
-    (--display-name, diteruskan dari hasil search yt-dlp), fallback
-    'channel/UCxxx' kalau nama gak tersedia — BUKAN '@UCxxx' yang
-    bukan format valid YouTube sama sekali."""
+    Handle biasa tampil '@handle'. `--display-name` (uploader/playlist title)
+    menang untuk channel ID maupun label playlist."""
+    if _display_name_override:
+        return f"@{_display_name_override}"
     if _is_raw_channel_id(channel):
-        if _display_name_override:
-            return f"@{_display_name_override}"
         return f"channel/{channel}"
     return f"@{channel}"
 
 
-def get_video_ids(channel: str, limit: int, content_type: str) -> list:
+def get_video_ids(channel: str, limit: int, content_type: str,
+                  *, with_status: bool = False):
     """Ambil list video ID dari channel via yt-dlp.
     limit <= 0 berarti UNLIMITED — semua arsip live/video diambil,
-    tanpa --playlist-end dan tanpa slicing."""
+    tanpa --playlist-end dan tanpa slicing.
+
+    `with_status=True` -> `(ids, error)`; error = "" | empty | rate_limited |
+    network | timeout | budget | error. Tanpa flag tetap return list agar
+    pemanggil lama/tests tidak berubah.
+    """
     unlimited = limit <= 0
     base = _channel_base_url(channel)
 
@@ -571,31 +605,43 @@ def get_video_ids(channel: str, limit: int, content_type: str) -> list:
     elif content_type == "video":
         # Tab /videos = video biasa, filter durasi >60 detik (exclude shorts)
         url        = f"{base}/videos"
-        extra_args = ["--match-filter", "duration>60"]
+        extra_args = ["--match-filter", MATCH_FILTER_VIDEO]
     else:
         # "all" = gabung /streams + /videos, filter durasi >60 detik
         # Jalankan dua fetch terpisah lalu gabungkan
-        ids_live  = _fetch_ids(f"{base}/streams", limit, [])
-        ids_video = _fetch_ids(f"{base}/videos",  limit, ["--match-filter", "duration>60"])
+        ids_live, err_live = _fetch_ids(f"{base}/streams", limit, [])
+        ids_video, err_video = _fetch_ids(
+            f"{base}/videos", limit, ["--match-filter", MATCH_FILTER_VIDEO]
+        )
         # Gabung, deduplikasi, batasi limit (skip slicing kalau unlimited)
         seen, combined = set(), []
         for vid in ids_live + ids_video:
             if vid not in seen:
                 seen.add(vid)
                 combined.append(vid)
-        return combined if unlimited else combined[:limit]
+        result = combined if unlimited else combined[:limit]
+        error = "" if result else (err_live or err_video)
+        return (result, error) if with_status else result
 
-    return _fetch_ids(url, limit, extra_args)
+    ids, error = _fetch_ids(url, limit, extra_args)
+    return (ids, error) if with_status else ids
 
 
-def _fetch_ids(url: str, limit: int, extra_args: list) -> list:
-    """Helper: jalankan yt-dlp flat-playlist dan return list ID.
-    limit <= 0 berarti UNLIMITED — --playlist-end di-skip, gak ada slicing."""
+def _fetch_ids(url: str, limit: int, extra_args: list) -> tuple[list, str]:
+    """Helper: jalankan yt-dlp flat-playlist dan return (ids, error).
+
+    Rate limit: setiap percobaan lewat limiter global; 429/network di-retry
+    dengan backoff. Error tidak lagi ditelan sebagai daftar kosong — pemanggil
+    bisa membedakan channel kosong vs kena limit.
+    """
     unlimited = limit <= 0
     cmd = [
         "yt-dlp",
         "--flat-playlist",
         "--print", "id",
+        "--sleep-requests", "1",
+        "--extractor-retries", "2",
+        "--retry-sleep", "5",
     ]
     if not unlimited:
         cmd += ["--playlist-end", str(limit)]
@@ -606,20 +652,57 @@ def _fetch_ids(url: str, limit: int, extra_args: list) -> list:
         url
     ]
 
-    try:
-        timeout_s = 180 if unlimited else 60
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
-        ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-        seen, unique = set(), []
-        for vid in ids:
-            if vid not in seen:
-                seen.add(vid)
-                unique.append(vid)
-        return unique if unlimited else unique[:limit]
-    except subprocess.TimeoutExpired:
-        return []
-    except Exception:
-        return []
+    timeout_s = 180 if unlimited else 60
+    last_error = ""
+
+    for attempt in range(3):
+        try:
+            _rate_wait()
+        except BudgetExceeded:
+            return [], "budget"
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True,
+                                    timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            last_error = "timeout"
+            time.sleep(min(30, 5 * (attempt + 1)))
+            continue
+        except Exception:
+            last_error = "error"
+            time.sleep(min(15, 3 * (attempt + 1)))
+            continue
+
+        if result.returncode == 0:
+            ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            seen, unique = set(), []
+            for vid in ids:
+                if vid not in seen:
+                    seen.add(vid)
+                    unique.append(vid)
+            _rate_success()
+            return (unique if unlimited else unique[:limit]), ("" if unique else "empty")
+
+        err = (result.stderr or "").lower()
+        if any(k in err for k in ("429", "too many requests", "rate limit",
+                                  "ratelimit", "rate_limit")):
+            last_error = "rate_limited"
+            try:
+                _rate_429()
+            except RateLimitStop:
+                return [], "rate_limited"
+            continue
+        if any(k in err for k in ("timed out", "timeout", "connection",
+                                  "network", "ssl", "temporary failure",
+                                  "remote end closed")):
+            last_error = "network"
+            time.sleep(min(30, 5 * (attempt + 1)))
+            continue
+
+        last_error = "error"
+        break
+
+    return [], last_error or "error"
 
 # ==============================================================================
 # COOKIES PATH GLOBAL — diisi saat process_channel dipanggil
@@ -672,6 +755,7 @@ def _fetch_transcript(video_id: str) -> list:
     fallback ke rotasi User-Agent untuk mengurangi risiko rate limit.
     """
     langs = TRANSCRIPT_LANGS
+    _rate_wait()
 
     # ── Dengan cookies (load Netscape → Session → http_client) ──────
     if COOKIES_PATH and os.path.exists(COOKIES_PATH):
@@ -679,6 +763,7 @@ def _fetch_transcript(video_id: str) -> list:
             session = _build_session_with_cookies(COOKIES_PATH)
             api = YouTubeTranscriptApi(http_client=session)
             result = api.fetch(video_id, languages=langs)
+            _rate_success()
             return result.to_raw_data() if hasattr(result, "to_raw_data") else list(result)
         except (NoTranscriptFound, TranscriptsDisabled, VideoUnavailable):
             raise
@@ -692,6 +777,7 @@ def _fetch_transcript(video_id: str) -> list:
         session.headers.update({"User-Agent": _next_user_agent()})
         api = YouTubeTranscriptApi(http_client=session)
         result = api.fetch(video_id, languages=langs)
+        _rate_success()
         return result.to_raw_data() if hasattr(result, "to_raw_data") else list(result)
     except (NoTranscriptFound, TranscriptsDisabled, VideoUnavailable):
         raise
@@ -701,6 +787,7 @@ def _fetch_transcript(video_id: str) -> list:
     # ── Fallback paling dasar ────────────────────────────────────────
     api = YouTubeTranscriptApi()
     result = api.fetch(video_id, languages=langs)
+    _rate_success()
     return result.to_raw_data() if hasattr(result, "to_raw_data") else list(result)
 
 # ==============================================================================
@@ -797,6 +884,11 @@ def analyze_video(video_id: str, channel: str) -> dict:
         base_result["status_label"] = "💀 Video Tidak Tersedia (privat/dihapus/geoblocked)"
         return base_result
 
+    except (RateLimitStop, BudgetExceeded) as e:
+        base_result["status"] = "rate_limited"
+        base_result["status_label"] = f"⏸️ Rate Limited ({e})"
+        return base_result
+
     except Exception as e:
         err   = str(e)
         etype = type(e).__name__
@@ -825,8 +917,12 @@ def analyze_video(video_id: str, channel: str) -> dict:
             return base_result
 
         elif "429" in err or "too many requests" in err.lower() or "ratelimit" in err.lower() or "rate_limit" in err.lower():
-            jeda = random.uniform(20, 35)
-            time.sleep(jeda)
+            try:
+                _rate_429()
+            except RateLimitStop:
+                base_result["status"] = "rate_limited"
+                base_result["status_label"] = "⏸️ Rate Limited (circuit breaker)"
+                return base_result
             try:
                 segments = _fetch_transcript(video_id)
                 base_result["status"] = "ok"
@@ -2167,7 +2263,8 @@ def send_discord(webhook_url: str, channel: str, executor: str,
     try:
         from cs_core.report import send_discord as _cs_send_discord
 
-        return _cs_send_discord(webhook_url, channel, executor, results, html_path)
+        return _cs_send_discord(webhook_url, channel, executor, results, html_path,
+                                display_name=_display_name_override)
     except Exception:
         pass
 
@@ -2537,6 +2634,19 @@ def process_channel(args):
 
     global _display_name_override
     _display_name_override = (args.display_name or "").strip()
+    if _is_raw_channel_id(channel):
+        try:
+            from cs_core.channels import ensure_channel_name, remember_channel_name
+
+            if not _display_name_override:
+                _display_name_override = ensure_channel_name(
+                    channel, config_dir=config_dir
+                )
+            if _display_name_override:
+                remember_channel_name(channel, _display_name_override,
+                                      config_dir=config_dir)
+        except Exception:
+            pass
 
     # ── Isi info darurat & blocked log ───────────────────────────
     global _emergency_info, _current_blocked_log, _partial_results
@@ -2584,7 +2694,15 @@ def process_channel(args):
         safe_print(f"[yellow]     Jalankan: bash setup_cookies.sh untuk setup cookies[/yellow]")
     
     # ── Mode retry blocked log ────────────────────────────────────
-    if args.retry_blocked_log and os.path.exists(args.retry_blocked_log):
+    fetch_error = ""
+    explicit_ids = [
+        v.strip() for v in (getattr(args, "video_ids", "") or "").split(",")
+        if v.strip()
+    ]
+    if explicit_ids:
+        video_ids = explicit_ids
+        safe_print(f"[green]  {len(video_ids)} video dari --video-ids[/green]")
+    elif args.retry_blocked_log and os.path.exists(args.retry_blocked_log):
         safe_print(f"[cyan][🔄] Mode retry blocked log: {args.retry_blocked_log}[/cyan]")
         try:
             with open(args.retry_blocked_log, "r", encoding="utf-8") as f:
@@ -2596,16 +2714,42 @@ def process_channel(args):
             return
     else:
         safe_print(f"\n[cyan][📥] Mengambil daftar video untuk {_channel_label(channel)}...[/cyan]")
-        video_ids = get_video_ids(channel, limit, content_type)
+        video_ids, fetch_error = get_video_ids(
+            channel, limit, content_type, with_status=True
+        )
 
 
     if not video_ids:
+        if fetch_error == "rate_limited":
+            safe_print("[red][⏸️] YouTube rate limit — daftar video tidak bisa diambil.[/red]")
+            safe_print("[yellow]   Tunggu beberapa menit, lalu jalankan ulang. "
+                       "Checkpoint tidak berubah.[/yellow]")
+            handle_rate_limit(webhook_url, channel, executor, 0, 0)
+            cleanup_all(channel, checkpoint_dir)
+            sys.exit(3)
+        if fetch_error in ("network", "timeout", "budget"):
+            safe_print(f"[red][❌] Gagal mengambil daftar video ({fetch_error}).[/red]")
+            safe_print("[yellow]   Periksa koneksi/kuota, lalu jalankan ulang.[/yellow]")
+            cleanup_all(channel, checkpoint_dir)
+            sys.exit(3)
         safe_print(f"[red][❌] Tidak ada video ditemukan untuk {_channel_label(channel)}.[/red]")
         safe_print(f"[yellow]   Periksa nama channel, atau coba: yt-dlp --flat-playlist --print id "
                    f"{_channel_base_url(channel)}/videos[/yellow]")
         send_discord(webhook_url, channel, executor, [], "")
         cleanup_all(channel, checkpoint_dir)
         sys.exit(1)
+
+    if getattr(args, "new_only", False):
+        try:
+            from cs_core.watch import filter_new
+
+            video_ids = filter_new(channel, video_ids)
+        except Exception:
+            pass
+        if not video_ids:
+            safe_print(f"[green][✓] Tidak ada video baru untuk {_channel_label(channel)}.[/green]")
+            cleanup_all(channel, checkpoint_dir)
+            sys.exit(0)
 
     # Apply checkpoint
     if start_from > 0 and start_from < len(video_ids):
@@ -2714,6 +2858,27 @@ def process_channel(args):
 
     sent = send_discord(webhook_url, channel, executor, results, html_path)
 
+    try:
+        from cs_core.store import record_run
+
+        record_run(
+            channel=channel,
+            channel_id=channel if _is_raw_channel_id(channel) else "",
+            name=_display_name_override,
+            mode=mode,
+            lang=lang,
+            content_type=content_type,
+            executor=executor,
+            status="ok",
+            started_at=_stats.get("start_time") or time.time(),
+            finished_at=time.time(),
+            exit_code=0,
+            results=results,
+            config_dir=config_dir,
+        )
+    except Exception:
+        pass
+
     # Hapus HTML lokal HANYA bila benar-benar terkirim ke Discord. Kalau
     # webhook kosong / gagal / file terlalu besar, file DIBIARKAN supaya hasil
     # tak hilang (dulu dihapus membabi buta -> laporan hilang saat no webhook).
@@ -2728,6 +2893,14 @@ def process_channel(args):
             safe_print(f"[yellow][📁] HTML disimpan di: {html_path}[/yellow]")
 
     # Cleanup memori dan file temporer — checkpoint TIDAK dihapus otomatis
+    if (_stats["done"] >= total and not args.retry_blocked_log
+            and not explicit_ids):
+        try:
+            from cs_core.watch import mark_seen
+
+            mark_seen(channel, video_ids)
+        except Exception:
+            pass
     cleanup_all(channel, checkpoint_dir)
 
     # ── Cek blocked log — tawarkan hapus ─────────────────────────
@@ -2799,6 +2972,11 @@ if __name__ == "__main__":
     parser.add_argument("--webhook-url",   default="")
     parser.add_argument("--lang",               default="id")
     parser.add_argument("--retry-blocked-log",  default="")
+    parser.add_argument("--video-ids",          default="",
+                         help="daftar video ID eksplisit (dipisah koma); "
+                              "melewati listing channel")
+    parser.add_argument("--new-only",           action="store_true",
+                         help="hanya video yang lebih baru dari kursor watch_state")
     parser.add_argument("--display-name",       default="",
                          help="Nama asli channel (dari yt-dlp uploader field) buat "
                               "label tampilan — dipakai kalau --channel isi ID mentah (UCxxx).")

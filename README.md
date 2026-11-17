@@ -14,7 +14,7 @@ bash cs20.sh                # menu interaktif
 
 | # | Aksi | Catatan |
 |---|---|---|
-| 1 | ⚡ Scan channel | pilih satu **atau banyak** channel sekaligus (dari checkpoint) |
+| 1 | ⚡ Scan channel | pilih satu/banyak; preflight **video terbaru + jumlah baru** |
 | 2 | 🎬 Analisa video | terima ID atau URL; hasil langsung + opsi buka di YouTube |
 | 3 | 🔎 Cari di index | index rekursif + cache transkrip; Enter → buka momen |
 | 4 | 📋 Log blocked | daftar `*_blocked.json`, scan ulang video yang kena blokir |
@@ -23,11 +23,15 @@ bash cs20.sh                # menu interaktif
 | 7 | 💬 ChatSeeker | engine live-chat terpisah (butuh terminal interaktif) |
 | 8 | 🚗 Auto Drive | discovery channel baru otomatis |
 | 9 | 🧹 Cache | stats / bersihkan kedaluwarsa / hapus semua |
+| p | 📃 Playlist | scan khusus playlist (engine terpisah) |
+| m | 💬 ChatSeeker Membership | live chat video members-only |
+| k | 🍪 Cookies | import / paste / cek validitas |
 | v | 🎞️ Video terakhir | analisa ulang video yang transkripnya sudah di cache |
 | r | 📄 Laporan | daftar laporan HTML, buka di aplikasi Android |
 | d | 🩺 Doctor | preflight + `--fix` (storage, paket, cookies, webhook) |
+| c | 🔗 Cek channel ID | resolusi handle/URL/video → `UC…` (auto-simpan) |
 | l | 🌐 Ganti bahasa | id/en/jp/kr/in (Hindi+Telugu)/th |
-| s | ⚙️ Setelan | fuzzy, jobs, limit, notifikasi, wake-lock |
+| s | ⚙️ Setelan | fuzzy, jobs, limit, tipe konten (semua/video/live), notifikasi, wake-lock |
 | 0 | Keluar | |
 
 Header menu menampilkan lokasi data aktif (`data=… · N transkrip · N laporan`),
@@ -38,6 +42,17 @@ lewat `prompt_toolkit` bila terpasang, atau pemilih raw bawaan (stdlib) bila
 tidak. Mode angka + tab-completion (readline) otomatis dipakai di pipe/cron
 atau bila terminal tidak mendukung pembacaan tombol mentah. Pilihan
 `➕ Channel baru` selalu tampil di atas dan tidak ikut tersaring filter.
+Input channel menerima handle (`@nama`), URL YouTube, atau channel ID mentah
+(`UC` + 22 karakter). Pakai channel ID bila handle sebuah kanal tertabrak
+vanity URL lama — contoh `@aerithlive` di-redirect YouTube ke `/Aerith` (kanal
+berbeda), sedangkan `/channel/UC…` selalu menunjuk kanal yang benar.
+Daftar channel menampilkan **nama channel** (ID `UC…` sebagai detail), dan
+laporan Discord memakai nama yang sama; nama di-cache di
+`.cs20/channel_names.json` dan diambil otomatis saat channel ditambahkan/discan.
+Saat memilih beberapa channel, menu menampilkan preflight **video terbaru**
+lewat RSS (1 request/channel) sebelum scan. Semua request YouTube lewat
+limiter global 1 request/detik dengan backoff 429; detail:
+`docs/rate-limit-preflight.md`.
 Tata letak pemilih menyesuaikan ukuran terminal: lebar dihitung dalam sel
 (emoji = 2 sel) dan jumlah baris dibatasi tinggi layar, jadi tetap rapi di
 Termux sempit atau setelah layar di-resize.
@@ -51,8 +66,28 @@ cs21                          # menu interaktif
 cs21 doctor                   # cek kesiapan (python, yt-dlp, cookies, storage, webhook)
 cs21 doctor --fix             # perbaiki otomatis yang bisa diperbaiki
 
+cs21 channel-id @aerithlive    # handle → channel ID (deteksi tabrakan vanity)
+cs21 channel-id https://youtu.be/<video>   # dari video (paling akurat)
+cs21 channel-id @aerithlive --json --save  # JSON + simpan ke channels.txt
+
+cs21 watch --channel @aerithlive --once    # cek video baru via RSS + scan
+cs21 watch --channel @a,@b --interval 30m  # pantau berkala
+cs21 watch --all --once --dry-run          # lihat video baru tanpa scan
+
+cs21 runs list                             # riwayat scan (SQLite)
+cs21 runs show 12                          # detail run + hit
+cs21 runs diff 11 12                       # hit baru/hilang + skor
+
+cs21 playlist --url "https://www.youtube.com/playlist?list=PL..." --limit 50
+cs21 search --query "cegukan" --playlist "https://www.youtube.com/playlist?list=PL..."
+cs21 cookies --file cookies.txt
+cs21 cookies --paste
+cs21 cookies --check --url "https://www.youtube.com/watch?v=<member>"
+
 cs21 scan   --channel windahbasudara --limit 20          # plain, aman untuk cron
 cs21 scan   --channel windahbasudara --limit 20 --ui     # dashboard Live
+cs21 scan   --channel windahbasudara --content-type video # hanya video biasa
+                                                        # (tanpa flag = ikut setelan menu)
 cs21 analyze --video gAQIEyzUHYc --lang id
 cs21 analyze --video "https://youtu.be/gAQIEyzUHYc?t=30" # URL apa pun diterima
 cs21 analyze --video gAQIEyzUHYc --lang id --json        # stdout JSON murni
@@ -131,7 +166,7 @@ cs20_index_engine.py       # Index Mode (batch channel besar)
 cs20_index_parser.py       # VTT download/parse, JSON index, manual search
 cs20_age_engine.py         # bypass video age-restricted
 cs20_autodrive_engine.py   # discovery channel otomatis
-chatseeker.py              # engine live-chat terpisah (keyword sendiri)
+chatseeker.py              # live-chat forensik, keyword multi-bahasa (chat_spec)
 
 docs/                      # architecture, implementation-plan, spec-current
 tests/                     # unittest (golden, parity, anti-typo, cache, CLI, menu)

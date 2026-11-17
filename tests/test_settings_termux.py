@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -44,6 +45,22 @@ class TestSettings(unittest.TestCase):
             self.assertGreaterEqual(s.limit, 0)
             self.assertEqual(s.fuzzy, "auto")
             self.assertEqual(s.ui, "auto")
+
+    def test_content_type_default_and_coercion(self):
+        self.assertEqual(S.Settings().content_type, "all")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "settings.json"
+            path.write_text(json.dumps({"content_type": "video"}), encoding="utf-8")
+            self.assertEqual(S.load(tmp).content_type, "video")
+            path.write_text(json.dumps({"content_type": "shorts"}), encoding="utf-8")
+            self.assertEqual(S.load(tmp).content_type, "all")
+            path.write_text(json.dumps({"content_type": ""}), encoding="utf-8")
+            self.assertEqual(S.load(tmp).content_type, "all")
+
+    def test_content_type_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            S.update(tmp, content_type="live")
+            self.assertEqual(S.load(tmp).content_type, "live")
 
     def test_config_dir_created(self):
         with tempfile.TemporaryDirectory() as tmp:

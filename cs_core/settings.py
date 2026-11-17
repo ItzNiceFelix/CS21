@@ -41,6 +41,7 @@ class Settings:
     fuzzy: FuzzyMode = "auto"
     jobs: int = 4
     limit: int = 20
+    content_type: str = "all"   # all | video | live (dipakai scan)
     notify: bool = True
     wake_lock: bool = True
     ui: str = "auto"          # auto | ptk | plain
@@ -107,6 +108,12 @@ def _coerce(raw: dict) -> Settings:
 
     ui = str(raw.get("ui", base.ui) or base.ui).strip().lower()
     out = out.with_(ui=ui if ui in ("auto", "ptk", "plain") else base.ui)
+
+    content_type = str(raw.get("content_type", base.content_type) or base.content_type).strip().lower()
+    out = out.with_(
+        content_type=content_type if content_type in ("all", "video", "live")
+        else base.content_type
+    )
 
     for key in ("last_channel", "last_mode"):
         val = raw.get(key, getattr(base, key))

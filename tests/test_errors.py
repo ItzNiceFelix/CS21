@@ -234,11 +234,11 @@ class TestCliHelp(unittest.TestCase):
     def test_help_lists_all_commands(self):
         r = _run("--help")
         self.assertEqual(r.returncode, 0, r.stderr)
-        for cmd in ("menu", "scan", "analyze", "search", "index", "age", "cache", "doctor"):
+        for cmd in ("menu", "scan", "watch", "playlist", "cookies", "analyze", "search", "index", "age", "runs", "cache", "doctor"):
             self.assertIn(cmd, r.stdout)
 
     def test_subcommand_help(self):
-        for cmd in ("scan", "analyze", "search", "cache", "doctor", "menu"):
+        for cmd in ("scan", "watch", "analyze", "search", "cache", "doctor", "menu"):
             with self.subTest(cmd=cmd):
                 r = _run(cmd, "--help")
                 self.assertEqual(r.returncode, 0, r.stderr)

@@ -20,6 +20,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from cs_core import menu  # noqa: E402
+from cs_core import settings as _settings  # noqa: E402
 from cs_core.tui import UI  # noqa: E402
 
 def _ctx(tmp: str, lang: str = "id") -> menu.Ctx:
@@ -60,7 +61,13 @@ class TestScanDelegation(unittest.TestCase):
             ctx = _ctx(tmp)
             (Path(tmp) / "channels.txt").write_text("Afandix\n", encoding="utf-8")
             box, patcher = _captured_run()
-            with patcher, _feed(["1", "5", "n"]):
+            # Isolasi: `load_saved_channels` menggabungkan channel asli di
+            # `.cs20/channels.txt`, sehingga pilihan bisa berubah di mesin user.
+            with patcher, \
+                 mock.patch.object(menu, "load_saved_channels",
+                                   return_value=["Afandix"]), \
+                 mock.patch.object(menu, "_show_scan_plan"), \
+                 _feed(["1", "5", "n"]):
                 menu._act_scan(ctx)
             args = box["args"]
             self.assertEqual(box["name"], "scan")
@@ -69,6 +76,31 @@ class TestScanDelegation(unittest.TestCase):
                 self.assertIn(flag, args, flag)
             self.assertEqual(args[args.index("--channel") + 1], "Afandix")
             self.assertEqual(args[args.index("--mode") + 1], "plain")
+            self.assertEqual(args[args.index("--content-type") + 1], "all")
+
+    def test_scan_uses_content_type_setting(self):
+        for code in ("video", "live"):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as tmp:
+                ctx = _ctx(tmp)
+                ctx.settings = ctx.settings.with_(content_type=code)
+                box, patcher = _captured_run()
+                with patcher, \
+                     mock.patch.object(menu, "load_saved_channels",
+                                       return_value=["Afandix"]), \
+                     mock.patch.object(menu, "_show_scan_plan"), \
+                     _feed(["1", "5", "n"]):
+                    menu._act_scan(ctx)
+                args = box["args"]
+                self.assertEqual(args[args.index("--content-type") + 1], code)
+
+class TestSettingsContentType(unittest.TestCase):
+    def test_option_updates_and_persists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ctx = _ctx(tmp)
+            with _feed(["7", "2", "8"]):
+                menu._act_settings(ctx)
+            self.assertEqual(ctx.settings.content_type, "video")
+            self.assertEqual(_settings.load(tmp).content_type, "video")
 
 class TestIndexDelegation(unittest.TestCase):
     def test_index_args_complete(self):
@@ -95,7 +127,10 @@ class TestAgeDelegation(unittest.TestCase):
             ctx = _ctx(tmp)
             box, patcher = _captured_run()
             # pilih "_new" -> ketik channel, konten semua, limit 5, lanjut tanpa cookies
-            with patcher, _feed(["_new", "channelB", "1", "5", "y"]):
+            with patcher, \
+                 mock.patch("cs_core.channels.resolve_channel",
+                            side_effect=RuntimeError("offline (test)")), \
+                 _feed(["_new", "channelB", "1", "5", "y"]):
                 menu._act_age(ctx)
             args = box["args"]
             self.assertEqual(box["name"], "age")
